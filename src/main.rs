@@ -73,6 +73,38 @@ enum ArithmeticTarget {
     L,
 }
 
+impl Instruction {
+    fn from_byte(byte: u8, prefixed: bool) -> Option<Instruction> {
+        if prefixed {
+            Instruction::from_byte_prefixed(byte)
+        } else {
+            Instruction::from_byte_not_prefixed(byte)
+        }
+    }
+
+    fn from_byte_prefixed(byte: u8) -> Option<Instruction> {
+        match byte {
+            // 0x00 => Some(Instruction::RLC(PrefixTrarget::B)),
+            _ => None,
+        }
+    }
+
+    fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
+        match byte {
+            // 0x02 => Some(Instruction::INC(IncDecTarget::BC)),
+            // ..
+            0x87 => Some(Instruction::ADD(ArithmeticTarget::A)),
+            0x80 => Some(Instruction::ADD(ArithmeticTarget::B)),
+            0x81 => Some(Instruction::ADD(ArithmeticTarget::C)),
+            0x82 => Some(Instruction::ADD(ArithmeticTarget::D)),
+            0x83 => Some(Instruction::ADD(ArithmeticTarget::E)),
+            0x84 => Some(Instruction::ADD(ArithmeticTarget::H)),
+            0x85 => Some(Instruction::ADD(ArithmeticTarget::L)),
+            _ => None,
+        }
+    }
+}
+
 struct CPU {
     registers: Registers,
     pc: u16,
@@ -80,20 +112,21 @@ struct CPU {
 }
 
 impl CPU {
-    fn execute(&mut self, instruction: Instruction) {
+    fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
             Instruction::ADD(target) => match target {
-                ArithmeticTarget::A => {}
-                ArithmeticTarget::B => {}
+                ArithmeticTarget::A => self.pc,
+                ArithmeticTarget::B => self.pc,
                 ArithmeticTarget::C => {
                     let value = self.registers.c;
                     let new_value = self.add(value);
                     self.registers.a = new_value;
+                    self.pc.wrapping_add(1)
                 }
-                ArithmeticTarget::D => {}
-                ArithmeticTarget::E => {}
-                ArithmeticTarget::H => {}
-                ArithmeticTarget::L => {}
+                ArithmeticTarget::D => self.pc,
+                ArithmeticTarget::E => self.pc,
+                ArithmeticTarget::H => self.pc,
+                ArithmeticTarget::L => self.pc,
             },
         }
     }
@@ -109,10 +142,20 @@ impl CPU {
 
     fn step(&mut self) {
         let mut instruction_byte = self.bus.read_byte(self.pc);
-        let next_pc = if let Some(instruction) = Instruction::from_byte(instruction_byte) {
+        let prefixed = instruction_byte == 0xCB;
+        if prefixed {
+            instruction_byte = self.bus.read_byte(self.pc + 1);
+        }
+        let next_pc = if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed)
+        {
             self.execute(instruction)
         } else {
-            panic!("Unknown instruction found for: 0x{:02X}", instruction_byte)
+            let description = format!(
+                "0x{}{:02X}",
+                if prefixed { "CB" } else { "" },
+                instruction_byte
+            );
+            panic!("Unknown instruction found for: {}", description)
         };
         self.pc = next_pc;
     }
