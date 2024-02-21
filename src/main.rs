@@ -61,6 +61,8 @@ impl Registers {
 
 enum Instruction {
     ADD(ArithmeticTarget),
+    JP(JumpTest),
+    LD(LoadType),
 }
 
 enum ArithmeticTarget {
@@ -71,6 +73,41 @@ enum ArithmeticTarget {
     E,
     H,
     L,
+}
+
+enum JumpTest {
+    NotZero,
+    Zero,
+    NotCarry,
+    Carry,
+    Always,
+}
+
+enum LoadByteTarget {
+    A,
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    HLI,
+}
+
+enum LoadByteSource {
+    A,
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    D8,
+    HLI,
+}
+
+enum LoadType {
+    Byte(LoadByteTarget, LoadByteSource),
 }
 
 impl Instruction {
@@ -128,6 +165,47 @@ impl CPU {
                 ArithmeticTarget::H => self.pc,
                 ArithmeticTarget::L => self.pc,
             },
+            Instruction::JP(test) => {
+                let jump_condition = match test {
+                    JumpTest::NotZero => !self.registers.f.zero,
+                    JumpTest::Zero => self.registers.f.zero,
+                    JumpTest::NotCarry => !self.registers.f.carry,
+                    JumpTest::Carry => self.registers.f.carry,
+                    JumpTest::Always => true,
+                };
+                self.jump(jump_condition)
+            }
+            Instruction::LD(load_type) => match load_type {
+                LoadType::Byte(target, source) => {
+                    let source_value = match source {
+                        LoadByteSource::A => self.registers.a,
+                        LoadByteSource::B => self.registers.b,
+                        LoadByteSource::C => self.registers.c,
+                        LoadByteSource::D => self.registers.d,
+                        LoadByteSource::E => self.registers.e,
+                        LoadByteSource::H => self.registers.h,
+                        LoadByteSource::L => self.registers.l,
+                        LoadByteSource::D8 => self.read_next_byte(),
+                        LoadByteSource::HLI => self.bus.read_byte(self.registers.get_hl()),
+                    };
+                    match target {
+                        LoadByteTarget::A => self.registers.a = source_value,
+                        LoadByteTarget::B => self.registers.b = source_value,
+                        LoadByteTarget::C => self.registers.c = source_value,
+                        LoadByteTarget::D => self.registers.d = source_value,
+                        LoadByteTarget::E => self.registers.e = source_value,
+                        LoadByteTarget::H => self.registers.h = source_value,
+                        LoadByteTarget::L => self.registers.l = source_value,
+                        LoadByteTarget::HLI => {
+                            self.bus_write_byte(self.registers.get_hl(), source_value)
+                        }
+                    };
+                    match source {
+                        LoadByteSource::D8 => self.pc.wrapping_add(2),
+                        _ => self.pc.wrapping_add(1),
+                    }
+                }
+            },
         }
     }
 
@@ -138,6 +216,16 @@ impl CPU {
         self.registers.f.carry = did_overflow;
         self.registers.f.half_carry = (self.registers.a & 0x0F) + (value & 0x0F) > 0x0F;
         new_value
+    }
+
+    fn jump(&self, should_jump: bool) -> u16 {
+        if should_jump {
+            let least_significant_byte = self.bus.read_byte(self.pc + 1) as u16;
+            let most_significant_byte = self.bus.read_byte(self.pc + 2) as u16;
+            (most_significant_byte << 8) | least_significant_byte
+        } else {
+            self.pc.wrapping_add(3)
+        }
     }
 
     fn step(&mut self) {
