@@ -57,12 +57,28 @@ impl Registers {
         self.b = ((value & 0xFF00) >> 8) as u8;
         self.c = (value & 0x00FF) as u8;
     }
+    fn get_de(&self) -> u16 {
+        (self.d as u16) << 8 | (self.e as u16)
+    }
+    fn set_de(&mut self, value: u16) {
+        self.d = ((value & 0xFF00) >> 8) as u8;
+        self.e = (value & 0x00FF) as u8;
+    }
+    fn get_hl(&self) -> u16 {
+        (self.h as u16) << 8 | (self.l as u16)
+    }
+    fn set_hl(&mut self, value: u16) {
+        self.h = ((value & 0xFF00) >> 8) as u8;
+        self.l = (value & 0x00FF) as u8;
+    }
 }
 
 enum Instruction {
     ADD(ArithmeticTarget),
     JP(JumpTest),
     LD(LoadType),
+    PUSH(StackTarget),
+    POP(StackTarget),
 }
 
 enum ArithmeticTarget {
@@ -106,6 +122,11 @@ enum LoadByteSource {
     HLI,
 }
 
+enum StackTarget {
+    BC,
+    // FIXME
+}
+
 enum LoadType {
     Byte(LoadByteTarget, LoadByteSource),
 }
@@ -145,6 +166,7 @@ impl Instruction {
 struct CPU {
     registers: Registers,
     pc: u16,
+    sp: u16,
     bus: MemoryBus,
 }
 
@@ -197,7 +219,7 @@ impl CPU {
                         LoadByteTarget::H => self.registers.h = source_value,
                         LoadByteTarget::L => self.registers.l = source_value,
                         LoadByteTarget::HLI => {
-                            self.bus_write_byte(self.registers.get_hl(), source_value)
+                            self.bus.write_byte(self.registers.get_hl(), source_value)
                         }
                     };
                     match source {
@@ -206,6 +228,20 @@ impl CPU {
                     }
                 }
             },
+            Instruction::PUSH(target) => {
+              let value = match target {
+                StackTarget::BC => self.registers.get_bc(),
+              }
+              self.push(value);
+              self.pc.wrapping_add(1)
+            },
+            Instruction::POP(target) => {
+              let result = self.pop();
+              match target {
+                StackTarget::BC => self.registers.set_bc(result),
+              }
+              self.pc.wrapping_add(1)
+            }
         }
     }
 
@@ -228,6 +264,21 @@ impl CPU {
         }
     }
 
+    fn push(&mut self, value: u16) {
+      self.sp = self.sp.wrapping_sub(1);
+      self.bus.write_byte(self.sp, ((value & 0xFF00) >> 8) as u8);
+      self.sp = self.sp.wrapping_sub(1);
+      self.bus.write_byte(self.sp, (value & 0x00FF) as u8);
+    }
+
+    fn pop(&mut self, value: u16) -> u16 {
+      let lsb = self.bus.read_byte(self.sp) as u16;
+      self.sp = self.sp.wrapping_add(1);
+      let msb = self.bus.read_byte(self.sp) as u16;
+      self.sp = self.sp.wrapping_add(1);
+      (msb << 8) | lsb
+    }
+
     fn step(&mut self) {
         let mut instruction_byte = self.bus.read_byte(self.pc);
         let prefixed = instruction_byte == 0xCB;
@@ -247,6 +298,10 @@ impl CPU {
         };
         self.pc = next_pc;
     }
+
+    fn read_next_byte(&self) -> u8 {
+        self.bus.read_byte(self.pc + 1)
+    }
 }
 
 struct MemoryBus {
@@ -256,5 +311,8 @@ struct MemoryBus {
 impl MemoryBus {
     fn read_byte(&self, address: u16) -> u8 {
         self.memory[address as usize]
+    }
+    fn write_byte(&mut self, address: u16, value: u8) {
+        self.memory[address as usize] = value;
     }
 }
