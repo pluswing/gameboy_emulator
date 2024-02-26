@@ -79,6 +79,38 @@ enum Instruction {
     LD(LoadType),
     PUSH(StackTarget),
     POP(StackTarget),
+    CALL(JumpTest),
+    RET(JumpTest),
+
+// ADDHL (HL に追加) - ターゲットが HL レジスタに追加される点を除き、ADD と同様です。
+// ADC (キャリー付き加算) - キャリー フラグの値も数値に追加される点を除いて、ADD と同様です。
+// SUB (減算) - 特定のレジスタに格納されている値を A レジスタの値と減算します。
+// SBC (キャリー付き減算) - キャリー フラグの値も数値から減算される点を除き、ADD と同様です。
+// AND (論理積) - 特定のレジスタの値と A レジスタの値に対してビットごとの AND を実行します。
+// OR (論理和) - 特定のレジスタの値と A レジスタの値に対してビットごとの OR を実行します。
+// XOR (論理 xor) - 特定のレジスタの値と A レジスタの値に対してビット単位の xor を実行します。
+// CP (比較) - 減算の結果が A に戻されない点を除けば SUB と同様です。
+// INC (インクリメント) - 特定のレジスタの値を 1 ずつインクリメントします。
+// DEC (デクリメント) - 特定のレジスタの値を 1 ずつデクリメントします。
+// CCF (補数キャリー フラグ) - キャリー フラグの値を切り替えます。
+// SCF (キャリー フラグの設定) - キャリー フラグを true に設定します。
+// RRA (A レジスターの右回転) - キャリー フラグを通じて A レジスターを右にビット回転します。
+// RLA (A レジスタの左回転) - キャリー フラグを通じて A レジスタを左にビット回転します。
+// RRCA (A レジスター右回転) - A レジスターを右にビット回転します (キャリー フラグを介さない)
+// RRLA (A レジスタの左回転) - A レジスタのビットを左に回転します (キャリー フラグを介さない)
+// CPL (補数) - A レジスタの各ビットを切り替えます。
+// BIT (ビットテスト) - 特定のレジスタの特定のビットが設定されているかどうかを確認するテスト
+// RESET (ビットリセット) - 特定のレジスタの特定のビットを0に設定します。
+// SET (ビットセット) - 特定のレジスタの特定のビットを 1 に設定します。
+// SRL (論理右シフト) - 特定のレジスタを右に 1 ビットシフトします。
+// RR (右回転) - キャリー フラグを使用して特定のレジスタを右に 1 ビット回転します。
+// RL (左回転) - キャリー フラグを使用して特定のレジスタを 1 だけ左にビット回転します。
+// RRC (右回転) - 特定のレジスタを 1 だけ右にビット回転します (キャリー フラグを介さない)
+// RLC (左回転) - 特定のレジスタを 1 だけ左にビット回転します (キャリー フラグを介さない)
+// SRA (右シフト算術) - 特定のレジスタを右に 1 算術シフトします。
+// SLA (シフト左算術) - 特定のレジスタを左に 1 算術シフトします。
+// SWAP (スワップニブル) - 特定のレジスタの上位ニブルと下位ニブルを切り替えます
+
 }
 
 enum ArithmeticTarget {
@@ -242,6 +274,20 @@ impl CPU {
               }
               self.pc.wrapping_add(1)
             }
+            Instruction::CALL(test) => {
+              let jump_condition = match test {
+                JumpTest::NotZero => !self.registers.zero,
+                _ => { panic!("TODO: support more condition")}
+              };
+              self.call(jump_condition)
+            }
+            Instruction::RET(test) => {
+              let jump_condition = match test {
+                JumpTest::NotZero => !self.registers.zero,
+                _ => { panic!("TODO: support more condition")}
+              };
+              self.return_(jump_condition)
+            }
         }
     }
 
@@ -256,9 +302,7 @@ impl CPU {
 
     fn jump(&self, should_jump: bool) -> u16 {
         if should_jump {
-            let least_significant_byte = self.bus.read_byte(self.pc + 1) as u16;
-            let most_significant_byte = self.bus.read_byte(self.pc + 2) as u16;
-            (most_significant_byte << 8) | least_significant_byte
+            self.read_next_word()
         } else {
             self.pc.wrapping_add(3)
         }
@@ -271,12 +315,30 @@ impl CPU {
       self.bus.write_byte(self.sp, (value & 0x00FF) as u8);
     }
 
-    fn pop(&mut self, value: u16) -> u16 {
+    fn pop(&mut self) -> u16 {
       let lsb = self.bus.read_byte(self.sp) as u16;
       self.sp = self.sp.wrapping_add(1);
       let msb = self.bus.read_byte(self.sp) as u16;
       self.sp = self.sp.wrapping_add(1);
       (msb << 8) | lsb
+    }
+
+    fn call(&mut self, should_jump: bool) -> u16 {
+      let next_pc = self.pc.wrapping_add(3);
+      if should_jump {
+        self.push(next_pc);
+        self.read_next_word()
+      } else {
+        next_pc
+      }
+    }
+
+    fn return_(&mut self, should_jump: bool) -> u16 {
+      if should_jump {
+        self.pop()
+      } else {
+        self.pc.wrapping_add(1)
+      }
     }
 
     fn step(&mut self) {
@@ -301,6 +363,12 @@ impl CPU {
 
     fn read_next_byte(&self) -> u8 {
         self.bus.read_byte(self.pc + 1)
+    }
+
+    fn read_next_word(&self) -> u16 {
+      let l = self.bus.read_byte(self.pc + 1) as u16;
+      let u = self.bus.read_byte(self.pc + 2) as u16;
+      return (u << 8) | l
     }
 }
 
