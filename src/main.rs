@@ -50,6 +50,23 @@ impl std::convert::From<u8> for FlagsRegister {
 }
 
 impl Registers {
+  fn new() -> Self {
+    Registers {
+      a: 0,
+      b: 0,
+      c: 0,
+      d: 0,
+      e: 0,
+      f: FlagsRegister {
+        zero:false,
+        subtract: false,
+        half_carry: false,
+        carry: false
+      },
+      h: 0,
+      l: 0
+    }
+  }
     fn get_bc(&self) -> u16 {
         (self.b as u16) << 8 | (self.c as u16)
     }
@@ -203,6 +220,15 @@ struct CPU {
 }
 
 impl CPU {
+    fn new() -> Self {
+      CPU {
+        registers: Registers::new(),
+        pc: 0,
+        sp: 0,
+        bus: MemoryBus { memory: [] }
+      }
+    }
+
     fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
             Instruction::ADD(target) => match target {
@@ -377,10 +403,27 @@ struct MemoryBus {
 }
 
 impl MemoryBus {
+    fn new() -> Self {
+      MemoryBus {
+        memory: // [0xFFFF; 0]
+      }
+    }
     fn read_byte(&self, address: u16) -> u8 {
         self.memory[address as usize]
     }
     fn write_byte(&mut self, address: u16, value: u8) {
         self.memory[address as usize] = value;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_add_c() {
+      let cpu = CPU::new();
+      cpu.registers.a = 0x0F;
+      // assert_eq!(cpu.register_a, 0x05);
     }
 }
