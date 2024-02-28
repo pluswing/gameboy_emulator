@@ -18,6 +18,7 @@ const SUBTRACT_FLAG_BYTE_POSITION: u8 = 6;
 const HALF_CARRY_FLAG_BYTE_POSITION: u8 = 5;
 const CARRY_FLAG_BYTE_POSITION: u8 = 4;
 
+#[derive(Debug, PartialEq)]
 struct FlagsRegister {
     zero: bool,
     subtract: bool,
@@ -50,23 +51,23 @@ impl std::convert::From<u8> for FlagsRegister {
 }
 
 impl Registers {
-  fn new() -> Self {
-    Registers {
-      a: 0,
-      b: 0,
-      c: 0,
-      d: 0,
-      e: 0,
-      f: FlagsRegister {
-        zero:false,
-        subtract: false,
-        half_carry: false,
-        carry: false
-      },
-      h: 0,
-      l: 0
+    fn new() -> Self {
+        Registers {
+            a: 0,
+            b: 0,
+            c: 0,
+            d: 0,
+            e: 0,
+            f: FlagsRegister {
+                zero: false,
+                subtract: false,
+                half_carry: false,
+                carry: false,
+            },
+            h: 0,
+            l: 0,
+        }
     }
-  }
     fn get_bc(&self) -> u16 {
         (self.b as u16) << 8 | (self.c as u16)
     }
@@ -98,36 +99,34 @@ enum Instruction {
     POP(StackTarget),
     CALL(JumpTest),
     RET(JumpTest),
-
-// ADDHL (HL に追加) - ターゲットが HL レジスタに追加される点を除き、ADD と同様です。
-// ADC (キャリー付き加算) - キャリー フラグの値も数値に追加される点を除いて、ADD と同様です。
-// SUB (減算) - 特定のレジスタに格納されている値を A レジスタの値と減算します。
-// SBC (キャリー付き減算) - キャリー フラグの値も数値から減算される点を除き、ADD と同様です。
-// AND (論理積) - 特定のレジスタの値と A レジスタの値に対してビットごとの AND を実行します。
-// OR (論理和) - 特定のレジスタの値と A レジスタの値に対してビットごとの OR を実行します。
-// XOR (論理 xor) - 特定のレジスタの値と A レジスタの値に対してビット単位の xor を実行します。
-// CP (比較) - 減算の結果が A に戻されない点を除けば SUB と同様です。
-// INC (インクリメント) - 特定のレジスタの値を 1 ずつインクリメントします。
-// DEC (デクリメント) - 特定のレジスタの値を 1 ずつデクリメントします。
-// CCF (補数キャリー フラグ) - キャリー フラグの値を切り替えます。
-// SCF (キャリー フラグの設定) - キャリー フラグを true に設定します。
-// RRA (A レジスターの右回転) - キャリー フラグを通じて A レジスターを右にビット回転します。
-// RLA (A レジスタの左回転) - キャリー フラグを通じて A レジスタを左にビット回転します。
-// RRCA (A レジスター右回転) - A レジスターを右にビット回転します (キャリー フラグを介さない)
-// RRLA (A レジスタの左回転) - A レジスタのビットを左に回転します (キャリー フラグを介さない)
-// CPL (補数) - A レジスタの各ビットを切り替えます。
-// BIT (ビットテスト) - 特定のレジスタの特定のビットが設定されているかどうかを確認するテスト
-// RESET (ビットリセット) - 特定のレジスタの特定のビットを0に設定します。
-// SET (ビットセット) - 特定のレジスタの特定のビットを 1 に設定します。
-// SRL (論理右シフト) - 特定のレジスタを右に 1 ビットシフトします。
-// RR (右回転) - キャリー フラグを使用して特定のレジスタを右に 1 ビット回転します。
-// RL (左回転) - キャリー フラグを使用して特定のレジスタを 1 だけ左にビット回転します。
-// RRC (右回転) - 特定のレジスタを 1 だけ右にビット回転します (キャリー フラグを介さない)
-// RLC (左回転) - 特定のレジスタを 1 だけ左にビット回転します (キャリー フラグを介さない)
-// SRA (右シフト算術) - 特定のレジスタを右に 1 算術シフトします。
-// SLA (シフト左算術) - 特定のレジスタを左に 1 算術シフトします。
-// SWAP (スワップニブル) - 特定のレジスタの上位ニブルと下位ニブルを切り替えます
-
+    // ADDHL (HL に追加) - ターゲットが HL レジスタに追加される点を除き、ADD と同様です。
+    // ADC (キャリー付き加算) - キャリー フラグの値も数値に追加される点を除いて、ADD と同様です。
+    // SUB (減算) - 特定のレジスタに格納されている値を A レジスタの値と減算します。
+    // SBC (キャリー付き減算) - キャリー フラグの値も数値から減算される点を除き、ADD と同様です。
+    // AND (論理積) - 特定のレジスタの値と A レジスタの値に対してビットごとの AND を実行します。
+    // OR (論理和) - 特定のレジスタの値と A レジスタの値に対してビットごとの OR を実行します。
+    // XOR (論理 xor) - 特定のレジスタの値と A レジスタの値に対してビット単位の xor を実行します。
+    // CP (比較) - 減算の結果が A に戻されない点を除けば SUB と同様です。
+    // INC (インクリメント) - 特定のレジスタの値を 1 ずつインクリメントします。
+    // DEC (デクリメント) - 特定のレジスタの値を 1 ずつデクリメントします。
+    // CCF (補数キャリー フラグ) - キャリー フラグの値を切り替えます。
+    // SCF (キャリー フラグの設定) - キャリー フラグを true に設定します。
+    // RRA (A レジスターの右回転) - キャリー フラグを通じて A レジスターを右にビット回転します。
+    // RLA (A レジスタの左回転) - キャリー フラグを通じて A レジスタを左にビット回転します。
+    // RRCA (A レジスター右回転) - A レジスターを右にビット回転します (キャリー フラグを介さない)
+    // RRLA (A レジスタの左回転) - A レジスタのビットを左に回転します (キャリー フラグを介さない)
+    // CPL (補数) - A レジスタの各ビットを切り替えます。
+    // BIT (ビットテスト) - 特定のレジスタの特定のビットが設定されているかどうかを確認するテスト
+    // RESET (ビットリセット) - 特定のレジスタの特定のビットを0に設定します。
+    // SET (ビットセット) - 特定のレジスタの特定のビットを 1 に設定します。
+    // SRL (論理右シフト) - 特定のレジスタを右に 1 ビットシフトします。
+    // RR (右回転) - キャリー フラグを使用して特定のレジスタを右に 1 ビット回転します。
+    // RL (左回転) - キャリー フラグを使用して特定のレジスタを 1 だけ左にビット回転します。
+    // RRC (右回転) - 特定のレジスタを 1 だけ右にビット回転します (キャリー フラグを介さない)
+    // RLC (左回転) - 特定のレジスタを 1 だけ左にビット回転します (キャリー フラグを介さない)
+    // SRA (右シフト算術) - 特定のレジスタを右に 1 算術シフトします。
+    // SLA (シフト左算術) - 特定のレジスタを左に 1 算術シフトします。
+    // SWAP (スワップニブル) - 特定のレジスタの上位ニブルと下位ニブルを切り替えます
 }
 
 enum ArithmeticTarget {
@@ -207,6 +206,9 @@ impl Instruction {
             0x83 => Some(Instruction::ADD(ArithmeticTarget::E)),
             0x84 => Some(Instruction::ADD(ArithmeticTarget::H)),
             0x85 => Some(Instruction::ADD(ArithmeticTarget::L)),
+
+            0xCA => Some(Instruction::JP(JumpTest::Zero)),
+            // ...
             _ => None,
         }
     }
@@ -221,18 +223,18 @@ struct CPU {
 
 impl CPU {
     fn new() -> Self {
-      CPU {
-        registers: Registers::new(),
-        pc: 0,
-        sp: 0,
-        bus: MemoryBus { memory: [] }
-      }
+        CPU {
+            registers: Registers::new(),
+            pc: 0x0000,
+            sp: 0x0000, // FIXME たぶん0xFFFF
+            bus: MemoryBus::new(),
+        }
     }
 
     fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
             Instruction::ADD(target) => match target {
-                ArithmeticTarget::A => self.pc,
+                ArithmeticTarget::A => self.pc, // FIXME 実装する
                 ArithmeticTarget::B => self.pc,
                 ArithmeticTarget::C => {
                     let value = self.registers.c;
@@ -287,32 +289,36 @@ impl CPU {
                 }
             },
             Instruction::PUSH(target) => {
-              let value = match target {
-                StackTarget::BC => self.registers.get_bc(),
-              }
-              self.push(value);
-              self.pc.wrapping_add(1)
-            },
+                let value = match target {
+                    StackTarget::BC => self.registers.get_bc(),
+                };
+                self.push(value);
+                self.pc.wrapping_add(1)
+            }
             Instruction::POP(target) => {
-              let result = self.pop();
-              match target {
-                StackTarget::BC => self.registers.set_bc(result),
-              }
-              self.pc.wrapping_add(1)
+                let result = self.pop();
+                match target {
+                    StackTarget::BC => self.registers.set_bc(result),
+                }
+                self.pc.wrapping_add(1)
             }
             Instruction::CALL(test) => {
-              let jump_condition = match test {
-                JumpTest::NotZero => !self.registers.zero,
-                _ => { panic!("TODO: support more condition")}
-              };
-              self.call(jump_condition)
+                let jump_condition = match test {
+                    JumpTest::NotZero => !self.registers.f.zero,
+                    _ => {
+                        panic!("TODO: support more condition")
+                    }
+                };
+                self.call(jump_condition)
             }
             Instruction::RET(test) => {
-              let jump_condition = match test {
-                JumpTest::NotZero => !self.registers.zero,
-                _ => { panic!("TODO: support more condition")}
-              };
-              self.return_(jump_condition)
+                let jump_condition = match test {
+                    JumpTest::NotZero => !self.registers.f.zero,
+                    _ => {
+                        panic!("TODO: support more condition")
+                    }
+                };
+                self.return_(jump_condition)
             }
         }
     }
@@ -335,36 +341,36 @@ impl CPU {
     }
 
     fn push(&mut self, value: u16) {
-      self.sp = self.sp.wrapping_sub(1);
-      self.bus.write_byte(self.sp, ((value & 0xFF00) >> 8) as u8);
-      self.sp = self.sp.wrapping_sub(1);
-      self.bus.write_byte(self.sp, (value & 0x00FF) as u8);
+        self.sp = self.sp.wrapping_sub(1);
+        self.bus.write_byte(self.sp, ((value & 0xFF00) >> 8) as u8);
+        self.sp = self.sp.wrapping_sub(1);
+        self.bus.write_byte(self.sp, (value & 0x00FF) as u8);
     }
 
     fn pop(&mut self) -> u16 {
-      let lsb = self.bus.read_byte(self.sp) as u16;
-      self.sp = self.sp.wrapping_add(1);
-      let msb = self.bus.read_byte(self.sp) as u16;
-      self.sp = self.sp.wrapping_add(1);
-      (msb << 8) | lsb
+        let lsb = self.bus.read_byte(self.sp) as u16;
+        self.sp = self.sp.wrapping_add(1);
+        let msb = self.bus.read_byte(self.sp) as u16;
+        self.sp = self.sp.wrapping_add(1);
+        (msb << 8) | lsb
     }
 
     fn call(&mut self, should_jump: bool) -> u16 {
-      let next_pc = self.pc.wrapping_add(3);
-      if should_jump {
-        self.push(next_pc);
-        self.read_next_word()
-      } else {
-        next_pc
-      }
+        let next_pc = self.pc.wrapping_add(3);
+        if should_jump {
+            self.push(next_pc);
+            self.read_next_word()
+        } else {
+            next_pc
+        }
     }
 
     fn return_(&mut self, should_jump: bool) -> u16 {
-      if should_jump {
-        self.pop()
-      } else {
-        self.pc.wrapping_add(1)
-      }
+        if should_jump {
+            self.pop()
+        } else {
+            self.pc.wrapping_add(1)
+        }
     }
 
     fn step(&mut self) {
@@ -392,9 +398,9 @@ impl CPU {
     }
 
     fn read_next_word(&self) -> u16 {
-      let l = self.bus.read_byte(self.pc + 1) as u16;
-      let u = self.bus.read_byte(self.pc + 2) as u16;
-      return (u << 8) | l
+        let l = self.bus.read_byte(self.pc + 1) as u16;
+        let u = self.bus.read_byte(self.pc + 2) as u16;
+        return (u << 8) | l;
     }
 }
 
@@ -404,9 +410,9 @@ struct MemoryBus {
 
 impl MemoryBus {
     fn new() -> Self {
-      MemoryBus {
-        memory: // [0xFFFF; 0]
-      }
+        MemoryBus {
+            memory: [0; 0xFFFF],
+        }
     }
     fn read_byte(&self, address: u16) -> u8 {
         self.memory[address as usize]
@@ -421,9 +427,104 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_add_c() {
-      let cpu = CPU::new();
-      cpu.registers.a = 0x0F;
-      // assert_eq!(cpu.register_a, 0x05);
+    fn test_add_a_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x81); // ADD A, C
+        cpu.registers.c = 0x03;
+        cpu.registers.a = 0x02;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x05);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(
+            cpu.registers.f,
+            FlagsRegister {
+                zero: false,
+                subtract: false,
+                half_carry: false,
+                carry: false,
+            }
+        );
+    }
+
+    #[test]
+    fn test_add_a_c_zero() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x81); // ADD A, C
+        cpu.registers.c = 0x00;
+        cpu.registers.a = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x00);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(
+            cpu.registers.f,
+            FlagsRegister {
+                zero: true,
+                subtract: false,
+                half_carry: false,
+                carry: false,
+            }
+        );
+    }
+
+    #[test]
+    fn test_add_a_c_carry() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x81); // ADD A, C
+        cpu.registers.c = 0xF0;
+        cpu.registers.a = 0x20;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x10);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(
+            cpu.registers.f,
+            FlagsRegister {
+                zero: false,
+                subtract: false,
+                half_carry: false,
+                carry: true,
+            }
+        );
+    }
+
+    #[test]
+    fn test_add_a_c_half_carry() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x81); // ADD A, C
+        cpu.registers.c = 0x0F;
+        cpu.registers.a = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x10);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(
+            cpu.registers.f,
+            FlagsRegister {
+                zero: false,
+                subtract: false,
+                half_carry: true,
+                carry: false,
+            }
+        );
+    }
+
+    #[test]
+    fn test_jp_zero() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCA); // JP Z, a16
+        cpu.bus.write_byte(0x0001, 0x01);
+        cpu.bus.write_byte(0x0002, 0x02);
+        cpu.registers.f.zero = true;
+        cpu.step();
+        assert_eq!(cpu.pc, 0x0201);
+    }
+
+    #[test]
+    fn test_jp_zero_fail() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCA); // JP Z, a16
+        cpu.bus.write_byte(0x0001, 0x01);
+        cpu.bus.write_byte(0x0002, 0x02);
+        cpu.registers.f.zero = false;
+        cpu.step();
+        assert_eq!(cpu.pc, 0x0003);
     }
 }
