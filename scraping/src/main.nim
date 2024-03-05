@@ -6,6 +6,7 @@ import nimquery
 import strutils
 import strformat
 import sugar
+import tables
 
 type
   FlagValue = enum
@@ -34,9 +35,9 @@ let client = newHttpClient()
 let response = client.get(url)
 let html = response.body.newStringStream().parseHtml()
 
-let tables = html.querySelectorAll("[class=\"withborder\"]")
-let noPrefixedOps = tables[0].querySelectorAll("tr")
-# let prefixedOps = tables[1].querySelectorAll("tr")
+let ts = html.querySelectorAll("[class=\"withborder\"]")
+let noPrefixedOps = ts[0].querySelectorAll("tr")
+# let prefixedOps = ts[1].querySelectorAll("tr")
 
 var operations = newSeq[OpsCode]()
 
@@ -89,5 +90,28 @@ for i, tr in noPrefixedOps:
       flags: flags
     ))
 
+# 命令ごとにgroup
+var op_group = initTable[string, seq[OpsCode]]()
 for op in operations:
-  echo(fmt"{op.code} => Some(Instruction::{op.name}(...)),")
+  if not op_group.hasKey(op.name):
+    op_group[op.name] = newSeq[OpsCode]()
+  op_group[op.name].add(op)
+
+# 各命令の引数をgroup (LD A, A  LD B, C) => [[A, B], [A, C]]
+var op_args = initTable[string, seq[seq[string]]]()
+for name, ops in op_group:
+  let lengths = collect(newSeq):
+    for op in ops: op.args.len
+  let max_length = max(lengths)
+  var arg_group_list = newSeq[seq[string]](max_length)
+  for op in ops:
+    for i, a in op.args:
+      arg_group_list[i].add(a)
+  op_args[name] = arg_group_list
+
+echo opArgs
+# uniqueをとる
+# (HL) => Indirect_HL とかにする。
+
+# for op in operations:
+#   echo(fmt"{op.code} => Some(Instruction::{op.name}(...)),")
