@@ -106,12 +106,38 @@ for name, ops in op_group:
   var arg_group_list = newSeq[seq[string]](max_length)
   for op in ops:
     for i, a in op.args:
-      arg_group_list[i].add(a)
+      if not arg_group_list[i].contains(a):
+        arg_group_list[i].add(a)
   op_args[name] = arg_group_list
+# TODO (HL) => Indirect_HL とかにする。
 
-echo opArgs
-# uniqueをとる
-# (HL) => Indirect_HL とかにする。
 
-# for op in operations:
-#   echo(fmt"{op.code} => Some(Instruction::{op.name}(...)),")
+# enum ArithmeticTarget { ...
+for name, args in op_args:
+  for i, list in args:
+    echo fmt"enum {name}_Arg_{i}" & "{"
+    for v in list:
+      echo fmt"    {v},"
+    echo "}\n"
+
+# enum Instruction {
+echo "enum Instruction {"
+for name, args in op_args:
+  let arg_str = collect(newSeq):
+    for i, a in args: fmt"{name}_Arg_{i}"
+  let a = arg_str.join(", ")
+  echo fmt"    {name}({a}),"
+echo "}\n"
+
+echo "fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {"
+echo "   match byte {"
+for op in operations:
+  var args = newSeq[string]()
+  for i, a in op_args[op.name]:
+    let v = op.args[i]
+    args.add(fmt"{op.name}_Arg_{i}::{v}")
+  let a = args.join(", ")
+  echo(fmt"        {op.code} => Some(Instruction::{op.name}({a})),")
+echo("        _ => None,")
+echo "    }"
+echo "}\n"
