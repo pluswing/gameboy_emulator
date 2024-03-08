@@ -1,4 +1,37 @@
-enum XOR_Arg_0{
+enum DEC_Arg_0 {
+    B,
+    BC,
+    C,
+    D,
+    DE,
+    E,
+    H,
+    HL,
+    L,
+    Indirect_HL,
+    SP,
+    A,
+}
+
+enum JP_Arg_0 {
+    NZ,
+    a16,
+    Z,
+    NC,
+    C,
+    Indirect_HL,
+}
+
+enum JP_Arg_1 {
+    NONE,
+    a16,
+}
+
+enum SBC_Arg_0 {
+    A,
+}
+
+enum SBC_Arg_1 {
     B,
     C,
     D,
@@ -10,14 +43,232 @@ enum XOR_Arg_0{
     d8,
 }
 
-enum POP_Arg_0{
+enum SWAP_Arg_0 {
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    Indirect_HL,
+    A,
+}
+
+enum SUB_Arg_0 {
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    Indirect_HL,
+    A,
+    d8,
+}
+
+enum CALL_Arg_0 {
+    NZ,
+    Z,
+    a16,
+    NC,
+    C,
+}
+
+enum CALL_Arg_1 {
+    NONE,
+    a16,
+}
+
+enum CP_Arg_0 {
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    Indirect_HL,
+    A,
+    d8,
+}
+
+enum RET_Arg_0 {
+    NONE,
+    NZ,
+    Z,
+    NC,
+    C,
+}
+
+enum SLA_Arg_0 {
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    Indirect_HL,
+    A,
+}
+
+enum JR_Arg_0 {
+    r8,
+    NZ,
+    Z,
+    NC,
+    C,
+}
+
+enum JR_Arg_1 {
+    NONE,
+    r8,
+}
+
+enum PREFIX_Arg_0 {
+    CB,
+}
+
+enum SET_Arg_0 {
+    _0,
+    _1,
+    _2,
+    _3,
+    _4,
+    _5,
+    _6,
+    _7,
+}
+
+enum SET_Arg_1 {
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    Indirect_HL,
+    A,
+}
+
+enum RRC_Arg_0 {
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    Indirect_HL,
+    A,
+}
+
+enum INC_Arg_0 {
+    BC,
+    B,
+    C,
+    DE,
+    D,
+    E,
+    HL,
+    H,
+    L,
+    SP,
+    Indirect_HL,
+    A,
+}
+
+enum RST_Arg_0 {
+    _00H,
+    _08H,
+    _10H,
+    _18H,
+    _20H,
+    _28H,
+    _30H,
+    _38H,
+}
+
+enum RES_Arg_0 {
+    _0,
+    _1,
+    _2,
+    _3,
+    _4,
+    _5,
+    _6,
+    _7,
+}
+
+enum RES_Arg_1 {
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    Indirect_HL,
+    A,
+}
+
+enum AND_Arg_0 {
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    Indirect_HL,
+    A,
+    d8,
+}
+
+enum PUSH_Arg_0 {
     BC,
     DE,
     HL,
     AF,
 }
 
-enum LD_Arg_0{
+enum XOR_Arg_0 {
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    Indirect_HL,
+    A,
+    d8,
+}
+
+enum POP_Arg_0 {
+    BC,
+    DE,
+    HL,
+    AF,
+}
+
+enum BIT_Arg_0 {
+    _0,
+    _1,
+    _2,
+    _3,
+    _4,
+    _5,
+    _6,
+    _7,
+}
+
+enum BIT_Arg_1 {
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    Indirect_HL,
+    A,
+}
+
+enum LD_Arg_0 {
     BC,
     Indirect_BC,
     B,
@@ -38,7 +289,7 @@ enum LD_Arg_0{
     Indirect_C,
 }
 
-enum LD_Arg_1{
+enum LD_Arg_1 {
     d16,
     A,
     d8,
@@ -60,40 +311,11 @@ enum LD_Arg_1{
     Indirect_a16,
 }
 
-enum DEC_Arg_0{
-    B,
-    BC,
-    C,
-    D,
-    DE,
-    E,
-    H,
-    HL,
-    L,
-    Indirect_HL,
-    SP,
-    A,
+enum STOP_Arg_0 {
+    _0,
 }
 
-enum JP_Arg_0{
-    NZ,
-    a16,
-    Z,
-    NC,
-    C,
-    Indirect_HL,
-}
-
-enum JP_Arg_1{
-    NONE,
-    a16,
-}
-
-enum SBC_Arg_0{
-    A,
-}
-
-enum SBC_Arg_1{
+enum RL_Arg_0 {
     B,
     C,
     D,
@@ -102,14 +324,9 @@ enum SBC_Arg_1{
     L,
     Indirect_HL,
     A,
-    d8,
 }
 
-enum STOP_Arg_0{
-    0,
-}
-
-enum SUB_Arg_0{
+enum RR_Arg_0 {
     B,
     C,
     D,
@@ -118,33 +335,30 @@ enum SUB_Arg_0{
     L,
     Indirect_HL,
     A,
-    d8,
 }
 
-enum CALL_Arg_0{
-    NZ,
-    Z,
-    a16,
-    NC,
+enum SRL_Arg_0 {
+    B,
     C,
+    D,
+    E,
+    H,
+    L,
+    Indirect_HL,
+    A,
 }
 
-enum CALL_Arg_1{
-    NONE,
-    a16,
-}
-
-enum LDH_Arg_0{
+enum LDH_Arg_0 {
     Indirect_a8,
     A,
 }
 
-enum LDH_Arg_1{
+enum LDH_Arg_1 {
     A,
     Indirect_a8,
 }
 
-enum CP_Arg_0{
+enum SRA_Arg_0 {
     B,
     C,
     D,
@@ -153,16 +367,15 @@ enum CP_Arg_0{
     L,
     Indirect_HL,
     A,
-    d8,
 }
 
-enum ADD_Arg_0{
+enum ADD_Arg_0 {
     HL,
     A,
     SP,
 }
 
-enum ADD_Arg_1{
+enum ADD_Arg_1 {
     BC,
     DE,
     HL,
@@ -179,36 +392,11 @@ enum ADD_Arg_1{
     r8,
 }
 
-enum RET_Arg_0{
-    NONE,
-    NZ,
-    Z,
-    NC,
-    C,
-}
-
-enum JR_Arg_0{
-    r8,
-    NZ,
-    Z,
-    NC,
-    C,
-}
-
-enum JR_Arg_1{
-    NONE,
-    r8,
-}
-
-enum PREFIX_Arg_0{
-    CB,
-}
-
-enum ADC_Arg_0{
+enum ADC_Arg_0 {
     A,
 }
 
-enum ADC_Arg_1{
+enum ADC_Arg_1 {
     B,
     C,
     D,
@@ -220,33 +408,7 @@ enum ADC_Arg_1{
     d8,
 }
 
-enum INC_Arg_0{
-    BC,
-    B,
-    C,
-    DE,
-    D,
-    E,
-    HL,
-    H,
-    L,
-    SP,
-    Indirect_HL,
-    A,
-}
-
-enum RST_Arg_0{
-    _00H,
-    _08H,
-    _10H,
-    _18H,
-    _20H,
-    _28H,
-    _30H,
-    _38H,
-}
-
-enum OR_Arg_0{
+enum OR_Arg_0 {
     B,
     C,
     D,
@@ -258,7 +420,7 @@ enum OR_Arg_0{
     d8,
 }
 
-enum AND_Arg_0{
+enum RLC_Arg_0 {
     B,
     C,
     D,
@@ -267,55 +429,58 @@ enum AND_Arg_0{
     L,
     Indirect_HL,
     A,
-    d8,
-}
-
-enum PUSH_Arg_0{
-    BC,
-    DE,
-    HL,
-    AF,
 }
 
 enum Instruction {
-    XOR(XOR_Arg_0),
-    POP(POP_Arg_0),
-    RRA(),
-    LD(LD_Arg_0, LD_Arg_1),
     DEC(DEC_Arg_0),
     JP(JP_Arg_0, JP_Arg_1),
     DAA(),
     SBC(SBC_Arg_0, SBC_Arg_1),
-    RLA(),
-    STOP(STOP_Arg_0),
-    CCF(),
+    SWAP(SWAP_Arg_0),
     SUB(SUB_Arg_0),
     RETI(),
     CALL(CALL_Arg_0, CALL_Arg_1),
-    CPL(),
     NOP(),
-    LDH(LDH_Arg_0, LDH_Arg_1),
-    RLCA(),
     CP(CP_Arg_0),
-    ADD(ADD_Arg_0, ADD_Arg_1),
     RRCA(),
     RET(RET_Arg_0),
+    SLA(SLA_Arg_0),
     JR(JR_Arg_0, JR_Arg_1),
     PREFIX(PREFIX_Arg_0),
-    ADC(ADC_Arg_0, ADC_Arg_1),
+    SET(SET_Arg_0, SET_Arg_1),
     DI(),
+    RRC(RRC_Arg_0),
     SCF(),
     INC(INC_Arg_0),
     RST(RST_Arg_0),
-    EI(),
-    OR(OR_Arg_0),
+    RES(RES_Arg_0, RES_Arg_1),
     AND(AND_Arg_0),
     PUSH(PUSH_Arg_0),
     HALT(),
+    XOR(XOR_Arg_0),
+    POP(POP_Arg_0),
+    BIT(BIT_Arg_0, BIT_Arg_1),
+    RRA(),
+    LD(LD_Arg_0, LD_Arg_1),
+    RLA(),
+    STOP(STOP_Arg_0),
+    CCF(),
+    RL(RL_Arg_0),
+    RR(RR_Arg_0),
+    SRL(SRL_Arg_0),
+    CPL(),
+    LDH(LDH_Arg_0, LDH_Arg_1),
+    SRA(SRA_Arg_0),
+    RLCA(),
+    ADD(ADD_Arg_0, ADD_Arg_1),
+    ADC(ADC_Arg_0, ADC_Arg_1),
+    EI(),
+    OR(OR_Arg_0),
+    RLC(RLC_Arg_0),
 }
 
 fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
-   match byte {
+    match byte {
         0x00 => Some(Instruction::NOP()),
         0x01 => Some(Instruction::LD(LD_Arg_0::BC, LD_Arg_1::d16)),
         0x02 => Some(Instruction::LD(LD_Arg_0::Indirect_BC, LD_Arg_1::A)),
@@ -332,7 +497,7 @@ fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
         0x0D => Some(Instruction::DEC(DEC_Arg_0::C)),
         0x0E => Some(Instruction::LD(LD_Arg_0::C, LD_Arg_1::d8)),
         0x0F => Some(Instruction::RRCA()),
-        0x10 => Some(Instruction::STOP(STOP_Arg_0::0)),
+        0x10 => Some(Instruction::STOP(STOP_Arg_0::_0)),
         0x11 => Some(Instruction::LD(LD_Arg_0::DE, LD_Arg_1::d16)),
         0x12 => Some(Instruction::LD(LD_Arg_0::Indirect_DE, LD_Arg_1::A)),
         0x13 => Some(Instruction::INC(INC_Arg_0::DE)),
@@ -565,3 +730,264 @@ fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
     }
 }
 
+fn from_byte_prefixed(byte: u8) -> Option<Instruction> {
+    match byte {
+        0x00 => Some(Instruction::RLC(RLC_Arg_0::B)),
+        0x01 => Some(Instruction::RLC(RLC_Arg_0::C)),
+        0x02 => Some(Instruction::RLC(RLC_Arg_0::D)),
+        0x03 => Some(Instruction::RLC(RLC_Arg_0::E)),
+        0x04 => Some(Instruction::RLC(RLC_Arg_0::H)),
+        0x05 => Some(Instruction::RLC(RLC_Arg_0::L)),
+        0x06 => Some(Instruction::RLC(RLC_Arg_0::Indirect_HL)),
+        0x07 => Some(Instruction::RLC(RLC_Arg_0::A)),
+        0x08 => Some(Instruction::RRC(RRC_Arg_0::B)),
+        0x09 => Some(Instruction::RRC(RRC_Arg_0::C)),
+        0x0A => Some(Instruction::RRC(RRC_Arg_0::D)),
+        0x0B => Some(Instruction::RRC(RRC_Arg_0::E)),
+        0x0C => Some(Instruction::RRC(RRC_Arg_0::H)),
+        0x0D => Some(Instruction::RRC(RRC_Arg_0::L)),
+        0x0E => Some(Instruction::RRC(RRC_Arg_0::Indirect_HL)),
+        0x0F => Some(Instruction::RRC(RRC_Arg_0::A)),
+        0x10 => Some(Instruction::RL(RL_Arg_0::B)),
+        0x11 => Some(Instruction::RL(RL_Arg_0::C)),
+        0x12 => Some(Instruction::RL(RL_Arg_0::D)),
+        0x13 => Some(Instruction::RL(RL_Arg_0::E)),
+        0x14 => Some(Instruction::RL(RL_Arg_0::H)),
+        0x15 => Some(Instruction::RL(RL_Arg_0::L)),
+        0x16 => Some(Instruction::RL(RL_Arg_0::Indirect_HL)),
+        0x17 => Some(Instruction::RL(RL_Arg_0::A)),
+        0x18 => Some(Instruction::RR(RR_Arg_0::B)),
+        0x19 => Some(Instruction::RR(RR_Arg_0::C)),
+        0x1A => Some(Instruction::RR(RR_Arg_0::D)),
+        0x1B => Some(Instruction::RR(RR_Arg_0::E)),
+        0x1C => Some(Instruction::RR(RR_Arg_0::H)),
+        0x1D => Some(Instruction::RR(RR_Arg_0::L)),
+        0x1E => Some(Instruction::RR(RR_Arg_0::Indirect_HL)),
+        0x1F => Some(Instruction::RR(RR_Arg_0::A)),
+        0x20 => Some(Instruction::SLA(SLA_Arg_0::B)),
+        0x21 => Some(Instruction::SLA(SLA_Arg_0::C)),
+        0x22 => Some(Instruction::SLA(SLA_Arg_0::D)),
+        0x23 => Some(Instruction::SLA(SLA_Arg_0::E)),
+        0x24 => Some(Instruction::SLA(SLA_Arg_0::H)),
+        0x25 => Some(Instruction::SLA(SLA_Arg_0::L)),
+        0x26 => Some(Instruction::SLA(SLA_Arg_0::Indirect_HL)),
+        0x27 => Some(Instruction::SLA(SLA_Arg_0::A)),
+        0x28 => Some(Instruction::SRA(SRA_Arg_0::B)),
+        0x29 => Some(Instruction::SRA(SRA_Arg_0::C)),
+        0x2A => Some(Instruction::SRA(SRA_Arg_0::D)),
+        0x2B => Some(Instruction::SRA(SRA_Arg_0::E)),
+        0x2C => Some(Instruction::SRA(SRA_Arg_0::H)),
+        0x2D => Some(Instruction::SRA(SRA_Arg_0::L)),
+        0x2E => Some(Instruction::SRA(SRA_Arg_0::Indirect_HL)),
+        0x2F => Some(Instruction::SRA(SRA_Arg_0::A)),
+        0x30 => Some(Instruction::SWAP(SWAP_Arg_0::B)),
+        0x31 => Some(Instruction::SWAP(SWAP_Arg_0::C)),
+        0x32 => Some(Instruction::SWAP(SWAP_Arg_0::D)),
+        0x33 => Some(Instruction::SWAP(SWAP_Arg_0::E)),
+        0x34 => Some(Instruction::SWAP(SWAP_Arg_0::H)),
+        0x35 => Some(Instruction::SWAP(SWAP_Arg_0::L)),
+        0x36 => Some(Instruction::SWAP(SWAP_Arg_0::Indirect_HL)),
+        0x37 => Some(Instruction::SWAP(SWAP_Arg_0::A)),
+        0x38 => Some(Instruction::SRL(SRL_Arg_0::B)),
+        0x39 => Some(Instruction::SRL(SRL_Arg_0::C)),
+        0x3A => Some(Instruction::SRL(SRL_Arg_0::D)),
+        0x3B => Some(Instruction::SRL(SRL_Arg_0::E)),
+        0x3C => Some(Instruction::SRL(SRL_Arg_0::H)),
+        0x3D => Some(Instruction::SRL(SRL_Arg_0::L)),
+        0x3E => Some(Instruction::SRL(SRL_Arg_0::Indirect_HL)),
+        0x3F => Some(Instruction::SRL(SRL_Arg_0::A)),
+        0x40 => Some(Instruction::BIT(BIT_Arg_0::_0, BIT_Arg_1::B)),
+        0x41 => Some(Instruction::BIT(BIT_Arg_0::_0, BIT_Arg_1::C)),
+        0x42 => Some(Instruction::BIT(BIT_Arg_0::_0, BIT_Arg_1::D)),
+        0x43 => Some(Instruction::BIT(BIT_Arg_0::_0, BIT_Arg_1::E)),
+        0x44 => Some(Instruction::BIT(BIT_Arg_0::_0, BIT_Arg_1::H)),
+        0x45 => Some(Instruction::BIT(BIT_Arg_0::_0, BIT_Arg_1::L)),
+        0x46 => Some(Instruction::BIT(BIT_Arg_0::_0, BIT_Arg_1::Indirect_HL)),
+        0x47 => Some(Instruction::BIT(BIT_Arg_0::_0, BIT_Arg_1::A)),
+        0x48 => Some(Instruction::BIT(BIT_Arg_0::_1, BIT_Arg_1::B)),
+        0x49 => Some(Instruction::BIT(BIT_Arg_0::_1, BIT_Arg_1::C)),
+        0x4A => Some(Instruction::BIT(BIT_Arg_0::_1, BIT_Arg_1::D)),
+        0x4B => Some(Instruction::BIT(BIT_Arg_0::_1, BIT_Arg_1::E)),
+        0x4C => Some(Instruction::BIT(BIT_Arg_0::_1, BIT_Arg_1::H)),
+        0x4D => Some(Instruction::BIT(BIT_Arg_0::_1, BIT_Arg_1::L)),
+        0x4E => Some(Instruction::BIT(BIT_Arg_0::_1, BIT_Arg_1::Indirect_HL)),
+        0x4F => Some(Instruction::BIT(BIT_Arg_0::_1, BIT_Arg_1::A)),
+        0x50 => Some(Instruction::BIT(BIT_Arg_0::_2, BIT_Arg_1::B)),
+        0x51 => Some(Instruction::BIT(BIT_Arg_0::_2, BIT_Arg_1::C)),
+        0x52 => Some(Instruction::BIT(BIT_Arg_0::_2, BIT_Arg_1::D)),
+        0x53 => Some(Instruction::BIT(BIT_Arg_0::_2, BIT_Arg_1::E)),
+        0x54 => Some(Instruction::BIT(BIT_Arg_0::_2, BIT_Arg_1::H)),
+        0x55 => Some(Instruction::BIT(BIT_Arg_0::_2, BIT_Arg_1::L)),
+        0x56 => Some(Instruction::BIT(BIT_Arg_0::_2, BIT_Arg_1::Indirect_HL)),
+        0x57 => Some(Instruction::BIT(BIT_Arg_0::_2, BIT_Arg_1::A)),
+        0x58 => Some(Instruction::BIT(BIT_Arg_0::_3, BIT_Arg_1::B)),
+        0x59 => Some(Instruction::BIT(BIT_Arg_0::_3, BIT_Arg_1::C)),
+        0x5A => Some(Instruction::BIT(BIT_Arg_0::_3, BIT_Arg_1::D)),
+        0x5B => Some(Instruction::BIT(BIT_Arg_0::_3, BIT_Arg_1::E)),
+        0x5C => Some(Instruction::BIT(BIT_Arg_0::_3, BIT_Arg_1::H)),
+        0x5D => Some(Instruction::BIT(BIT_Arg_0::_3, BIT_Arg_1::L)),
+        0x5E => Some(Instruction::BIT(BIT_Arg_0::_3, BIT_Arg_1::Indirect_HL)),
+        0x5F => Some(Instruction::BIT(BIT_Arg_0::_3, BIT_Arg_1::A)),
+        0x60 => Some(Instruction::BIT(BIT_Arg_0::_4, BIT_Arg_1::B)),
+        0x61 => Some(Instruction::BIT(BIT_Arg_0::_4, BIT_Arg_1::C)),
+        0x62 => Some(Instruction::BIT(BIT_Arg_0::_4, BIT_Arg_1::D)),
+        0x63 => Some(Instruction::BIT(BIT_Arg_0::_4, BIT_Arg_1::E)),
+        0x64 => Some(Instruction::BIT(BIT_Arg_0::_4, BIT_Arg_1::H)),
+        0x65 => Some(Instruction::BIT(BIT_Arg_0::_4, BIT_Arg_1::L)),
+        0x66 => Some(Instruction::BIT(BIT_Arg_0::_4, BIT_Arg_1::Indirect_HL)),
+        0x67 => Some(Instruction::BIT(BIT_Arg_0::_4, BIT_Arg_1::A)),
+        0x68 => Some(Instruction::BIT(BIT_Arg_0::_5, BIT_Arg_1::B)),
+        0x69 => Some(Instruction::BIT(BIT_Arg_0::_5, BIT_Arg_1::C)),
+        0x6A => Some(Instruction::BIT(BIT_Arg_0::_5, BIT_Arg_1::D)),
+        0x6B => Some(Instruction::BIT(BIT_Arg_0::_5, BIT_Arg_1::E)),
+        0x6C => Some(Instruction::BIT(BIT_Arg_0::_5, BIT_Arg_1::H)),
+        0x6D => Some(Instruction::BIT(BIT_Arg_0::_5, BIT_Arg_1::L)),
+        0x6E => Some(Instruction::BIT(BIT_Arg_0::_5, BIT_Arg_1::Indirect_HL)),
+        0x6F => Some(Instruction::BIT(BIT_Arg_0::_5, BIT_Arg_1::A)),
+        0x70 => Some(Instruction::BIT(BIT_Arg_0::_6, BIT_Arg_1::B)),
+        0x71 => Some(Instruction::BIT(BIT_Arg_0::_6, BIT_Arg_1::C)),
+        0x72 => Some(Instruction::BIT(BIT_Arg_0::_6, BIT_Arg_1::D)),
+        0x73 => Some(Instruction::BIT(BIT_Arg_0::_6, BIT_Arg_1::E)),
+        0x74 => Some(Instruction::BIT(BIT_Arg_0::_6, BIT_Arg_1::H)),
+        0x75 => Some(Instruction::BIT(BIT_Arg_0::_6, BIT_Arg_1::L)),
+        0x76 => Some(Instruction::BIT(BIT_Arg_0::_6, BIT_Arg_1::Indirect_HL)),
+        0x77 => Some(Instruction::BIT(BIT_Arg_0::_6, BIT_Arg_1::A)),
+        0x78 => Some(Instruction::BIT(BIT_Arg_0::_7, BIT_Arg_1::B)),
+        0x79 => Some(Instruction::BIT(BIT_Arg_0::_7, BIT_Arg_1::C)),
+        0x7A => Some(Instruction::BIT(BIT_Arg_0::_7, BIT_Arg_1::D)),
+        0x7B => Some(Instruction::BIT(BIT_Arg_0::_7, BIT_Arg_1::E)),
+        0x7C => Some(Instruction::BIT(BIT_Arg_0::_7, BIT_Arg_1::H)),
+        0x7D => Some(Instruction::BIT(BIT_Arg_0::_7, BIT_Arg_1::L)),
+        0x7E => Some(Instruction::BIT(BIT_Arg_0::_7, BIT_Arg_1::Indirect_HL)),
+        0x7F => Some(Instruction::BIT(BIT_Arg_0::_7, BIT_Arg_1::A)),
+        0x80 => Some(Instruction::RES(RES_Arg_0::_0, RES_Arg_1::B)),
+        0x81 => Some(Instruction::RES(RES_Arg_0::_0, RES_Arg_1::C)),
+        0x82 => Some(Instruction::RES(RES_Arg_0::_0, RES_Arg_1::D)),
+        0x83 => Some(Instruction::RES(RES_Arg_0::_0, RES_Arg_1::E)),
+        0x84 => Some(Instruction::RES(RES_Arg_0::_0, RES_Arg_1::H)),
+        0x85 => Some(Instruction::RES(RES_Arg_0::_0, RES_Arg_1::L)),
+        0x86 => Some(Instruction::RES(RES_Arg_0::_0, RES_Arg_1::Indirect_HL)),
+        0x87 => Some(Instruction::RES(RES_Arg_0::_0, RES_Arg_1::A)),
+        0x88 => Some(Instruction::RES(RES_Arg_0::_1, RES_Arg_1::B)),
+        0x89 => Some(Instruction::RES(RES_Arg_0::_1, RES_Arg_1::C)),
+        0x8A => Some(Instruction::RES(RES_Arg_0::_1, RES_Arg_1::D)),
+        0x8B => Some(Instruction::RES(RES_Arg_0::_1, RES_Arg_1::E)),
+        0x8C => Some(Instruction::RES(RES_Arg_0::_1, RES_Arg_1::H)),
+        0x8D => Some(Instruction::RES(RES_Arg_0::_1, RES_Arg_1::L)),
+        0x8E => Some(Instruction::RES(RES_Arg_0::_1, RES_Arg_1::Indirect_HL)),
+        0x8F => Some(Instruction::RES(RES_Arg_0::_1, RES_Arg_1::A)),
+        0x90 => Some(Instruction::RES(RES_Arg_0::_2, RES_Arg_1::B)),
+        0x91 => Some(Instruction::RES(RES_Arg_0::_2, RES_Arg_1::C)),
+        0x92 => Some(Instruction::RES(RES_Arg_0::_2, RES_Arg_1::D)),
+        0x93 => Some(Instruction::RES(RES_Arg_0::_2, RES_Arg_1::E)),
+        0x94 => Some(Instruction::RES(RES_Arg_0::_2, RES_Arg_1::H)),
+        0x95 => Some(Instruction::RES(RES_Arg_0::_2, RES_Arg_1::L)),
+        0x96 => Some(Instruction::RES(RES_Arg_0::_2, RES_Arg_1::Indirect_HL)),
+        0x97 => Some(Instruction::RES(RES_Arg_0::_2, RES_Arg_1::A)),
+        0x98 => Some(Instruction::RES(RES_Arg_0::_3, RES_Arg_1::B)),
+        0x99 => Some(Instruction::RES(RES_Arg_0::_3, RES_Arg_1::C)),
+        0x9A => Some(Instruction::RES(RES_Arg_0::_3, RES_Arg_1::D)),
+        0x9B => Some(Instruction::RES(RES_Arg_0::_3, RES_Arg_1::E)),
+        0x9C => Some(Instruction::RES(RES_Arg_0::_3, RES_Arg_1::H)),
+        0x9D => Some(Instruction::RES(RES_Arg_0::_3, RES_Arg_1::L)),
+        0x9E => Some(Instruction::RES(RES_Arg_0::_3, RES_Arg_1::Indirect_HL)),
+        0x9F => Some(Instruction::RES(RES_Arg_0::_3, RES_Arg_1::A)),
+        0xA0 => Some(Instruction::RES(RES_Arg_0::_4, RES_Arg_1::B)),
+        0xA1 => Some(Instruction::RES(RES_Arg_0::_4, RES_Arg_1::C)),
+        0xA2 => Some(Instruction::RES(RES_Arg_0::_4, RES_Arg_1::D)),
+        0xA3 => Some(Instruction::RES(RES_Arg_0::_4, RES_Arg_1::E)),
+        0xA4 => Some(Instruction::RES(RES_Arg_0::_4, RES_Arg_1::H)),
+        0xA5 => Some(Instruction::RES(RES_Arg_0::_4, RES_Arg_1::L)),
+        0xA6 => Some(Instruction::RES(RES_Arg_0::_4, RES_Arg_1::Indirect_HL)),
+        0xA7 => Some(Instruction::RES(RES_Arg_0::_4, RES_Arg_1::A)),
+        0xA8 => Some(Instruction::RES(RES_Arg_0::_5, RES_Arg_1::B)),
+        0xA9 => Some(Instruction::RES(RES_Arg_0::_5, RES_Arg_1::C)),
+        0xAA => Some(Instruction::RES(RES_Arg_0::_5, RES_Arg_1::D)),
+        0xAB => Some(Instruction::RES(RES_Arg_0::_5, RES_Arg_1::E)),
+        0xAC => Some(Instruction::RES(RES_Arg_0::_5, RES_Arg_1::H)),
+        0xAD => Some(Instruction::RES(RES_Arg_0::_5, RES_Arg_1::L)),
+        0xAE => Some(Instruction::RES(RES_Arg_0::_5, RES_Arg_1::Indirect_HL)),
+        0xAF => Some(Instruction::RES(RES_Arg_0::_5, RES_Arg_1::A)),
+        0xB0 => Some(Instruction::RES(RES_Arg_0::_6, RES_Arg_1::B)),
+        0xB1 => Some(Instruction::RES(RES_Arg_0::_6, RES_Arg_1::C)),
+        0xB2 => Some(Instruction::RES(RES_Arg_0::_6, RES_Arg_1::D)),
+        0xB3 => Some(Instruction::RES(RES_Arg_0::_6, RES_Arg_1::E)),
+        0xB4 => Some(Instruction::RES(RES_Arg_0::_6, RES_Arg_1::H)),
+        0xB5 => Some(Instruction::RES(RES_Arg_0::_6, RES_Arg_1::L)),
+        0xB6 => Some(Instruction::RES(RES_Arg_0::_6, RES_Arg_1::Indirect_HL)),
+        0xB7 => Some(Instruction::RES(RES_Arg_0::_6, RES_Arg_1::A)),
+        0xB8 => Some(Instruction::RES(RES_Arg_0::_7, RES_Arg_1::B)),
+        0xB9 => Some(Instruction::RES(RES_Arg_0::_7, RES_Arg_1::C)),
+        0xBA => Some(Instruction::RES(RES_Arg_0::_7, RES_Arg_1::D)),
+        0xBB => Some(Instruction::RES(RES_Arg_0::_7, RES_Arg_1::E)),
+        0xBC => Some(Instruction::RES(RES_Arg_0::_7, RES_Arg_1::H)),
+        0xBD => Some(Instruction::RES(RES_Arg_0::_7, RES_Arg_1::L)),
+        0xBE => Some(Instruction::RES(RES_Arg_0::_7, RES_Arg_1::Indirect_HL)),
+        0xBF => Some(Instruction::RES(RES_Arg_0::_7, RES_Arg_1::A)),
+        0xC0 => Some(Instruction::SET(SET_Arg_0::_0, SET_Arg_1::B)),
+        0xC1 => Some(Instruction::SET(SET_Arg_0::_0, SET_Arg_1::C)),
+        0xC2 => Some(Instruction::SET(SET_Arg_0::_0, SET_Arg_1::D)),
+        0xC3 => Some(Instruction::SET(SET_Arg_0::_0, SET_Arg_1::E)),
+        0xC4 => Some(Instruction::SET(SET_Arg_0::_0, SET_Arg_1::H)),
+        0xC5 => Some(Instruction::SET(SET_Arg_0::_0, SET_Arg_1::L)),
+        0xC6 => Some(Instruction::SET(SET_Arg_0::_0, SET_Arg_1::Indirect_HL)),
+        0xC7 => Some(Instruction::SET(SET_Arg_0::_0, SET_Arg_1::A)),
+        0xC8 => Some(Instruction::SET(SET_Arg_0::_1, SET_Arg_1::B)),
+        0xC9 => Some(Instruction::SET(SET_Arg_0::_1, SET_Arg_1::C)),
+        0xCA => Some(Instruction::SET(SET_Arg_0::_1, SET_Arg_1::D)),
+        0xCB => Some(Instruction::SET(SET_Arg_0::_1, SET_Arg_1::E)),
+        0xCC => Some(Instruction::SET(SET_Arg_0::_1, SET_Arg_1::H)),
+        0xCD => Some(Instruction::SET(SET_Arg_0::_1, SET_Arg_1::L)),
+        0xCE => Some(Instruction::SET(SET_Arg_0::_1, SET_Arg_1::Indirect_HL)),
+        0xCF => Some(Instruction::SET(SET_Arg_0::_1, SET_Arg_1::A)),
+        0xD0 => Some(Instruction::SET(SET_Arg_0::_2, SET_Arg_1::B)),
+        0xD1 => Some(Instruction::SET(SET_Arg_0::_2, SET_Arg_1::C)),
+        0xD2 => Some(Instruction::SET(SET_Arg_0::_2, SET_Arg_1::D)),
+        0xD3 => Some(Instruction::SET(SET_Arg_0::_2, SET_Arg_1::E)),
+        0xD4 => Some(Instruction::SET(SET_Arg_0::_2, SET_Arg_1::H)),
+        0xD5 => Some(Instruction::SET(SET_Arg_0::_2, SET_Arg_1::L)),
+        0xD6 => Some(Instruction::SET(SET_Arg_0::_2, SET_Arg_1::Indirect_HL)),
+        0xD7 => Some(Instruction::SET(SET_Arg_0::_2, SET_Arg_1::A)),
+        0xD8 => Some(Instruction::SET(SET_Arg_0::_3, SET_Arg_1::B)),
+        0xD9 => Some(Instruction::SET(SET_Arg_0::_3, SET_Arg_1::C)),
+        0xDA => Some(Instruction::SET(SET_Arg_0::_3, SET_Arg_1::D)),
+        0xDB => Some(Instruction::SET(SET_Arg_0::_3, SET_Arg_1::E)),
+        0xDC => Some(Instruction::SET(SET_Arg_0::_3, SET_Arg_1::H)),
+        0xDD => Some(Instruction::SET(SET_Arg_0::_3, SET_Arg_1::L)),
+        0xDE => Some(Instruction::SET(SET_Arg_0::_3, SET_Arg_1::Indirect_HL)),
+        0xDF => Some(Instruction::SET(SET_Arg_0::_3, SET_Arg_1::A)),
+        0xE0 => Some(Instruction::SET(SET_Arg_0::_4, SET_Arg_1::B)),
+        0xE1 => Some(Instruction::SET(SET_Arg_0::_4, SET_Arg_1::C)),
+        0xE2 => Some(Instruction::SET(SET_Arg_0::_4, SET_Arg_1::D)),
+        0xE3 => Some(Instruction::SET(SET_Arg_0::_4, SET_Arg_1::E)),
+        0xE4 => Some(Instruction::SET(SET_Arg_0::_4, SET_Arg_1::H)),
+        0xE5 => Some(Instruction::SET(SET_Arg_0::_4, SET_Arg_1::L)),
+        0xE6 => Some(Instruction::SET(SET_Arg_0::_4, SET_Arg_1::Indirect_HL)),
+        0xE7 => Some(Instruction::SET(SET_Arg_0::_4, SET_Arg_1::A)),
+        0xE8 => Some(Instruction::SET(SET_Arg_0::_5, SET_Arg_1::B)),
+        0xE9 => Some(Instruction::SET(SET_Arg_0::_5, SET_Arg_1::C)),
+        0xEA => Some(Instruction::SET(SET_Arg_0::_5, SET_Arg_1::D)),
+        0xEB => Some(Instruction::SET(SET_Arg_0::_5, SET_Arg_1::E)),
+        0xEC => Some(Instruction::SET(SET_Arg_0::_5, SET_Arg_1::H)),
+        0xED => Some(Instruction::SET(SET_Arg_0::_5, SET_Arg_1::L)),
+        0xEE => Some(Instruction::SET(SET_Arg_0::_5, SET_Arg_1::Indirect_HL)),
+        0xEF => Some(Instruction::SET(SET_Arg_0::_5, SET_Arg_1::A)),
+        0xF0 => Some(Instruction::SET(SET_Arg_0::_6, SET_Arg_1::B)),
+        0xF1 => Some(Instruction::SET(SET_Arg_0::_6, SET_Arg_1::C)),
+        0xF2 => Some(Instruction::SET(SET_Arg_0::_6, SET_Arg_1::D)),
+        0xF3 => Some(Instruction::SET(SET_Arg_0::_6, SET_Arg_1::E)),
+        0xF4 => Some(Instruction::SET(SET_Arg_0::_6, SET_Arg_1::H)),
+        0xF5 => Some(Instruction::SET(SET_Arg_0::_6, SET_Arg_1::L)),
+        0xF6 => Some(Instruction::SET(SET_Arg_0::_6, SET_Arg_1::Indirect_HL)),
+        0xF7 => Some(Instruction::SET(SET_Arg_0::_6, SET_Arg_1::A)),
+        0xF8 => Some(Instruction::SET(SET_Arg_0::_7, SET_Arg_1::B)),
+        0xF9 => Some(Instruction::SET(SET_Arg_0::_7, SET_Arg_1::C)),
+        0xFA => Some(Instruction::SET(SET_Arg_0::_7, SET_Arg_1::D)),
+        0xFB => Some(Instruction::SET(SET_Arg_0::_7, SET_Arg_1::E)),
+        0xFC => Some(Instruction::SET(SET_Arg_0::_7, SET_Arg_1::H)),
+        0xFD => Some(Instruction::SET(SET_Arg_0::_7, SET_Arg_1::L)),
+        0xFE => Some(Instruction::SET(SET_Arg_0::_7, SET_Arg_1::Indirect_HL)),
+        0xFF => Some(Instruction::SET(SET_Arg_0::_7, SET_Arg_1::A)),
+        _ => None,
+    }
+}

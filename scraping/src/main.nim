@@ -8,6 +8,7 @@ import strformat
 import sugar
 import tables
 import nre
+import sequtils
 
 type
   FlagValue = enum
@@ -30,17 +31,13 @@ type
     cycles: seq[int]
     flags: Flags
 
+  OpsCodeList = seq[OpsCode]
+
+  ArgsTable = Table[string, seq[seq[string]]]
+
+
 let url = "https://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html"
 
-let client = newHttpClient()
-let response = client.get(url)
-let html = response.body.newStringStream().parseHtml()
-
-let ts = html.querySelectorAll("[class=\"withborder\"]")
-let noPrefixedOps = ts[0].querySelectorAll("tr")
-# let prefixedOps = ts[1].querySelectorAll("tr")
-
-var operations = newSeq[OpsCode]()
 
 proc flag_value(v: string): FlagValue =
   if v == "1":
@@ -52,8 +49,10 @@ proc flag_value(v: string): FlagValue =
   else:
     return FlagValue.CHANGE
 
-proc main() =
-  for i, tr in noPrefixedOps:
+
+proc extract_operations(trs: seq[XmlNode]): OpsCodeList =
+  var operations = newSeq[OpsCode]()
+  for i, tr in trs:
     if i == 0:
       continue
     let tds = tr.querySelectorAll("td")
@@ -91,7 +90,7 @@ proc main() =
           args.add("Indirect_HLD")
         elif a.startsWith("("):
           args.add("Indirect_" & a.replace("(", "").replace(")", ""))
-        elif a.match(re"^\d.+").isSome:
+        elif a.match(re"^\d.*").isSome:
           args.add("_" & a)
         elif a == "SP+r8":
           args.add("SP_r8")
@@ -106,7 +105,10 @@ proc main() =
         cycles: cycles,
         flags: flags
       ))
+  return operations
 
+
+proc grouping_args(operations: OpsCodeList): ArgsTable =
   # 命令ごとにgroup
   var op_group = initTable[string, seq[OpsCode]]()
   for op in operations:
@@ -129,10 +131,10 @@ proc main() =
         if not arg_group_list[i].contains(a):
           arg_group_list[i].add(a)
     op_args[name] = arg_group_list
+  return op_args
 
-  var f = open("instruction.rs", FileMode.fmWrite)
-  defer:
-    close(f)
+
+proc writeEnums(f: File, op_args: ArgsTable) =
 
   # enum ArithmeticTarget { ...
   for name, args in op_args:
@@ -151,8 +153,10 @@ proc main() =
     f.writeLine fmt"    {name}({a}),"
   f.writeLine "}\n"
 
-  f.writeLine "fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {"
-  f.writeLine "   match byte {"
+
+proc writeFromByteFunction(f: File, operations: OpsCodeList, op_args: ArgsTable, func_name: string) =
+  f.writeLine fmt"fn {func_name}(byte: u8) -> Option<Instruction> " & "{"
+  f.writeLine "    match byte {"
   for op in operations:
     var args = newSeq[string]()
     for i, a in op_args[op.name]:
@@ -166,5 +170,27 @@ proc main() =
   f.writeLine("        _ => None,")
   f.writeLine "    }"
   f.writeLine "}\n"
+
+
+proc main() =
+  let client = newHttpClient()
+  let response = client.get(url)
+  let html = response.body.newStringStream().parseHtml()
+
+  let ts = html.querySelectorAll("table")
+
+  let no_prefixed_ops = extract_operations(ts[0].querySelectorAll("tr"))
+  let prefixed_ops = extract_operations(ts[1].querySelectorAll("tr"))
+
+  let all_ops = concat(no_prefixed_ops, prefixed_ops)
+  let args = grouping_args(all_ops)
+
+  var f = open("instruction.rs", FileMode.fmWrite)
+  defer:
+    close(f)
+  writeEnums(f, args)
+  writeFromByteFunction(f, no_prefixed_ops, args, "from_byte_not_prefixed")
+  writeFromByteFunction(f, prefixed_ops, args, "from_byte_prefixed")
+
 
 main()
