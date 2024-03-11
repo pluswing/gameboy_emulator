@@ -139,13 +139,13 @@ proc writeEnums(f: File, op_args: ArgsTable) =
   # enum ArithmeticTarget { ...
   for name, args in op_args:
     for i, list in args:
-      f.writeLine fmt"enum {name}_Arg_{i}" & "{"
+      f.writeLine fmt"pub enum {name}_Arg_{i}" & "{"
       for v in list:
         f.writeLine fmt"    {v},"
       f.writeLine "}\n"
 
   # enum Instruction {
-  f.writeLine "enum Instruction {"
+  f.writeLine "pub enum Instruction {"
   for name, args in op_args:
     let arg_str = collect(newSeq):
       for i, a in args: fmt"{name}_Arg_{i}"
@@ -155,7 +155,7 @@ proc writeEnums(f: File, op_args: ArgsTable) =
 
 
 proc writeFromByteFunction(f: File, operations: OpsCodeList, op_args: ArgsTable, func_name: string) =
-  f.writeLine fmt"fn {func_name}(byte: u8) -> Option<Instruction> " & "{"
+  f.writeLine fmt"pub fn {func_name}(byte: u8) -> Option<Instruction> " & "{"
   f.writeLine "    match byte {"
   for op in operations:
     var args = newSeq[string]()

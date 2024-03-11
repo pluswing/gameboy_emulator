@@ -1,4 +1,4 @@
-enum DEC_Arg_0 {
+pub enum DEC_Arg_0{
     B,
     BC,
     C,
@@ -13,7 +13,7 @@ enum DEC_Arg_0 {
     A,
 }
 
-enum JP_Arg_0 {
+pub enum JP_Arg_0{
     NZ,
     a16,
     Z,
@@ -22,16 +22,16 @@ enum JP_Arg_0 {
     Indirect_HL,
 }
 
-enum JP_Arg_1 {
+pub enum JP_Arg_1{
     NONE,
     a16,
 }
 
-enum SBC_Arg_0 {
+pub enum SBC_Arg_0{
     A,
 }
 
-enum SBC_Arg_1 {
+pub enum SBC_Arg_1{
     B,
     C,
     D,
@@ -43,7 +43,7 @@ enum SBC_Arg_1 {
     d8,
 }
 
-enum SWAP_Arg_0 {
+pub enum SWAP_Arg_0{
     B,
     C,
     D,
@@ -54,32 +54,7 @@ enum SWAP_Arg_0 {
     A,
 }
 
-enum SUB_Arg_0 {
-    B,
-    C,
-    D,
-    E,
-    H,
-    L,
-    Indirect_HL,
-    A,
-    d8,
-}
-
-enum CALL_Arg_0 {
-    NZ,
-    Z,
-    a16,
-    NC,
-    C,
-}
-
-enum CALL_Arg_1 {
-    NONE,
-    a16,
-}
-
-enum CP_Arg_0 {
+pub enum SUB_Arg_0{
     B,
     C,
     D,
@@ -91,7 +66,32 @@ enum CP_Arg_0 {
     d8,
 }
 
-enum RET_Arg_0 {
+pub enum CALL_Arg_0{
+    NZ,
+    Z,
+    a16,
+    NC,
+    C,
+}
+
+pub enum CALL_Arg_1{
+    NONE,
+    a16,
+}
+
+pub enum CP_Arg_0{
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
+    Indirect_HL,
+    A,
+    d8,
+}
+
+pub enum RET_Arg_0{
     NONE,
     NZ,
     Z,
@@ -99,7 +99,7 @@ enum RET_Arg_0 {
     C,
 }
 
-enum SLA_Arg_0 {
+pub enum SLA_Arg_0{
     B,
     C,
     D,
@@ -110,7 +110,7 @@ enum SLA_Arg_0 {
     A,
 }
 
-enum JR_Arg_0 {
+pub enum JR_Arg_0{
     r8,
     NZ,
     Z,
@@ -118,16 +118,16 @@ enum JR_Arg_0 {
     C,
 }
 
-enum JR_Arg_1 {
+pub enum JR_Arg_1{
     NONE,
     r8,
 }
 
-enum PREFIX_Arg_0 {
+pub enum PREFIX_Arg_0{
     CB,
 }
 
-enum SET_Arg_0 {
+pub enum SET_Arg_0{
     _0,
     _1,
     _2,
@@ -138,7 +138,7 @@ enum SET_Arg_0 {
     _7,
 }
 
-enum SET_Arg_1 {
+pub enum SET_Arg_1{
     B,
     C,
     D,
@@ -149,7 +149,7 @@ enum SET_Arg_1 {
     A,
 }
 
-enum RRC_Arg_0 {
+pub enum RRC_Arg_0{
     B,
     C,
     D,
@@ -160,7 +160,7 @@ enum RRC_Arg_0 {
     A,
 }
 
-enum INC_Arg_0 {
+pub enum INC_Arg_0{
     BC,
     B,
     C,
@@ -175,7 +175,7 @@ enum INC_Arg_0 {
     A,
 }
 
-enum RST_Arg_0 {
+pub enum RST_Arg_0{
     _00H,
     _08H,
     _10H,
@@ -186,7 +186,7 @@ enum RST_Arg_0 {
     _38H,
 }
 
-enum RES_Arg_0 {
+pub enum RES_Arg_0{
     _0,
     _1,
     _2,
@@ -197,7 +197,7 @@ enum RES_Arg_0 {
     _7,
 }
 
-enum RES_Arg_1 {
+pub enum RES_Arg_1{
     B,
     C,
     D,
@@ -208,7 +208,7 @@ enum RES_Arg_1 {
     A,
 }
 
-enum AND_Arg_0 {
+pub enum AND_Arg_0{
     B,
     C,
     D,
@@ -220,14 +220,14 @@ enum AND_Arg_0 {
     d8,
 }
 
-enum PUSH_Arg_0 {
+pub enum PUSH_Arg_0{
     BC,
     DE,
     HL,
     AF,
 }
 
-enum XOR_Arg_0 {
+pub enum XOR_Arg_0{
     B,
     C,
     D,
@@ -239,14 +239,14 @@ enum XOR_Arg_0 {
     d8,
 }
 
-enum POP_Arg_0 {
+pub enum POP_Arg_0{
     BC,
     DE,
     HL,
     AF,
 }
 
-enum BIT_Arg_0 {
+pub enum BIT_Arg_0{
     _0,
     _1,
     _2,
@@ -257,7 +257,7 @@ enum BIT_Arg_0 {
     _7,
 }
 
-enum BIT_Arg_1 {
+pub enum BIT_Arg_1{
     B,
     C,
     D,
@@ -268,7 +268,7 @@ enum BIT_Arg_1 {
     A,
 }
 
-enum LD_Arg_0 {
+pub enum LD_Arg_0{
     BC,
     Indirect_BC,
     B,
@@ -289,7 +289,7 @@ enum LD_Arg_0 {
     Indirect_C,
 }
 
-enum LD_Arg_1 {
+pub enum LD_Arg_1{
     d16,
     A,
     d8,
@@ -311,11 +311,11 @@ enum LD_Arg_1 {
     Indirect_a16,
 }
 
-enum STOP_Arg_0 {
+pub enum STOP_Arg_0{
     _0,
 }
 
-enum RL_Arg_0 {
+pub enum RL_Arg_0{
     B,
     C,
     D,
@@ -326,7 +326,7 @@ enum RL_Arg_0 {
     A,
 }
 
-enum RR_Arg_0 {
+pub enum RR_Arg_0{
     B,
     C,
     D,
@@ -337,7 +337,7 @@ enum RR_Arg_0 {
     A,
 }
 
-enum SRL_Arg_0 {
+pub enum SRL_Arg_0{
     B,
     C,
     D,
@@ -348,17 +348,17 @@ enum SRL_Arg_0 {
     A,
 }
 
-enum LDH_Arg_0 {
+pub enum LDH_Arg_0{
     Indirect_a8,
     A,
 }
 
-enum LDH_Arg_1 {
+pub enum LDH_Arg_1{
     A,
     Indirect_a8,
 }
 
-enum SRA_Arg_0 {
+pub enum SRA_Arg_0{
     B,
     C,
     D,
@@ -369,13 +369,13 @@ enum SRA_Arg_0 {
     A,
 }
 
-enum ADD_Arg_0 {
+pub enum ADD_Arg_0{
     HL,
     A,
     SP,
 }
 
-enum ADD_Arg_1 {
+pub enum ADD_Arg_1{
     BC,
     DE,
     HL,
@@ -392,11 +392,11 @@ enum ADD_Arg_1 {
     r8,
 }
 
-enum ADC_Arg_0 {
+pub enum ADC_Arg_0{
     A,
 }
 
-enum ADC_Arg_1 {
+pub enum ADC_Arg_1{
     B,
     C,
     D,
@@ -408,7 +408,7 @@ enum ADC_Arg_1 {
     d8,
 }
 
-enum OR_Arg_0 {
+pub enum OR_Arg_0{
     B,
     C,
     D,
@@ -420,7 +420,7 @@ enum OR_Arg_0 {
     d8,
 }
 
-enum RLC_Arg_0 {
+pub enum RLC_Arg_0{
     B,
     C,
     D,
@@ -431,7 +431,7 @@ enum RLC_Arg_0 {
     A,
 }
 
-enum Instruction {
+pub enum Instruction {
     DEC(DEC_Arg_0),
     JP(JP_Arg_0, JP_Arg_1),
     DAA(),
@@ -479,7 +479,7 @@ enum Instruction {
     RLC(RLC_Arg_0),
 }
 
-fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
+pub fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
     match byte {
         0x00 => Some(Instruction::NOP()),
         0x01 => Some(Instruction::LD(LD_Arg_0::BC, LD_Arg_1::d16)),
@@ -730,7 +730,7 @@ fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
     }
 }
 
-fn from_byte_prefixed(byte: u8) -> Option<Instruction> {
+pub fn from_byte_prefixed(byte: u8) -> Option<Instruction> {
     match byte {
         0x00 => Some(Instruction::RLC(RLC_Arg_0::B)),
         0x01 => Some(Instruction::RLC(RLC_Arg_0::C)),
@@ -991,3 +991,4 @@ fn from_byte_prefixed(byte: u8) -> Option<Instruction> {
         _ => None,
     }
 }
+

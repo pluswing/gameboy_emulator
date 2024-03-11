@@ -1,3 +1,5 @@
+mod instruction;
+
 fn main() {
     println!("Hello, world!");
 }
@@ -91,125 +93,12 @@ impl Registers {
     }
 }
 
-enum Instruction {
-    ADD(ArithmeticTarget),
-    JP(JumpTest),
-    LD(LoadType),
-    PUSH(StackTarget),
-    POP(StackTarget),
-    CALL(JumpTest),
-    RET(JumpTest),
-    // ADDHL (HL に追加) - ターゲットが HL レジスタに追加される点を除き、ADD と同様です。
-    // ADC (キャリー付き加算) - キャリー フラグの値も数値に追加される点を除いて、ADD と同様です。
-    // SUB (減算) - 特定のレジスタに格納されている値を A レジスタの値と減算します。
-    // SBC (キャリー付き減算) - キャリー フラグの値も数値から減算される点を除き、ADD と同様です。
-    // AND (論理積) - 特定のレジスタの値と A レジスタの値に対してビットごとの AND を実行します。
-    // OR (論理和) - 特定のレジスタの値と A レジスタの値に対してビットごとの OR を実行します。
-    // XOR (論理 xor) - 特定のレジスタの値と A レジスタの値に対してビット単位の xor を実行します。
-    // CP (比較) - 減算の結果が A に戻されない点を除けば SUB と同様です。
-    // INC (インクリメント) - 特定のレジスタの値を 1 ずつインクリメントします。
-    // DEC (デクリメント) - 特定のレジスタの値を 1 ずつデクリメントします。
-    // CCF (補数キャリー フラグ) - キャリー フラグの値を切り替えます。
-    // SCF (キャリー フラグの設定) - キャリー フラグを true に設定します。
-    // RRA (A レジスターの右回転) - キャリー フラグを通じて A レジスターを右にビット回転します。
-    // RLA (A レジスタの左回転) - キャリー フラグを通じて A レジスタを左にビット回転します。
-    // RRCA (A レジスター右回転) - A レジスターを右にビット回転します (キャリー フラグを介さない)
-    // RRLA (A レジスタの左回転) - A レジスタのビットを左に回転します (キャリー フラグを介さない)
-    // CPL (補数) - A レジスタの各ビットを切り替えます。
-    // BIT (ビットテスト) - 特定のレジスタの特定のビットが設定されているかどうかを確認するテスト
-    // RESET (ビットリセット) - 特定のレジスタの特定のビットを0に設定します。
-    // SET (ビットセット) - 特定のレジスタの特定のビットを 1 に設定します。
-    // SRL (論理右シフト) - 特定のレジスタを右に 1 ビットシフトします。
-    // RR (右回転) - キャリー フラグを使用して特定のレジスタを右に 1 ビット回転します。
-    // RL (左回転) - キャリー フラグを使用して特定のレジスタを 1 だけ左にビット回転します。
-    // RRC (右回転) - 特定のレジスタを 1 だけ右にビット回転します (キャリー フラグを介さない)
-    // RLC (左回転) - 特定のレジスタを 1 だけ左にビット回転します (キャリー フラグを介さない)
-    // SRA (右シフト算術) - 特定のレジスタを右に 1 算術シフトします。
-    // SLA (シフト左算術) - 特定のレジスタを左に 1 算術シフトします。
-    // SWAP (スワップニブル) - 特定のレジスタの上位ニブルと下位ニブルを切り替えます
-}
-
-enum ArithmeticTarget {
-    A,
-    B,
-    C,
-    D,
-    E,
-    H,
-    L,
-}
-
-enum JumpTest {
-    NotZero,
-    Zero,
-    NotCarry,
-    Carry,
-    Always,
-}
-
-enum LoadByteTarget {
-    A,
-    B,
-    C,
-    D,
-    E,
-    H,
-    L,
-    HLI,
-}
-
-enum LoadByteSource {
-    A,
-    B,
-    C,
-    D,
-    E,
-    H,
-    L,
-    D8,
-    HLI,
-}
-
-enum StackTarget {
-    BC,
-    // FIXME
-}
-
-enum LoadType {
-    Byte(LoadByteTarget, LoadByteSource),
-}
-
-impl Instruction {
-    fn from_byte(byte: u8, prefixed: bool) -> Option<Instruction> {
+impl instruction::Instruction {
+    fn from_byte(byte: u8, prefixed: bool) -> Option<instruction::Instruction> {
         if prefixed {
-            Instruction::from_byte_prefixed(byte)
+            instruction::from_byte_prefixed(byte)
         } else {
-            Instruction::from_byte_not_prefixed(byte)
-        }
-    }
-
-    fn from_byte_prefixed(byte: u8) -> Option<Instruction> {
-        match byte {
-            // 0x00 => Some(Instruction::RLC(PrefixTrarget::B)),
-            _ => None,
-        }
-    }
-
-    fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
-        match byte {
-            // 0x02 => Some(Instruction::INC(IncDecTarget::BC)),
-            // ..
-            0x87 => Some(Instruction::ADD(ArithmeticTarget::A)),
-            0x80 => Some(Instruction::ADD(ArithmeticTarget::B)),
-            0x81 => Some(Instruction::ADD(ArithmeticTarget::C)),
-            0x82 => Some(Instruction::ADD(ArithmeticTarget::D)),
-            0x83 => Some(Instruction::ADD(ArithmeticTarget::E)),
-            0x84 => Some(Instruction::ADD(ArithmeticTarget::H)),
-            0x85 => Some(Instruction::ADD(ArithmeticTarget::L)),
-
-            0xCA => Some(Instruction::JP(JumpTest::Zero)),
-            // ...
-            _ => None,
+            instruction::from_byte_not_prefixed(byte)
         }
     }
 }
@@ -231,95 +120,103 @@ impl CPU {
         }
     }
 
-    fn execute(&mut self, instruction: Instruction) -> u16 {
+    fn execute(&mut self, instruction: instruction::Instruction) -> u16 {
         match instruction {
-            Instruction::ADD(target) => match target {
-                ArithmeticTarget::A => self.pc, // FIXME 実装する
-                ArithmeticTarget::B => self.pc,
-                ArithmeticTarget::C => {
-                    let value = self.registers.c;
-                    let new_value = self.add(value);
-                    self.registers.a = new_value;
-                    self.pc.wrapping_add(1)
+            instruction::Instruction::ADD(arg0, arg1) => match arg0 {
+                instruction::ADD_Arg_0::A => {
+                    match arg1 {
+                        instruction::ADD_Arg_1::A => self.pc, // FIXME 実装する
+                        instruction::ADD_Arg_1::B => self.pc,
+                        instruction::ADD_Arg_1::C => {
+                            let value = self.registers.c;
+                            let new_value = self.add(value);
+                            self.registers.a = new_value;
+                            self.pc.wrapping_add(1)
+                        }
+                        instruction::ADD_Arg_1::D => self.pc,
+                        instruction::ADD_Arg_1::E => self.pc,
+                        instruction::ADD_Arg_1::H => self.pc,
+                        instruction::ADD_Arg_1::L => self.pc,
+                        _ => todo!("implement"),
+                    }
                 }
-                ArithmeticTarget::D => self.pc,
-                ArithmeticTarget::E => self.pc,
-                ArithmeticTarget::H => self.pc,
-                ArithmeticTarget::L => self.pc,
+                _ => todo!("implement"),
             },
-            Instruction::JP(test) => {
-                let jump_condition = match test {
-                    JumpTest::NotZero => !self.registers.f.zero,
-                    JumpTest::Zero => self.registers.f.zero,
-                    JumpTest::NotCarry => !self.registers.f.carry,
-                    JumpTest::Carry => self.registers.f.carry,
-                    JumpTest::Always => true,
+            instruction::Instruction::JP(arg0, arg1) => {
+                let jump_condition = match arg0 {
+                    instruction::JP_Arg_0::NZ => !self.registers.f.zero,
+                    instruction::JP_Arg_0::Z => self.registers.f.zero,
+                    instruction::JP_Arg_0::NC => !self.registers.f.carry,
+                    instruction::JP_Arg_0::C => self.registers.f.carry,
+                    instruction::JP_Arg_0::a16 => true,
+                    _ => todo!("impl"),
                 };
                 self.jump(jump_condition)
             }
-            Instruction::LD(load_type) => match load_type {
-                LoadType::Byte(target, source) => {
-                    let source_value = match source {
-                        LoadByteSource::A => self.registers.a,
-                        LoadByteSource::B => self.registers.b,
-                        LoadByteSource::C => self.registers.c,
-                        LoadByteSource::D => self.registers.d,
-                        LoadByteSource::E => self.registers.e,
-                        LoadByteSource::H => self.registers.h,
-                        LoadByteSource::L => self.registers.l,
-                        LoadByteSource::D8 => self.read_next_byte(),
-                        LoadByteSource::HLI => self.bus.read_byte(self.registers.get_hl()),
-                    };
-                    match target {
-                        LoadByteTarget::A => self.registers.a = source_value,
-                        LoadByteTarget::B => self.registers.b = source_value,
-                        LoadByteTarget::C => self.registers.c = source_value,
-                        LoadByteTarget::D => self.registers.d = source_value,
-                        LoadByteTarget::E => self.registers.e = source_value,
-                        LoadByteTarget::H => self.registers.h = source_value,
-                        LoadByteTarget::L => self.registers.l = source_value,
-                        LoadByteTarget::HLI => {
-                            self.bus.write_byte(self.registers.get_hl(), source_value)
-                        }
-                    };
-                    match source {
-                        LoadByteSource::D8 => self.pc.wrapping_add(2),
-                        _ => self.pc.wrapping_add(1),
-                    }
-                }
-            },
-            Instruction::PUSH(target) => {
-                let value = match target {
-                    StackTarget::BC => self.registers.get_bc(),
-                };
-                self.push(value);
-                self.pc.wrapping_add(1)
-            }
-            Instruction::POP(target) => {
-                let result = self.pop();
-                match target {
-                    StackTarget::BC => self.registers.set_bc(result),
-                }
-                self.pc.wrapping_add(1)
-            }
-            Instruction::CALL(test) => {
-                let jump_condition = match test {
-                    JumpTest::NotZero => !self.registers.f.zero,
-                    _ => {
-                        panic!("TODO: support more condition")
-                    }
-                };
-                self.call(jump_condition)
-            }
-            Instruction::RET(test) => {
-                let jump_condition = match test {
-                    JumpTest::NotZero => !self.registers.f.zero,
-                    _ => {
-                        panic!("TODO: support more condition")
-                    }
-                };
-                self.return_(jump_condition)
-            }
+            // instruction::Instruction::LD(arg0, arg1) => {
+            //       let source_value = match arg1 {
+            //         instruction::LD_Arg_1::A => self.registers.a,
+            //         instruction::LD_Arg_1::B => self.registers.b,
+            //         instruction::LD_Arg_1::C => self.registers.c,
+            //         instruction::LD_Arg_1::D => self.registers.d,
+            //         instruction::LD_Arg_1::E => self.registers.e,
+            //         instruction::LD_Arg_1::H => self.registers.h,
+            //         instruction::LD_Arg_1::L => self.registers.l,
+            //         instruction::LD_Arg_1::d8 => self.read_next_byte(),
+            //         instruction::LD_Arg_1::Indirect_HLI => self.bus.read_byte(self.registers.get_hl()),
+            //         _ => todo!("impl")
+            //       };
+            //       match arg0 {
+            //         instruction::LD_Arg_0::A => self.registers.a = source_value,
+            //         instruction::LD_Arg_0::B => self.registers.b = source_value,
+            //         instruction::LD_Arg_0::C => self.registers.c = source_value,
+            //         instruction::LD_Arg_0::D => self.registers.d = source_value,
+            //         instruction::LD_Arg_0::E => self.registers.e = source_value,
+            //         instruction::LD_Arg_0::H => self.registers.h = source_value,
+            //         instruction::LD_Arg_0::L => self.registers.l = source_value,
+            //         instruction::LD_Arg_0::Indirect_HLI => {
+            //                 self.bus.write_byte(self.registers.get_hl(), source_value)
+            //             }
+            //             _ => todo!("impl")
+            //         };
+            //         // match source {
+            //         //     LoadByteSource::D8 => self.pc.wrapping_add(2),
+            //         //     _ => self.pc.wrapping_add(1),
+            //         // }
+            //     }
+            // },
+            _ => todo!("impl"), // Instruction::PUSH(target) => {
+                                //     let value = match target {
+                                //         StackTarget::BC => self.registers.get_bc(),
+                                //     };
+                                //     self.push(value);
+                                //     self.pc.wrapping_add(1)
+                                // }
+                                // Instruction::POP(target) => {
+                                //     let result = self.pop();
+                                //     match target {
+                                //         StackTarget::BC => self.registers.set_bc(result),
+                                //     }
+                                //     self.pc.wrapping_add(1)
+                                // }
+                                // Instruction::CALL(test) => {
+                                //     let jump_condition = match test {
+                                //         JumpTest::NotZero => !self.registers.f.zero,
+                                //         _ => {
+                                //             panic!("TODO: support more condition")
+                                //         }
+                                //     };
+                                //     self.call(jump_condition)
+                                // }
+                                // Instruction::RET(test) => {
+                                //     let jump_condition = match test {
+                                //         JumpTest::NotZero => !self.registers.f.zero,
+                                //         _ => {
+                                //             panic!("TODO: support more condition")
+                                //         }
+                                //     };
+                                //     self.return_(jump_condition)
+                                // }
         }
     }
 
@@ -379,7 +276,8 @@ impl CPU {
         if prefixed {
             instruction_byte = self.bus.read_byte(self.pc + 1);
         }
-        let next_pc = if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed)
+        let next_pc = if let Some(instruction) =
+            instruction::Instruction::from_byte(instruction_byte, prefixed)
         {
             self.execute(instruction)
         } else {
