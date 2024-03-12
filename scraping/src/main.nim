@@ -192,5 +192,24 @@ proc main() =
   writeFromByteFunction(f, no_prefixed_ops, args, "from_byte_not_prefixed")
   writeFromByteFunction(f, prefixed_ops, args, "from_byte_prefixed")
 
+  # fn jump(&self, arg0: instruction::JP_Arg_0, arg1: instruction::JP_Arg_1) -> u16 {
+  for name, op_args in args:
+    var list = newSeq[string]()
+    for i, a in op_args:
+      list.add(fmt"arg{i}: instruction::{name}_Arg_{i}")
+    let a = list.join(", ")
+    echo(fmt"fn {name.toLowerAscii}(&self, {a}) -> u16 " & "{}")
 
+  echo "\n"
+
+  echo "fn execute(&mut self, instruction: instruction::Instruction) -> u16 {"
+  echo "    match instruction {"
+  for name, op_args in args:
+    var list = newSeq[string]()
+    for i, a in op_args:
+      list.add(fmt"arg{i}")
+    let a = list.join(", ")
+    echo fmt"        instruction::Instruction::{name}({a}) => self.{name.toLowerAscii}({a}),"
+  echo "    }"
+  echo "}"
 main()
