@@ -198,7 +198,7 @@ proc main() =
     for i, a in op_args:
       list.add(fmt"arg{i}: instruction::{name}_Arg_{i}")
     let a = list.join(", ")
-    echo(fmt"fn {name.toLowerAscii}(&self, {a}) -> u16 " & "{}")
+    echo(fmt"fn {name.toLowerAscii}(&mut self, {a}) -> u16 " & "{0}")
 
   echo "\n"
 
