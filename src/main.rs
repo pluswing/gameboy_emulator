@@ -20,7 +20,7 @@ const SUBTRACT_FLAG_BYTE_POSITION: u8 = 6;
 const HALF_CARRY_FLAG_BYTE_POSITION: u8 = 5;
 const CARRY_FLAG_BYTE_POSITION: u8 = 4;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 struct FlagsRegister {
     zero: bool,
     subtract: bool,
@@ -70,13 +70,13 @@ impl Registers {
             l: 0,
         }
     }
-    // fn get_af(&self) -> u16 {
-    //     (self.a as u16) << 8 | (self.f as u16)
-    // }
-    // fn set_af(&mut self, value: u16) {
-    //     self.a = ((value & 0xFF00) >> 8) as u8;
-    //     self.f = (value & 0x00FF) as u8;
-    // }
+    fn get_af(&self) -> u16 {
+        (self.a as u16) << 8 | (u8::from(self.f) as u16)
+    }
+    fn set_af(&mut self, value: u16) {
+        self.a = ((value & 0xFF00) >> 8) as u8;
+        self.f = FlagsRegister::from((value & 0x00FF) as u8);
+    }
 
     fn get_bc(&self) -> u16 {
         (self.b as u16) << 8 | (self.c as u16)
@@ -178,58 +178,6 @@ impl CPU {
         }
     }
 
-    // fn execute(&mut self, instruction: instruction::Instruction) -> u16 {
-    //     match instruction {
-    //
-    //         // instruction::Instruction::LD(arg0, arg1) => {
-    //         //       let source_value = match arg1 {
-    //         //         instruction::LD_Arg_1::A => self.registers.a,
-    //         //         instruction::LD_Arg_1::B => self.registers.b,
-    //         //         instruction::LD_Arg_1::C => self.registers.c,
-    //         //         instruction::LD_Arg_1::D => self.registers.d,
-    //         //         instruction::LD_Arg_1::E => self.registers.e,
-    //         //         instruction::LD_Arg_1::H => self.registers.h,
-    //         //         instruction::LD_Arg_1::L => self.registers.l,
-    //         //         instruction::LD_Arg_1::d8 => self.read_next_byte(),
-    //         //         instruction::LD_Arg_1::Indirect_HLI => self.bus.read_byte(self.registers.get_hl()),
-    //         //         _ => todo!("impl")
-    //         //       };
-    //         //       match arg0 {
-    //         //         instruction::LD_Arg_0::A => self.registers.a = source_value,
-    //         //         instruction::LD_Arg_0::B => self.registers.b = source_value,
-    //         //         instruction::LD_Arg_0::C => self.registers.c = source_value,
-    //         //         instruction::LD_Arg_0::D => self.registers.d = source_value,
-    //         //         instruction::LD_Arg_0::E => self.registers.e = source_value,
-    //         //         instruction::LD_Arg_0::H => self.registers.h = source_value,
-    //         //         instruction::LD_Arg_0::L => self.registers.l = source_value,
-    //         //         instruction::LD_Arg_0::Indirect_HLI => {
-    //         //                 self.bus.write_byte(self.registers.get_hl(), source_value)
-    //         //             }
-    //         //             _ => todo!("impl")
-    //         //         };
-    //         //         // match source {
-    //         //         //     LoadByteSource::D8 => self.pc.wrapping_add(2),
-    //         //         //     _ => self.pc.wrapping_add(1),
-    //         //         // }
-    //         //     }
-    //         // },
-    //         _ => todo!("impl"), // Instruction::PUSH(target) => {
-    //
-    //                             // Instruction::CALL(test) => {
-    //                             //
-    //                             // }
-    //                             // Instruction::RET(test) => {
-    //                             //     let jump_condition = match test {
-    //                             //         JumpTest::NotZero => !self.registers.f.zero,
-    //                             //         _ => {
-    //                             //             panic!("TODO: support more condition")
-    //                             //         }
-    //                             //     };
-    //                             //     self.return_(jump_condition)
-    //                             // }
-    //     }
-    // }
-
     fn dec(&mut self, arg0: instruction::DEC_Arg_0) -> u16 {
         0
     }
@@ -289,7 +237,18 @@ impl CPU {
         0
     }
     fn ret(&mut self, arg0: instruction::RET_Arg_0) -> u16 {
-        0
+        let jump_condition = match arg0 {
+            instruction::RET_Arg_0::NZ => !self.registers.f.zero,
+            instruction::RET_Arg_0::Z => self.registers.f.zero,
+            instruction::RET_Arg_0::NC => !self.registers.f.carry,
+            instruction::RET_Arg_0::C => self.registers.f.carry,
+            instruction::RET_Arg_0::NONE => true,
+        };
+        if jump_condition {
+            self.pop_u16()
+        } else {
+            self.pc.wrapping_add(1)
+        }
     }
     fn sla(&mut self, arg0: instruction::SLA_Arg_0) -> u16 {
         0
@@ -326,11 +285,10 @@ impl CPU {
     }
     fn push(&mut self, arg0: instruction::PUSH_Arg_0) -> u16 {
         let value = match arg0 {
+            instruction::PUSH_Arg_0::AF => self.registers.get_af(),
             instruction::PUSH_Arg_0::BC => self.registers.get_bc(),
-            // instruction::PUSH_Arg_0::AF => self.registers.get_af(),
             instruction::PUSH_Arg_0::DE => self.registers.get_de(),
             instruction::PUSH_Arg_0::HL => self.registers.get_hl(),
-            _ => todo!("impl get_af"),
         };
         self.push_u16(value);
         self.pc.wrapping_add(1)
@@ -342,18 +300,12 @@ impl CPU {
         0
     }
     fn pop(&mut self, arg0: instruction::POP_Arg_0) -> u16 {
-        let lsb = self.bus.read_byte(self.sp) as u16;
-        self.sp = self.sp.wrapping_add(1);
-        let msb = self.bus.read_byte(self.sp) as u16;
-        self.sp = self.sp.wrapping_add(1);
-        let value = (msb << 8) | lsb;
-
+        let value = self.pop_u16();
         match arg0 {
-            // instruction::POP_Arg_0::AF => self.registers.set_af(value),
+            instruction::POP_Arg_0::AF => self.registers.set_af(value),
             instruction::POP_Arg_0::BC => self.registers.set_bc(value),
             instruction::POP_Arg_0::DE => self.registers.set_de(value),
             instruction::POP_Arg_0::HL => self.registers.set_hl(value),
-            _ => todo!("impl set_af"),
         }
         self.pc.wrapping_add(1)
     }
@@ -364,7 +316,36 @@ impl CPU {
         0
     }
     fn ld(&mut self, arg0: instruction::LD_Arg_0, arg1: instruction::LD_Arg_1) -> u16 {
-        0
+        let source_value = match arg1 {
+            instruction::LD_Arg_1::A => self.registers.a,
+            instruction::LD_Arg_1::B => self.registers.b,
+            instruction::LD_Arg_1::C => self.registers.c,
+            instruction::LD_Arg_1::D => self.registers.d,
+            instruction::LD_Arg_1::E => self.registers.e,
+            instruction::LD_Arg_1::H => self.registers.h,
+            instruction::LD_Arg_1::L => self.registers.l,
+            instruction::LD_Arg_1::d8 => self.read_next_byte(),
+            instruction::LD_Arg_1::Indirect_HLI => self.bus.read_byte(self.registers.get_hl()),
+            _ => todo!("impl"),
+        };
+        match arg0 {
+            instruction::LD_Arg_0::A => self.registers.a = source_value,
+            instruction::LD_Arg_0::B => self.registers.b = source_value,
+            instruction::LD_Arg_0::C => self.registers.c = source_value,
+            instruction::LD_Arg_0::D => self.registers.d = source_value,
+            instruction::LD_Arg_0::E => self.registers.e = source_value,
+            instruction::LD_Arg_0::H => self.registers.h = source_value,
+            instruction::LD_Arg_0::L => self.registers.l = source_value,
+            instruction::LD_Arg_0::Indirect_HLI => {
+                self.bus.write_byte(self.registers.get_hl(), source_value)
+            }
+            _ => todo!("impl"),
+        };
+        // TODO cycleなのでまとめられるはず
+        match arg1 {
+            instruction::LD_Arg_1::d8 => self.pc.wrapping_add(2),
+            _ => self.pc.wrapping_add(1),
+        }
     }
     fn rla(&mut self) -> u16 {
         0
@@ -439,15 +420,6 @@ impl CPU {
         self.registers.f.half_carry = (self.registers.a & 0x0F) + (value & 0x0F) > 0x0F;
         new_value
     }
-    /*
-       fn return_(&mut self, should_jump: bool) -> u16 {
-           if should_jump {
-               self.pop()
-           } else {
-               self.pc.wrapping_add(1)
-           }
-       }
-    */
     fn step(&mut self) {
         let mut instruction_byte = self.bus.read_byte(self.pc);
         let prefixed = instruction_byte == 0xCB;
@@ -484,6 +456,14 @@ impl CPU {
         self.bus.write_byte(self.sp, ((value & 0xFF00) >> 8) as u8);
         self.sp = self.sp.wrapping_sub(1);
         self.bus.write_byte(self.sp, (value & 0x00FF) as u8);
+    }
+
+    fn pop_u16(&mut self) -> u16 {
+        let lsb = self.bus.read_byte(self.sp) as u16;
+        self.sp = self.sp.wrapping_add(1);
+        let msb = self.bus.read_byte(self.sp) as u16;
+        self.sp = self.sp.wrapping_add(1);
+        (msb << 8) | lsb
     }
 }
 
