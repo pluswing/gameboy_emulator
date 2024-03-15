@@ -385,18 +385,49 @@ impl CPU {
                     instruction::ADD_Arg_1::B => self.pc,
                     instruction::ADD_Arg_1::C => {
                         let value = self.registers.c;
-                        let new_value = self.add_a(value);
-                        self.registers.a = new_value;
+                        self.add_a(value);
                         self.pc.wrapping_add(1)
                     }
                     instruction::ADD_Arg_1::D => self.pc,
                     instruction::ADD_Arg_1::E => self.pc,
                     instruction::ADD_Arg_1::H => self.pc,
                     instruction::ADD_Arg_1::L => self.pc,
+                    instruction::ADD_Arg_1::Indirect_HL => {
+                        let value = self.bus.read_byte(self.registers.get_hl());
+                        self.add_a(value);
+                        self.pc.wrapping_add(1) // TODO byte数なので...
+                    }
+                    instruction::ADD_Arg_1::d8 => {
+                        let value = self.read_next_byte();
+                        self.add_a(value);
+                        self.pc.wrapping_add(1)
+                    }
                     _ => todo!("implement"),
                 }
             }
-            _ => todo!("implement"),
+            instruction::ADD_Arg_0::HL => {
+                let value = match arg1 {
+                    instruction::ADD_Arg_1::BC => self.registers.get_bc(),
+                    instruction::ADD_Arg_1::DE => self.registers.get_de(),
+                    instruction::ADD_Arg_1::HL => self.registers.get_hl(),
+                    instruction::ADD_Arg_1::SP => self.sp,
+                    _ => todo!("impl"),
+                };
+                // self.registers.set_hl(self.registers.get_hl() + value)
+                // TODO フラグの変更
+                0
+            }
+            instruction::ADD_Arg_0::SP => {
+                let value = match arg1 {
+                    instruction::ADD_Arg_1::E => self.read_next_byte(),
+                    _ => todo!("impl"),
+                } as i8; // 符号ありに変える
+                let left = self.sp as i32;
+                let value = left + value as i32;
+                self.sp = value as u16;
+                // TODO フラグの変更
+                0
+            }
         }
     }
     fn adc(&mut self, arg0: instruction::ADC_Arg_0, arg1: instruction::ADC_Arg_1) -> u16 {
@@ -418,6 +449,8 @@ impl CPU {
         self.registers.f.subtract = false;
         self.registers.f.carry = did_overflow;
         self.registers.f.half_carry = (self.registers.a & 0x0F) + (value & 0x0F) > 0x0F;
+
+        self.registers.a = new_value;
         new_value
     }
     fn step(&mut self) {
