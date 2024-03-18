@@ -380,30 +380,22 @@ impl CPU {
     fn add(&mut self, arg0: instruction::ADD_Arg_0, arg1: instruction::ADD_Arg_1) -> u16 {
         match arg0 {
             instruction::ADD_Arg_0::A => {
-                match arg1 {
-                    instruction::ADD_Arg_1::A => self.pc, // FIXME 実装する
-                    instruction::ADD_Arg_1::B => self.pc,
-                    instruction::ADD_Arg_1::C => {
-                        let value = self.registers.c;
-                        self.add_a(value);
-                        self.pc.wrapping_add(1)
-                    }
-                    instruction::ADD_Arg_1::D => self.pc,
-                    instruction::ADD_Arg_1::E => self.pc,
-                    instruction::ADD_Arg_1::H => self.pc,
-                    instruction::ADD_Arg_1::L => self.pc,
+                let value = match arg1 {
+                    instruction::ADD_Arg_1::A => self.registers.a,
+                    instruction::ADD_Arg_1::B => self.registers.b,
+                    instruction::ADD_Arg_1::C => self.registers.c,
+                    instruction::ADD_Arg_1::D => self.registers.d,
+                    instruction::ADD_Arg_1::E => self.registers.e,
+                    instruction::ADD_Arg_1::H => self.registers.h,
+                    instruction::ADD_Arg_1::L => self.registers.l,
                     instruction::ADD_Arg_1::Indirect_HL => {
-                        let value = self.bus.read_byte(self.registers.get_hl());
-                        self.add_a(value);
-                        self.pc.wrapping_add(1) // TODO byte数なので...
+                        self.bus.read_byte(self.registers.get_hl())
                     }
-                    instruction::ADD_Arg_1::d8 => {
-                        let value = self.read_next_byte();
-                        self.add_a(value);
-                        self.pc.wrapping_add(1)
-                    }
+                    instruction::ADD_Arg_1::d8 => self.read_next_byte(),
                     _ => todo!("implement"),
-                }
+                };
+                self.add_a(value);
+                self.pc.wrapping_add(1)
             }
             instruction::ADD_Arg_0::HL => {
                 let value = match arg1 {
@@ -413,20 +405,20 @@ impl CPU {
                     instruction::ADD_Arg_1::SP => self.sp,
                     _ => todo!("impl"),
                 };
-                // self.registers.set_hl(self.registers.get_hl() + value)
                 // TODO フラグの変更
-                0
+                self.registers.set_hl(self.registers.get_hl() + value);
+                self.pc.wrapping_add(1) // TODO
             }
             instruction::ADD_Arg_0::SP => {
                 let value = match arg1 {
-                    instruction::ADD_Arg_1::E => self.read_next_byte(),
+                    instruction::ADD_Arg_1::r8 => self.read_next_byte(),
                     _ => todo!("impl"),
                 } as i8; // 符号ありに変える
                 let left = self.sp as i32;
                 let value = left + value as i32;
                 self.sp = value as u16;
                 // TODO フラグの変更
-                0
+                self.pc.wrapping_add(2) // TODO
             }
         }
     }
@@ -522,24 +514,94 @@ impl MemoryBus {
 mod test {
     use super::*;
 
+    fn F(zero: bool, subtract: bool, half_carry: bool, carry: bool) -> FlagsRegister {
+        FlagsRegister {
+            zero: zero,
+            subtract: subtract,
+            half_carry: half_carry,
+            carry: carry,
+        }
+    }
+
     #[test]
-    fn test_add_a_c() {
+    fn test_add_a() {
+        // A, A
         let mut cpu = CPU::new();
-        cpu.bus.write_byte(0x0000, 0x81); // ADD A, C
-        cpu.registers.c = 0x03;
+        cpu.bus.write_byte(0x0000, 0x87);
+        cpu.registers.a = 0x02;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x04);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+
+        // A, B
+        cpu.bus.write_byte(0x0001, 0x80);
+        cpu.registers.b = 0x03;
         cpu.registers.a = 0x02;
         cpu.step();
         assert_eq!(cpu.registers.a, 0x05);
-        assert_eq!(cpu.pc, 0x0001);
-        assert_eq!(
-            cpu.registers.f,
-            FlagsRegister {
-                zero: false,
-                subtract: false,
-                half_carry: false,
-                carry: false,
-            }
-        );
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+
+        // A, C
+        cpu.bus.write_byte(0x0002, 0x81);
+        cpu.registers.c = 0x04;
+        cpu.registers.a = 0x02;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x06);
+        assert_eq!(cpu.pc, 0x0003);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+
+        // A, D
+        cpu.bus.write_byte(0x0003, 0x82);
+        cpu.registers.d = 0x05;
+        cpu.registers.a = 0x02;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x07);
+        assert_eq!(cpu.pc, 0x0004);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+
+        // A, E
+        cpu.bus.write_byte(0x0004, 0x83);
+        cpu.registers.e = 0x06;
+        cpu.registers.a = 0x02;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x08);
+        assert_eq!(cpu.pc, 0x0005);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+
+        // A, H
+        cpu.bus.write_byte(0x0005, 0x84);
+        cpu.registers.h = 0x07;
+        cpu.registers.a = 0x02;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x09);
+        assert_eq!(cpu.pc, 0x0006);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+
+        // A, L
+        cpu.bus.write_byte(0x0006, 0x85);
+        cpu.registers.l = 0x08;
+        cpu.registers.a = 0x02;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x0A);
+        assert_eq!(cpu.pc, 0x0007);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+
+        // A, (HL)
+        cpu.bus.write_byte(0x0007, 0x86);
+        cpu.registers.set_hl(0x1040);
+        cpu.bus.memory[0x1040] = 0x09;
+        cpu.registers.a = 0x02;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x0B);
+        assert_eq!(cpu.pc, 0x0008);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_add_a_c() {
+        let mut cpu = CPU::new();
     }
 
     #[test]
@@ -551,15 +613,7 @@ mod test {
         cpu.step();
         assert_eq!(cpu.registers.a, 0x00);
         assert_eq!(cpu.pc, 0x0001);
-        assert_eq!(
-            cpu.registers.f,
-            FlagsRegister {
-                zero: true,
-                subtract: false,
-                half_carry: false,
-                carry: false,
-            }
-        );
+        assert_eq!(cpu.registers.f, F(true, false, false, false));
     }
 
     #[test]
@@ -571,15 +625,7 @@ mod test {
         cpu.step();
         assert_eq!(cpu.registers.a, 0x10);
         assert_eq!(cpu.pc, 0x0001);
-        assert_eq!(
-            cpu.registers.f,
-            FlagsRegister {
-                zero: false,
-                subtract: false,
-                half_carry: false,
-                carry: true,
-            }
-        );
+        assert_eq!(cpu.registers.f, F(false, false, false, true));
     }
 
     #[test]
@@ -591,15 +637,7 @@ mod test {
         cpu.step();
         assert_eq!(cpu.registers.a, 0x10);
         assert_eq!(cpu.pc, 0x0001);
-        assert_eq!(
-            cpu.registers.f,
-            FlagsRegister {
-                zero: false,
-                subtract: false,
-                half_carry: true,
-                carry: false,
-            }
-        );
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
     }
 
     #[test]
