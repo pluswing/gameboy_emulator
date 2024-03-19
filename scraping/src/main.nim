@@ -172,6 +172,26 @@ proc writeFromByteFunction(f: File, operations: OpsCodeList, op_args: ArgsTable,
   f.writeLine "}\n"
 
 
+proc writeByteTable(f: File, np_prefixed: OpsCodeList, prefixed: OpsCodeList, func_name: string) =
+  f.writeLine fmt"pub fn {func_name}(byte: u8, prefiexed: bool) -> u16 " & "{"
+  f.writeLine "    match prefiexed {"
+  f.writeLine "        true => {"
+  f.writeLine "            match byte {"
+  for op in np_prefixed:
+    f.writeLine(fmt"                {op.code} => {op.bytes},")
+  f.writeLine(fmt"                _ => 0,")
+  f.writeLine "            }"
+  f.writeLine "        },"
+  f.writeLine "        false => {"
+  f.writeLine "            match byte {"
+  for op in prefixed:
+    f.writeLine(fmt"                {op.code} => {op.bytes},")
+  f.writeLine(fmt"                _ => 0,")
+  f.writeLine "            }"
+  f.writeLine "        }"
+  f.writeLine "    }"
+  f.writeLine "}\n"
+
 proc main() =
   let client = newHttpClient()
   let response = client.get(url)
@@ -192,13 +212,15 @@ proc main() =
   writeFromByteFunction(f, no_prefixed_ops, args, "from_byte_not_prefixed")
   writeFromByteFunction(f, prefixed_ops, args, "from_byte_prefixed")
 
+  writeByteTable(f, no_prefixed_ops, prefixed_ops, "instruction_bytes")
+
   # fn jump(&self, arg0: instruction::JP_Arg_0, arg1: instruction::JP_Arg_1) -> u16 {
   for name, op_args in args:
     var list = newSeq[string]()
     for i, a in op_args:
       list.add(fmt"arg{i}: instruction::{name}_Arg_{i}")
     let a = list.join(", ")
-    echo(fmt"fn {name.toLowerAscii}(&mut self, {a}) -> u16 " & "{0}")
+    echo(fmt"fn {name.toLowerAscii}(&mut self, {a}) " & "{}")
 
   echo "\n"
 

@@ -463,7 +463,9 @@ impl CPU {
             );
             panic!("Unknown instruction found for: {}", description)
         };
-        self.pc = next_pc;
+        self.pc = self
+            .pc
+            .wrapping_add(instruction::instruction_bytes(instruction_byte, prefixed))
     }
 
     fn read_next_byte(&self) -> u8 {
