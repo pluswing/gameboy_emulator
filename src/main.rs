@@ -130,51 +130,51 @@ impl CPU {
 
     fn execute(&mut self, instruction: instruction::Instruction) -> u16 {
         match instruction {
-            instruction::Instruction::DEC(arg0) => self.dec(arg0),
-            instruction::Instruction::JP(arg0, arg1) => self.jp(arg0, arg1),
-            instruction::Instruction::DAA() => self.daa(),
-            instruction::Instruction::SBC(arg0, arg1) => self.sbc(arg0, arg1),
-            instruction::Instruction::SWAP(arg0) => self.swap(arg0),
-            instruction::Instruction::SUB(arg0) => self.sub(arg0),
-            instruction::Instruction::RETI() => self.reti(),
-            instruction::Instruction::CALL(arg0, arg1) => self.call(arg0, arg1),
-            instruction::Instruction::NOP() => self.nop(),
-            instruction::Instruction::CP(arg0) => self.cp(arg0),
-            instruction::Instruction::RRCA() => self.rrca(),
-            instruction::Instruction::RET(arg0) => self.ret(arg0),
-            instruction::Instruction::SLA(arg0) => self.sla(arg0),
-            instruction::Instruction::JR(arg0, arg1) => self.jr(arg0, arg1),
-            instruction::Instruction::PREFIX(arg0) => self.prefix(arg0),
-            instruction::Instruction::SET(arg0, arg1) => self.set(arg0, arg1),
-            instruction::Instruction::DI() => self.di(),
-            instruction::Instruction::RRC(arg0) => self.rrc(arg0),
-            instruction::Instruction::SCF() => self.scf(),
-            instruction::Instruction::INC(arg0) => self.inc(arg0),
-            instruction::Instruction::RST(arg0) => self.rst(arg0),
-            instruction::Instruction::RES(arg0, arg1) => self.res(arg0, arg1),
-            instruction::Instruction::AND(arg0) => self.and(arg0),
-            instruction::Instruction::PUSH(arg0) => self.push(arg0),
-            instruction::Instruction::HALT() => self.halt(),
-            instruction::Instruction::XOR(arg0) => self.xor(arg0),
-            instruction::Instruction::POP(arg0) => self.pop(arg0),
-            instruction::Instruction::BIT(arg0, arg1) => self.bit(arg0, arg1),
-            instruction::Instruction::RRA() => self.rra(),
-            instruction::Instruction::LD(arg0, arg1) => self.ld(arg0, arg1),
-            instruction::Instruction::RLA() => self.rla(),
-            instruction::Instruction::STOP(arg0) => self.stop(arg0),
-            instruction::Instruction::CCF() => self.ccf(),
-            instruction::Instruction::RL(arg0) => self.rl(arg0),
-            instruction::Instruction::RR(arg0) => self.rr(arg0),
-            instruction::Instruction::SRL(arg0) => self.srl(arg0),
-            instruction::Instruction::CPL() => self.cpl(),
-            instruction::Instruction::LDH(arg0, arg1) => self.ldh(arg0, arg1),
-            instruction::Instruction::SRA(arg0) => self.sra(arg0),
-            instruction::Instruction::RLCA() => self.rlca(),
-            instruction::Instruction::ADD(arg0, arg1) => self.add(arg0, arg1),
-            instruction::Instruction::ADC(arg0, arg1) => self.adc(arg0, arg1),
-            instruction::Instruction::EI() => self.ei(),
-            instruction::Instruction::OR(arg0) => self.or(arg0),
-            instruction::Instruction::RLC(arg0) => self.rlc(arg0),
+            instruction::Instruction::DEC(arg0, flags) => self.dec(arg0, flags),
+            instruction::Instruction::JP(arg0, arg1, flags) => self.jp(arg0, arg1, flags),
+            instruction::Instruction::DAA(flags) => self.daa(flags),
+            instruction::Instruction::SBC(arg0, arg1, flags) => self.sbc(arg0, arg1, flags),
+            instruction::Instruction::SWAP(arg0, flags) => self.swap(arg0, flags),
+            instruction::Instruction::SUB(arg0, flags) => self.sub(arg0, flags),
+            instruction::Instruction::RETI(flags) => self.reti(flags),
+            instruction::Instruction::CALL(arg0, arg1, flags) => self.call(arg0, arg1, flags),
+            instruction::Instruction::NOP(flags) => self.nop(flags),
+            instruction::Instruction::CP(arg0, flags) => self.cp(arg0, flags),
+            instruction::Instruction::RRCA(flags) => self.rrca(flags),
+            instruction::Instruction::RET(arg0, flags) => self.ret(arg0, flags),
+            instruction::Instruction::SLA(arg0, flags) => self.sla(arg0, flags),
+            instruction::Instruction::JR(arg0, arg1, flags) => self.jr(arg0, arg1, flags),
+            instruction::Instruction::PREFIX(arg0, flags) => self.prefix(arg0, flags),
+            instruction::Instruction::SET(arg0, arg1, flags) => self.set(arg0, arg1, flags),
+            instruction::Instruction::DI(flags) => self.di(flags),
+            instruction::Instruction::RRC(arg0, flags) => self.rrc(arg0, flags),
+            instruction::Instruction::SCF(flags) => self.scf(flags),
+            instruction::Instruction::INC(arg0, flags) => self.inc(arg0, flags),
+            instruction::Instruction::RST(arg0, flags) => self.rst(arg0, flags),
+            instruction::Instruction::RES(arg0, arg1, flags) => self.res(arg0, arg1, flags),
+            instruction::Instruction::AND(arg0, flags) => self.and(arg0, flags),
+            instruction::Instruction::PUSH(arg0, flags) => self.push(arg0, flags),
+            instruction::Instruction::HALT(flags) => self.halt(flags),
+            instruction::Instruction::XOR(arg0, flags) => self.xor(arg0, flags),
+            instruction::Instruction::POP(arg0, flags) => self.pop(arg0, flags),
+            instruction::Instruction::BIT(arg0, arg1, flags) => self.bit(arg0, arg1, flags),
+            instruction::Instruction::RRA(flags) => self.rra(flags),
+            instruction::Instruction::LD(arg0, arg1, flags) => self.ld(arg0, arg1, flags),
+            instruction::Instruction::RLA(flags) => self.rla(flags),
+            instruction::Instruction::STOP(arg0, flags) => self.stop(arg0, flags),
+            instruction::Instruction::CCF(flags) => self.ccf(flags),
+            instruction::Instruction::RL(arg0, flags) => self.rl(arg0, flags),
+            instruction::Instruction::RR(arg0, flags) => self.rr(arg0, flags),
+            instruction::Instruction::SRL(arg0, flags) => self.srl(arg0, flags),
+            instruction::Instruction::CPL(flags) => self.cpl(flags),
+            instruction::Instruction::LDH(arg0, arg1, flags) => self.ldh(arg0, arg1, flags),
+            instruction::Instruction::SRA(arg0, flags) => self.sra(arg0, flags),
+            instruction::Instruction::RLCA(flags) => self.rlca(flags),
+            instruction::Instruction::ADD(arg0, arg1, flags) => self.add(arg0, arg1, flags),
+            instruction::Instruction::ADC(arg0, arg1, flags) => self.adc(arg0, arg1, flags),
+            instruction::Instruction::EI(flags) => self.ei(flags),
+            instruction::Instruction::OR(arg0, flags) => self.or(arg0, flags),
+            instruction::Instruction::RLC(arg0, flags) => self.rlc(arg0, flags),
         }
     }
 
@@ -211,7 +211,12 @@ impl CPU {
     fn reti(&mut self) -> u16 {
         0
     }
-    fn call(&mut self, arg0: instruction::CALL_Arg_0, arg1: instruction::CALL_Arg_1) -> u16 {
+    fn call(
+        &mut self,
+        arg0: instruction::CALL_Arg_0,
+        arg1: instruction::CALL_Arg_1,
+        flags: Flags,
+    ) -> u16 {
         let jump_condition = match arg0 {
             instruction::CALL_Arg_0::NZ => !self.registers.f.zero,
             instruction::CALL_Arg_0::Z => self.registers.f.zero,
@@ -226,6 +231,7 @@ impl CPU {
         } else {
             next_pc
         }
+        // self.update_flags(value, flags)
     }
     fn nop(&mut self) -> u16 {
         0

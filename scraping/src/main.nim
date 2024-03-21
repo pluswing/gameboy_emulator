@@ -49,6 +49,18 @@ proc flag_value(v: string): FlagValue =
   else:
     return FlagValue.CHANGE
 
+proc flags_value_str(v: FlagValue): string =
+  if v == FlagValue.FORCE_TRUE:
+    return "FlagValue::FORCE_TRUE"
+  elif v == FlagValue.FORCE_FALSE:
+    return "FlagValue::FORCE_FALSE"
+  elif v == FlagValue.NO_CHANGE:
+    return "FlagValue::NO_CHANGE"
+  else:
+    return "FlagValue::CHANGE"
+
+proc flags_str(f: Flags): string =
+  return "Flags { zero: " & flags_value_str(f.zero) & ", subtract: " & flags_value_str(f.zero) & ", half_carry: " & flags_value_str(f.half_carry) & ", carry: " & flags_value_str(f.carry) & " }"
 
 proc extract_operations(trs: seq[XmlNode]): OpsCodeList =
   var operations = newSeq[OpsCode]()
@@ -147,8 +159,9 @@ proc writeEnums(f: File, op_args: ArgsTable) =
   # enum Instruction {
   f.writeLine "pub enum Instruction {"
   for name, args in op_args:
-    let arg_str = collect(newSeq):
+    var arg_str = collect(newSeq):
       for i, a in args: fmt"{name}_Arg_{i}"
+    arg_str.add("Flags")
     let a = arg_str.join(", ")
     f.writeLine fmt"    {name}({a}),"
   f.writeLine "}\n"
@@ -165,6 +178,7 @@ proc writeFromByteFunction(f: File, operations: OpsCodeList, op_args: ArgsTable,
       else:
         let v = op.args[i]
         args.add(fmt"{op.name}_Arg_{i}::{v}")
+    args.add(flags_str(op.flags))
     let a = args.join(", ")
     f.writeLine(fmt"        {op.code} => Some(Instruction::{op.name}({a})),")
   f.writeLine("        _ => None,")
@@ -208,6 +222,21 @@ proc main() =
   var f = open("instruction.rs", FileMode.fmWrite)
   defer:
     close(f)
+
+  f.writeLine("pub enum FlagValue {")
+  f.writeLine("    NO_CHANGE,")
+  f.writeLine("    CHANGE,")
+  f.writeLine("    FORCE_TRUE,")
+  f.writeLine("    FORCE_FALSE,")
+  f.writeLine("}\n")
+
+  f.writeLine("pub struct Flags {")
+  f.writeLine("    pub zero: FlagValue,")
+  f.writeLine("    pub subtract: FlagValue,")
+  f.writeLine("    pub half_carry: FlagValue,")
+  f.writeLine("    pub carry: FlagValue,")
+  f.writeLine("}\n")
+
   writeEnums(f, args)
   writeFromByteFunction(f, no_prefixed_ops, args, "from_byte_not_prefixed")
   writeFromByteFunction(f, prefixed_ops, args, "from_byte_prefixed")
@@ -230,6 +259,7 @@ proc main() =
     var list = newSeq[string]()
     for i, a in op_args:
       list.add(fmt"arg{i}")
+    list.add("flags")
     let a = list.join(", ")
     echo fmt"        instruction::Instruction::{name}({a}) => self.{name.toLowerAscii}({a}),"
   echo "    }"
