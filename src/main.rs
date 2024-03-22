@@ -128,7 +128,7 @@ impl CPU {
         }
     }
 
-    fn execute(&mut self, instruction: instruction::Instruction) -> u16 {
+    fn execute(&mut self, instruction: instruction::Instruction) {
         match instruction {
             instruction::Instruction::DEC(arg0, flags) => self.dec(arg0, flags),
             instruction::Instruction::JP(arg0, arg1, flags) => self.jp(arg0, arg1, flags),
@@ -178,10 +178,12 @@ impl CPU {
         }
     }
 
-    fn dec(&mut self, arg0: instruction::DEC_Arg_0) -> u16 {
-        0
-    }
-    fn jp(&mut self, arg0: instruction::JP_Arg_0, arg1: instruction::JP_Arg_1) -> u16 {
+    fn jp(
+        &mut self,
+        arg0: instruction::JP_Arg_0,
+        arg1: instruction::JP_Arg_1,
+        flags: instruction::Flags,
+    ) {
         let jump_condition = match arg0 {
             instruction::JP_Arg_0::NZ => !self.registers.f.zero,
             instruction::JP_Arg_0::Z => self.registers.f.zero,
@@ -191,32 +193,20 @@ impl CPU {
             _ => todo!("impl"),
         };
         if jump_condition {
-            self.read_next_word()
-        } else {
-            self.pc.wrapping_add(3)
+            self.pc = self.read_next_word()
+                - match arg0 {
+                    instruction::JP_Arg_0::Indirect_HL => 1,
+                    _ => 3,
+                }
         }
     }
-    fn daa(&mut self) -> u16 {
-        0
-    }
-    fn sbc(&mut self, arg0: instruction::SBC_Arg_0, arg1: instruction::SBC_Arg_1) -> u16 {
-        0
-    }
-    fn swap(&mut self, arg0: instruction::SWAP_Arg_0) -> u16 {
-        0
-    }
-    fn sub(&mut self, arg0: instruction::SUB_Arg_0) -> u16 {
-        0
-    }
-    fn reti(&mut self) -> u16 {
-        0
-    }
+
     fn call(
         &mut self,
         arg0: instruction::CALL_Arg_0,
         arg1: instruction::CALL_Arg_1,
-        flags: Flags,
-    ) -> u16 {
+        flags: instruction::Flags,
+    ) {
         let jump_condition = match arg0 {
             instruction::CALL_Arg_0::NZ => !self.registers.f.zero,
             instruction::CALL_Arg_0::Z => self.registers.f.zero,
@@ -227,22 +217,11 @@ impl CPU {
         let next_pc = self.pc.wrapping_add(3);
         if jump_condition {
             self.push_u16(next_pc);
-            self.read_next_word()
-        } else {
-            next_pc
+            self.pc = self.pc.wrapping_add(self.read_next_word().wrapping_sub(3))
         }
         // self.update_flags(value, flags)
     }
-    fn nop(&mut self) -> u16 {
-        0
-    }
-    fn cp(&mut self, arg0: instruction::CP_Arg_0) -> u16 {
-        0
-    }
-    fn rrca(&mut self) -> u16 {
-        0
-    }
-    fn ret(&mut self, arg0: instruction::RET_Arg_0) -> u16 {
+    fn ret(&mut self, arg0: instruction::RET_Arg_0, flags: instruction::Flags) {
         let jump_condition = match arg0 {
             instruction::RET_Arg_0::NZ => !self.registers.f.zero,
             instruction::RET_Arg_0::Z => self.registers.f.zero,
@@ -251,45 +230,12 @@ impl CPU {
             instruction::RET_Arg_0::NONE => true,
         };
         if jump_condition {
-            self.pop_u16()
-        } else {
-            self.pc.wrapping_add(1)
+            let pc = self.pop_u16();
+            // 共通処理でPCがbyte数足されるので、それを考慮して引いておく。
+            self.pc = pc - 1
         }
     }
-    fn sla(&mut self, arg0: instruction::SLA_Arg_0) -> u16 {
-        0
-    }
-    fn jr(&mut self, arg0: instruction::JR_Arg_0, arg1: instruction::JR_Arg_1) -> u16 {
-        0
-    }
-    fn prefix(&mut self, arg0: instruction::PREFIX_Arg_0) -> u16 {
-        0
-    }
-    fn set(&mut self, arg0: instruction::SET_Arg_0, arg1: instruction::SET_Arg_1) -> u16 {
-        0
-    }
-    fn di(&mut self) -> u16 {
-        0
-    }
-    fn rrc(&mut self, arg0: instruction::RRC_Arg_0) -> u16 {
-        0
-    }
-    fn scf(&mut self) -> u16 {
-        0
-    }
-    fn inc(&mut self, arg0: instruction::INC_Arg_0) -> u16 {
-        0
-    }
-    fn rst(&mut self, arg0: instruction::RST_Arg_0) -> u16 {
-        0
-    }
-    fn res(&mut self, arg0: instruction::RES_Arg_0, arg1: instruction::RES_Arg_1) -> u16 {
-        0
-    }
-    fn and(&mut self, arg0: instruction::AND_Arg_0) -> u16 {
-        0
-    }
-    fn push(&mut self, arg0: instruction::PUSH_Arg_0) -> u16 {
+    fn push(&mut self, arg0: instruction::PUSH_Arg_0, flags: instruction::Flags) {
         let value = match arg0 {
             instruction::PUSH_Arg_0::AF => self.registers.get_af(),
             instruction::PUSH_Arg_0::BC => self.registers.get_bc(),
@@ -297,15 +243,8 @@ impl CPU {
             instruction::PUSH_Arg_0::HL => self.registers.get_hl(),
         };
         self.push_u16(value);
-        self.pc.wrapping_add(1)
     }
-    fn halt(&mut self) -> u16 {
-        0
-    }
-    fn xor(&mut self, arg0: instruction::XOR_Arg_0) -> u16 {
-        0
-    }
-    fn pop(&mut self, arg0: instruction::POP_Arg_0) -> u16 {
+    fn pop(&mut self, arg0: instruction::POP_Arg_0, flags: instruction::Flags) {
         let value = self.pop_u16();
         match arg0 {
             instruction::POP_Arg_0::AF => self.registers.set_af(value),
@@ -313,15 +252,13 @@ impl CPU {
             instruction::POP_Arg_0::DE => self.registers.set_de(value),
             instruction::POP_Arg_0::HL => self.registers.set_hl(value),
         }
-        self.pc.wrapping_add(1)
     }
-    fn bit(&mut self, arg0: instruction::BIT_Arg_0, arg1: instruction::BIT_Arg_1) -> u16 {
-        0
-    }
-    fn rra(&mut self) -> u16 {
-        0
-    }
-    fn ld(&mut self, arg0: instruction::LD_Arg_0, arg1: instruction::LD_Arg_1) -> u16 {
+    fn ld(
+        &mut self,
+        arg0: instruction::LD_Arg_0,
+        arg1: instruction::LD_Arg_1,
+        flags: instruction::Flags,
+    ) {
         let source_value = match arg1 {
             instruction::LD_Arg_1::A => self.registers.a,
             instruction::LD_Arg_1::B => self.registers.b,
@@ -347,43 +284,13 @@ impl CPU {
             }
             _ => todo!("impl"),
         };
-        // TODO cycleなのでまとめられるはず
-        match arg1 {
-            instruction::LD_Arg_1::d8 => self.pc.wrapping_add(2),
-            _ => self.pc.wrapping_add(1),
-        }
     }
-    fn rla(&mut self) -> u16 {
-        0
-    }
-    fn stop(&mut self, arg0: instruction::STOP_Arg_0) -> u16 {
-        0
-    }
-    fn ccf(&mut self) -> u16 {
-        0
-    }
-    fn rl(&mut self, arg0: instruction::RL_Arg_0) -> u16 {
-        0
-    }
-    fn rr(&mut self, arg0: instruction::RR_Arg_0) -> u16 {
-        0
-    }
-    fn srl(&mut self, arg0: instruction::SRL_Arg_0) -> u16 {
-        0
-    }
-    fn cpl(&mut self) -> u16 {
-        0
-    }
-    fn ldh(&mut self, arg0: instruction::LDH_Arg_0, arg1: instruction::LDH_Arg_1) -> u16 {
-        0
-    }
-    fn sra(&mut self, arg0: instruction::SRA_Arg_0) -> u16 {
-        0
-    }
-    fn rlca(&mut self) -> u16 {
-        0
-    }
-    fn add(&mut self, arg0: instruction::ADD_Arg_0, arg1: instruction::ADD_Arg_1) -> u16 {
+    fn add(
+        &mut self,
+        arg0: instruction::ADD_Arg_0,
+        arg1: instruction::ADD_Arg_1,
+        flags: instruction::Flags,
+    ) {
         match arg0 {
             instruction::ADD_Arg_0::A => {
                 let value = match arg1 {
@@ -401,7 +308,6 @@ impl CPU {
                     _ => todo!("implement"),
                 };
                 self.add_a(value);
-                self.pc.wrapping_add(1)
             }
             instruction::ADD_Arg_0::HL => {
                 let value = match arg1 {
@@ -413,7 +319,6 @@ impl CPU {
                 };
                 // TODO フラグの変更
                 self.registers.set_hl(self.registers.get_hl() + value);
-                self.pc.wrapping_add(1) // TODO
             }
             instruction::ADD_Arg_0::SP => {
                 let value = match arg1 {
@@ -424,22 +329,90 @@ impl CPU {
                 let value = left + value as i32;
                 self.sp = value as u16;
                 // TODO フラグの変更
-                self.pc.wrapping_add(2) // TODO
             }
         }
     }
-    fn adc(&mut self, arg0: instruction::ADC_Arg_0, arg1: instruction::ADC_Arg_1) -> u16 {
-        0
+
+    fn dec(&mut self, arg0: instruction::DEC_Arg_0, flags: instruction::Flags) {}
+    fn daa(&mut self, flags: instruction::Flags) {}
+    fn sbc(
+        &mut self,
+        arg0: instruction::SBC_Arg_0,
+        arg1: instruction::SBC_Arg_1,
+        flags: instruction::Flags,
+    ) {
     }
-    fn ei(&mut self) -> u16 {
-        0
+    fn swap(&mut self, arg0: instruction::SWAP_Arg_0, flags: instruction::Flags) {}
+    fn sub(&mut self, arg0: instruction::SUB_Arg_0, flags: instruction::Flags) {}
+    fn reti(&mut self, flags: instruction::Flags) {}
+    fn nop(&mut self, flags: instruction::Flags) {}
+    fn cp(&mut self, arg0: instruction::CP_Arg_0, flags: instruction::Flags) {}
+    fn rrca(&mut self, flags: instruction::Flags) {}
+    fn sla(&mut self, arg0: instruction::SLA_Arg_0, flags: instruction::Flags) {}
+    fn jr(
+        &mut self,
+        arg0: instruction::JR_Arg_0,
+        arg1: instruction::JR_Arg_1,
+        flags: instruction::Flags,
+    ) {
     }
-    fn or(&mut self, arg0: instruction::OR_Arg_0) -> u16 {
-        0
+    fn prefix(&mut self, arg0: instruction::PREFIX_Arg_0, flags: instruction::Flags) {}
+    fn set(
+        &mut self,
+        arg0: instruction::SET_Arg_0,
+        arg1: instruction::SET_Arg_1,
+        flags: instruction::Flags,
+    ) {
     }
-    fn rlc(&mut self, arg0: instruction::RLC_Arg_0) -> u16 {
-        0
+    fn di(&mut self, flags: instruction::Flags) {}
+    fn rrc(&mut self, arg0: instruction::RRC_Arg_0, flags: instruction::Flags) {}
+    fn scf(&mut self, flags: instruction::Flags) {}
+    fn inc(&mut self, arg0: instruction::INC_Arg_0, flags: instruction::Flags) {}
+    fn rst(&mut self, arg0: instruction::RST_Arg_0, flags: instruction::Flags) {}
+    fn res(
+        &mut self,
+        arg0: instruction::RES_Arg_0,
+        arg1: instruction::RES_Arg_1,
+        flags: instruction::Flags,
+    ) {
     }
+    fn and(&mut self, arg0: instruction::AND_Arg_0, flags: instruction::Flags) {}
+    fn halt(&mut self, flags: instruction::Flags) {}
+    fn xor(&mut self, arg0: instruction::XOR_Arg_0, flags: instruction::Flags) {}
+    fn bit(
+        &mut self,
+        arg0: instruction::BIT_Arg_0,
+        arg1: instruction::BIT_Arg_1,
+        flags: instruction::Flags,
+    ) {
+    }
+    fn rra(&mut self, flags: instruction::Flags) {}
+    fn rla(&mut self, flags: instruction::Flags) {}
+    fn stop(&mut self, arg0: instruction::STOP_Arg_0, flags: instruction::Flags) {}
+    fn ccf(&mut self, flags: instruction::Flags) {}
+    fn rl(&mut self, arg0: instruction::RL_Arg_0, flags: instruction::Flags) {}
+    fn rr(&mut self, arg0: instruction::RR_Arg_0, flags: instruction::Flags) {}
+    fn srl(&mut self, arg0: instruction::SRL_Arg_0, flags: instruction::Flags) {}
+    fn cpl(&mut self, flags: instruction::Flags) {}
+    fn ldh(
+        &mut self,
+        arg0: instruction::LDH_Arg_0,
+        arg1: instruction::LDH_Arg_1,
+        flags: instruction::Flags,
+    ) {
+    }
+    fn sra(&mut self, arg0: instruction::SRA_Arg_0, flags: instruction::Flags) {}
+    fn rlca(&mut self, flags: instruction::Flags) {}
+    fn adc(
+        &mut self,
+        arg0: instruction::ADC_Arg_0,
+        arg1: instruction::ADC_Arg_1,
+        flags: instruction::Flags,
+    ) {
+    }
+    fn ei(&mut self, flags: instruction::Flags) {}
+    fn or(&mut self, arg0: instruction::OR_Arg_0, flags: instruction::Flags) {}
+    fn rlc(&mut self, arg0: instruction::RLC_Arg_0, flags: instruction::Flags) {}
 
     fn add_a(&mut self, value: u8) -> u8 {
         let (new_value, did_overflow) = self.registers.a.overflowing_add(value);
@@ -457,9 +430,7 @@ impl CPU {
         if prefixed {
             instruction_byte = self.bus.read_byte(self.pc + 1);
         }
-        let next_pc = if let Some(instruction) =
-            instruction::Instruction::from_byte(instruction_byte, prefixed)
-        {
+        if let Some(instruction) = instruction::Instruction::from_byte(instruction_byte, prefixed) {
             self.execute(instruction)
         } else {
             let description = format!(
@@ -605,11 +576,6 @@ mod test {
         assert_eq!(cpu.registers.a, 0x0B);
         assert_eq!(cpu.pc, 0x0008);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
-    }
-
-    #[test]
-    fn test_add_a_c() {
-        let mut cpu = CPU::new();
     }
 
     #[test]

@@ -244,16 +244,19 @@ proc main() =
   writeByteTable(f, no_prefixed_ops, prefixed_ops, "instruction_bytes")
 
   # fn jump(&self, arg0: instruction::JP_Arg_0, arg1: instruction::JP_Arg_1) -> u16 {
+  let already = ["JP", "CALL", "RET", "PUSH", "POP", "LD", "ADD"]
   for name, op_args in args:
     var list = newSeq[string]()
     for i, a in op_args:
       list.add(fmt"arg{i}: instruction::{name}_Arg_{i}")
+    list.add("flags: instruction::Flags")
     let a = list.join(", ")
-    echo(fmt"fn {name.toLowerAscii}(&mut self, {a}) " & "{}")
+    if not already.contains(name):
+      echo(fmt"fn {name.toLowerAscii}(&mut self, {a}) " & "{}")
 
   echo "\n"
 
-  echo "fn execute(&mut self, instruction: instruction::Instruction) -> u16 {"
+  echo "fn execute(&mut self, instruction: instruction::Instruction) {"
   echo "    match instruction {"
   for name, op_args in args:
     var list = newSeq[string]()
