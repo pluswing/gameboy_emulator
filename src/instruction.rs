@@ -1008,7 +1008,7 @@ pub fn from_byte_prefixed(byte: u8) -> Option<Instruction> {
 
 pub fn instruction_bytes(byte: u8, prefiexed: bool) -> u16 {
     match prefiexed {
-        true => {
+        false => {
             match byte {
                 0x00 => 1,
                 0x01 => 3,
@@ -1258,7 +1258,7 @@ pub fn instruction_bytes(byte: u8, prefiexed: bool) -> u16 {
                 _ => 0,
             }
         },
-        false => {
+        true => {
             match byte {
                 0x00 => 2,
                 0x01 => 2,

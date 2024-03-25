@@ -308,6 +308,7 @@ impl CPU {
                     _ => todo!("implement"),
                 };
                 self.add_a(value);
+                self.update_flags(self.registers.a, flags);
             }
             instruction::ADD_Arg_0::HL => {
                 let value = match arg1 {
@@ -416,14 +417,39 @@ impl CPU {
 
     fn add_a(&mut self, value: u8) -> u8 {
         let (new_value, did_overflow) = self.registers.a.overflowing_add(value);
-        self.registers.f.zero = new_value == 0;
-        self.registers.f.subtract = false;
         self.registers.f.carry = did_overflow;
         self.registers.f.half_carry = (self.registers.a & 0x0F) + (value & 0x0F) > 0x0F;
-
         self.registers.a = new_value;
         new_value
     }
+
+    fn update_flags(&mut self, value: u8, flags: instruction::Flags) {
+        self.registers.f.zero = match flags.zero {
+            instruction::FlagValue::FORCE_FALSE => false,
+            instruction::FlagValue::FORCE_TRUE => true,
+            instruction::FlagValue::CHANGE => value == 0,
+            instruction::FlagValue::NO_CHANGE => self.registers.f.zero,
+        };
+        self.registers.f.subtract = match flags.subtract {
+            instruction::FlagValue::FORCE_FALSE => false,
+            instruction::FlagValue::FORCE_TRUE => true,
+            instruction::FlagValue::CHANGE => panic!("subtract flag CHANGE not support"),
+            instruction::FlagValue::NO_CHANGE => self.registers.f.subtract,
+        };
+        self.registers.f.carry = match flags.carry {
+            instruction::FlagValue::FORCE_FALSE => false,
+            instruction::FlagValue::FORCE_TRUE => true,
+            // carryは各命令で変更する
+            _ => self.registers.f.carry,
+        };
+        self.registers.f.half_carry = match flags.subtract {
+            instruction::FlagValue::FORCE_FALSE => false,
+            instruction::FlagValue::FORCE_TRUE => true,
+            //half_carryは各命令で変更する
+            _ => self.registers.f.half_carry,
+        };
+    }
+
     fn step(&mut self) {
         let mut instruction_byte = self.bus.read_byte(self.pc);
         let prefixed = instruction_byte == 0xCB;

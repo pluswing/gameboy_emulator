@@ -189,14 +189,14 @@ proc writeFromByteFunction(f: File, operations: OpsCodeList, op_args: ArgsTable,
 proc writeByteTable(f: File, np_prefixed: OpsCodeList, prefixed: OpsCodeList, func_name: string) =
   f.writeLine fmt"pub fn {func_name}(byte: u8, prefiexed: bool) -> u16 " & "{"
   f.writeLine "    match prefiexed {"
-  f.writeLine "        true => {"
+  f.writeLine "        false => {"
   f.writeLine "            match byte {"
   for op in np_prefixed:
     f.writeLine(fmt"                {op.code} => {op.bytes},")
   f.writeLine(fmt"                _ => 0,")
   f.writeLine "            }"
   f.writeLine "        },"
-  f.writeLine "        false => {"
+  f.writeLine "        true => {"
   f.writeLine "            match byte {"
   for op in prefixed:
     f.writeLine(fmt"                {op.code} => {op.bytes},")
