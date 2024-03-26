@@ -307,8 +307,11 @@ impl CPU {
                     instruction::ADD_Arg_1::d8 => self.read_next_byte(),
                     _ => todo!("implement"),
                 };
-                self.add_a(value);
-                self.update_flags(self.registers.a, flags);
+                let (new_value, did_overflow) = self.registers.a.overflowing_add(value);
+                self.registers.f.carry = did_overflow;
+                self.registers.f.half_carry = (self.registers.a & 0x0F) + (value & 0x0F) > 0x0F;
+                self.registers.a = new_value;
+                self.update_flags(self.registers.a as u16, flags);
             }
             instruction::ADD_Arg_0::HL => {
                 let value = match arg1 {
@@ -318,18 +321,27 @@ impl CPU {
                     instruction::ADD_Arg_1::SP => self.sp,
                     _ => todo!("impl"),
                 };
-                // TODO フラグの変更
-                self.registers.set_hl(self.registers.get_hl() + value);
+                let (new_value, did_overflow) = self.registers.get_hl().overflowing_add(value);
+                self.registers.f.carry = did_overflow;
+                self.registers.f.half_carry =
+                    (self.registers.get_hl() & 0x0FFF) + (value & 0x0FFF) > 0x0FFF;
+                self.registers.set_hl(new_value);
+
+                self.update_flags(self.registers.get_hl(), flags)
             }
             instruction::ADD_Arg_0::SP => {
                 let value = match arg1 {
                     instruction::ADD_Arg_1::r8 => self.read_next_byte(),
                     _ => todo!("impl"),
-                } as i8; // 符号ありに変える
+                } as i32; // 符号ありに変える
+
                 let left = self.sp as i32;
-                let value = left + value as i32;
-                self.sp = value as u16;
-                // TODO フラグの変更
+
+                self.registers.f.carry = (left & 0xFF) + (value & 0xFF) > 0xFF;
+                self.registers.f.half_carry = (left & 0x0F) + (value & 0x0F) > 0x0F;
+                let (new_value, _) = left.overflowing_add(value);
+                self.sp = new_value as u16;
+                self.update_flags(self.sp, flags);
             }
         }
     }
@@ -415,15 +427,7 @@ impl CPU {
     fn or(&mut self, arg0: instruction::OR_Arg_0, flags: instruction::Flags) {}
     fn rlc(&mut self, arg0: instruction::RLC_Arg_0, flags: instruction::Flags) {}
 
-    fn add_a(&mut self, value: u8) -> u8 {
-        let (new_value, did_overflow) = self.registers.a.overflowing_add(value);
-        self.registers.f.carry = did_overflow;
-        self.registers.f.half_carry = (self.registers.a & 0x0F) + (value & 0x0F) > 0x0F;
-        self.registers.a = new_value;
-        new_value
-    }
-
-    fn update_flags(&mut self, value: u8, flags: instruction::Flags) {
+    fn update_flags(&mut self, value: u16, flags: instruction::Flags) {
         self.registers.f.zero = match flags.zero {
             instruction::FlagValue::FORCE_FALSE => false,
             instruction::FlagValue::FORCE_TRUE => true,
@@ -442,7 +446,7 @@ impl CPU {
             // carryは各命令で変更する
             _ => self.registers.f.carry,
         };
-        self.registers.f.half_carry = match flags.subtract {
+        self.registers.f.half_carry = match flags.half_carry {
             instruction::FlagValue::FORCE_FALSE => false,
             instruction::FlagValue::FORCE_TRUE => true,
             //half_carryは各命令で変更する
