@@ -645,6 +645,69 @@ mod test {
     }
 
     #[test]
+    fn test_add_a_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xC6); // ADD A, d8
+        cpu.bus.write_byte(0x0001, 0x05); // d8
+        cpu.registers.a = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x06);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_add_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x09); // ADD HL, BC
+        cpu.registers.set_hl(0x0103);
+        cpu.registers.set_bc(0x0204);
+        cpu.step();
+        assert_eq!(cpu.registers.get_hl(), 0x0307);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+
+        cpu.bus.write_byte(0x0001, 0x19); // ADD HL, DE
+        cpu.registers.set_hl(0x0103);
+        cpu.registers.set_de(0x0305);
+        cpu.step();
+        assert_eq!(cpu.registers.get_hl(), 0x0408);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+
+        cpu.bus.write_byte(0x0002, 0x29); // ADD HL, HL
+        cpu.registers.set_hl(0x0104);
+        cpu.step();
+        assert_eq!(cpu.registers.get_hl(), 0x0208);
+        assert_eq!(cpu.pc, 0x0003);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_add_hl_sp() {
+        let mut cpu = CPU::new();
+        cpu.sp = 0x0003;
+        cpu.bus.write_byte(0x0000, 0x39); // ADD HL, SP
+        cpu.registers.set_hl(0x0106);
+        cpu.step();
+        assert_eq!(cpu.registers.get_hl(), 0x0109);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_add_sp_r8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xE8); // ADD SP, r8
+        cpu.bus.write_byte(0x0001, 0x04); // r8
+        cpu.sp = 0x0003;
+        cpu.step();
+        assert_eq!(cpu.sp, 0x0007);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
     fn test_jp_zero() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0xCA); // JP Z, a16
