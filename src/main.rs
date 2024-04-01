@@ -333,12 +333,17 @@ impl CPU {
                 let value = match arg1 {
                     instruction::ADD_Arg_1::r8 => self.read_next_byte(),
                     _ => todo!("impl"),
-                } as i32; // 符号ありに変える
+                } as i8; // 符号ありに変える
 
+                let value = value as i32;
                 let left = self.sp as i32;
 
-                self.registers.f.carry = (left & 0xFF) + (value & 0xFF) > 0xFF;
-                self.registers.f.half_carry = (left & 0x0F) + (value & 0x0F) > 0x0F;
+                // FIXME マイナス値の時はどうする？
+                // 0xFF (-1) + 0x00 (0) => 0xFF (carry on?)
+                if value > 0 {
+                    self.registers.f.carry = (left & 0xFF) + (value & 0xFF) > 0xFF;
+                    self.registers.f.half_carry = (left & 0x0F) + (value & 0x0F) > 0x0F;
+                }
                 let (new_value, _) = left.overflowing_add(value);
                 self.sp = new_value as u16;
                 self.update_flags(self.sp, flags);
@@ -696,6 +701,32 @@ mod test {
     }
 
     #[test]
+    fn test_add_hl_carry() {
+        let mut cpu = CPU::new();
+        cpu.sp = 0x0003;
+        cpu.bus.write_byte(0x0000, 0x09);
+        cpu.registers.set_hl(0xF000);
+        cpu.registers.set_bc(0x1000);
+        cpu.step();
+        assert_eq!(cpu.registers.get_hl(), 0x0000);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, true));
+    }
+
+    #[test]
+    fn test_add_hl_half_carry() {
+        let mut cpu = CPU::new();
+        cpu.sp = 0x0003;
+        cpu.bus.write_byte(0x0000, 0x09);
+        cpu.registers.set_hl(0x0F00);
+        cpu.registers.set_bc(0x0100);
+        cpu.step();
+        assert_eq!(cpu.registers.get_hl(), 0x1000);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
+    }
+
+    #[test]
     fn test_add_sp_r8() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0xE8); // ADD SP, r8
@@ -705,6 +736,42 @@ mod test {
         assert_eq!(cpu.sp, 0x0007);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_add_sp_r8_minus() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xE8); // ADD SP, r8
+        cpu.bus.write_byte(0x0001, 0xFF); // r8
+        cpu.sp = 0x0003;
+        cpu.step();
+        assert_eq!(cpu.sp, 0x0002);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_add_sp_r8_carry() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xE8); // ADD SP, r8
+        cpu.bus.write_byte(0x0001, 0x10); // r8
+        cpu.sp = 0x00F0;
+        cpu.step();
+        assert_eq!(cpu.sp, 0x0100);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, true));
+    }
+
+    #[test]
+    fn test_add_sp_r8_half_carry() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xE8); // ADD SP, r8
+        cpu.bus.write_byte(0x0001, 0x01); // r8
+        cpu.sp = 0x000F;
+        cpu.step();
+        assert_eq!(cpu.sp, 0x0010);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
     }
 
     #[test]
