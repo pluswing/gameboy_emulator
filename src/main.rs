@@ -189,16 +189,20 @@ impl CPU {
             instruction::JP_Arg_0::Z => self.registers.f.zero,
             instruction::JP_Arg_0::NC => !self.registers.f.carry,
             instruction::JP_Arg_0::C => self.registers.f.carry,
+            instruction::JP_Arg_0::Indirect_HL => true,
             instruction::JP_Arg_0::a16 => true,
             _ => todo!("impl"),
         };
         if jump_condition {
-            self.pc = self.read_next_word()
-                - match arg0 {
-                    instruction::JP_Arg_0::Indirect_HL => 1,
-                    _ => 3,
+            self.pc = match arg0 {
+                instruction::JP_Arg_0::Indirect_HL => {
+                    // TODO 2バイト読む必要あり？
+                    self.bus.read_byte(self.registers.get_hl()) as u16 - 1
                 }
+                _ => self.read_next_word() - 3,
+            };
         }
+        self.update_flags(0, flags);
     }
 
     fn call(
@@ -219,7 +223,7 @@ impl CPU {
             self.push_u16(next_pc);
             self.pc = self.pc.wrapping_add(self.read_next_word().wrapping_sub(3))
         }
-        // self.update_flags(value, flags)
+        self.update_flags(0, flags);
     }
     fn ret(&mut self, arg0: instruction::RET_Arg_0, flags: instruction::Flags) {
         let jump_condition = match arg0 {
@@ -234,6 +238,7 @@ impl CPU {
             // 共通処理でPCがbyte数足されるので、それを考慮して引いておく。
             self.pc = pc - 1
         }
+        self.update_flags(0, flags);
     }
     fn push(&mut self, arg0: instruction::PUSH_Arg_0, flags: instruction::Flags) {
         let value = match arg0 {
@@ -243,6 +248,7 @@ impl CPU {
             instruction::PUSH_Arg_0::HL => self.registers.get_hl(),
         };
         self.push_u16(value);
+        self.update_flags(value, flags);
     }
     fn pop(&mut self, arg0: instruction::POP_Arg_0, flags: instruction::Flags) {
         let value = self.pop_u16();
@@ -251,7 +257,8 @@ impl CPU {
             instruction::POP_Arg_0::BC => self.registers.set_bc(value),
             instruction::POP_Arg_0::DE => self.registers.set_de(value),
             instruction::POP_Arg_0::HL => self.registers.set_hl(value),
-        }
+        };
+        self.update_flags(value, flags);
     }
     fn ld(
         &mut self,
@@ -268,7 +275,17 @@ impl CPU {
             instruction::LD_Arg_1::H => self.registers.h,
             instruction::LD_Arg_1::L => self.registers.l,
             instruction::LD_Arg_1::d8 => self.read_next_byte(),
+            instruction::LD_Arg_1::d16 => self.read_next_word(),
             instruction::LD_Arg_1::Indirect_HLI => self.bus.read_byte(self.registers.get_hl()),
+            instruction::LD_Arg_1::Indirect_HLD => self.bus.read_byte(self.registers.get_hl() + 1), // TODO
+            instruction::LD_Arg_1::Indirect_BC => self.bus.read_byte(self.registers.get_bc()),
+            instruction::LD_Arg_1::Indirect_DE => self.bus.read_byte(self.registers.get_de()),
+            instruction::LD_Arg_1::Indirect_HL => self.bus.read_word(self.registers.get_hl()),
+            instruction::LD_Arg_1::Indirect_C => self.bus.read_byte(self.registers.c),
+            // SP,
+            // SP_r8,
+            // HL,
+            // Indirect_a16,
             _ => todo!("impl"),
         };
         match arg0 {
@@ -338,12 +355,8 @@ impl CPU {
                 let value = value as i32;
                 let left = self.sp as i32;
 
-                // FIXME マイナス値の時はどうする？
-                // 0xFF (-1) + 0x00 (0) => 0xFF (carry on?)
-                if value > 0 {
-                    self.registers.f.carry = (left & 0xFF) + (value & 0xFF) > 0xFF;
-                    self.registers.f.half_carry = (left & 0x0F) + (value & 0x0F) > 0x0F;
-                }
+                self.registers.f.carry = (left & 0xFF) + (value & 0xFF) > 0xFF;
+                self.registers.f.half_carry = (left & 0x0F) + (value & 0x0F) > 0x0F;
                 let (new_value, _) = left.overflowing_add(value);
                 self.sp = new_value as u16;
                 self.update_flags(self.sp, flags);
@@ -747,7 +760,7 @@ mod test {
         cpu.step();
         assert_eq!(cpu.sp, 0x0002);
         assert_eq!(cpu.pc, 0x0002);
-        assert_eq!(cpu.registers.f, F(false, false, false, false));
+        assert_eq!(cpu.registers.f, F(false, false, true, true));
     }
 
     #[test]
@@ -795,4 +808,7 @@ mod test {
         cpu.step();
         assert_eq!(cpu.pc, 0x0003);
     }
+
+    // add tests
+    // JP [HL]
 }
