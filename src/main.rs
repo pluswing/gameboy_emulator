@@ -267,6 +267,17 @@ impl CPU {
         flags: instruction::Flags,
     ) {
         let source_value = match arg1 {
+            instruction::LD_Arg_1::d16 => self.read_next_word(),
+            instruction::LD_Arg_1::HL => self.registers.get_hl(),
+            instruction::LD_Arg_1::SP => self.sp,
+            instruction::LD_Arg_1::SP_r8 => {
+                self.sp = self.add_e8(self.sp, self.read_next_byte());
+                self.sp
+            }
+            _ => 0, // TODO
+        };
+
+        let source_value = match arg1 {
             instruction::LD_Arg_1::A => self.registers.a,
             instruction::LD_Arg_1::B => self.registers.b,
             instruction::LD_Arg_1::C => self.registers.c,
@@ -275,19 +286,34 @@ impl CPU {
             instruction::LD_Arg_1::H => self.registers.h,
             instruction::LD_Arg_1::L => self.registers.l,
             instruction::LD_Arg_1::d8 => self.read_next_byte(),
-            instruction::LD_Arg_1::d16 => self.read_next_word(),
-            instruction::LD_Arg_1::Indirect_HLI => self.bus.read_byte(self.registers.get_hl()),
-            instruction::LD_Arg_1::Indirect_HLD => self.bus.read_byte(self.registers.get_hl() + 1), // TODO
+            instruction::LD_Arg_1::d16 => panic!("should not reach"),
+            instruction::LD_Arg_1::Indirect_a16 => {
+                let v = self.read_next_word();
+                self.bus.read_byte(v)
+            }
+            instruction::LD_Arg_1::HL => panic!("should not reach"),
+            instruction::LD_Arg_1::Indirect_HLI => {
+                let v = self.bus.read_byte(self.registers.get_hl());
+                self.registers
+                    .set_hl(self.registers.get_hl().wrapping_add(1));
+                v
+            }
+            instruction::LD_Arg_1::Indirect_HLD => {
+                let v = self.bus.read_byte(self.registers.get_hl());
+                self.registers
+                    .set_hl(self.registers.get_hl().wrapping_sub(1));
+                v
+            }
             instruction::LD_Arg_1::Indirect_BC => self.bus.read_byte(self.registers.get_bc()),
             instruction::LD_Arg_1::Indirect_DE => self.bus.read_byte(self.registers.get_de()),
-            instruction::LD_Arg_1::Indirect_HL => self.bus.read_word(self.registers.get_hl()),
-            instruction::LD_Arg_1::Indirect_C => self.bus.read_byte(self.registers.c),
-            // SP,
-            // SP_r8,
-            // HL,
-            // Indirect_a16,
-            _ => todo!("impl"),
+            instruction::LD_Arg_1::Indirect_HL => self.bus.read_byte(self.registers.get_hl()),
+            instruction::LD_Arg_1::Indirect_C => {
+                self.bus.read_byte(0xFF00 | self.registers.c as u16)
+            }
+            instruction::LD_Arg_1::SP => panic!("should not reach"),
+            instruction::LD_Arg_1::SP_r8 => panic!("should not reach"),
         };
+
         match arg0 {
             instruction::LD_Arg_0::A => self.registers.a = source_value,
             instruction::LD_Arg_0::B => self.registers.b = source_value,
@@ -296,8 +322,36 @@ impl CPU {
             instruction::LD_Arg_0::E => self.registers.e = source_value,
             instruction::LD_Arg_0::H => self.registers.h = source_value,
             instruction::LD_Arg_0::L => self.registers.l = source_value,
-            instruction::LD_Arg_0::Indirect_HLI => {
+            instruction::LD_Arg_0::Indirect_HL
+            | instruction::LD_Arg_0::Indirect_HLI
+            | instruction::LD_Arg_0::Indirect_HLD => {
                 self.bus.write_byte(self.registers.get_hl(), source_value)
+            }
+            instruction::LD_Arg_0::Indirect_BC => {
+                self.bus.write_byte(self.registers.get_bc(), source_value)
+            }
+            instruction::LD_Arg_0::Indirect_DE => {
+                self.bus.write_byte(self.registers.get_de(), source_value)
+            }
+            instruction::LD_Arg_0::BC => {
+                self.registers.set_bc(source_value);
+            }
+            instruction::LD_Arg_0::DE => {
+                self.registers.set_de(source_value);
+            }
+            instruction::LD_Arg_0::HL => {
+                self.registers.set_hl(source_value);
+            }
+            instruction::LD_Arg_0::SP => {
+                self.sp = source_value;
+            }
+            instruction::LD_Arg_0::Indirect_C => self
+                .bus
+                .write_byte(0xFF00 | self.registers.c as u16, source_value),
+
+            instruction::LD_Arg_0::Indirect_a16 => {
+                // FIXME read_next_wordでよい？
+                self.bus.write_byte(self.read_next_word(), source_value)
             }
             _ => todo!("impl"),
         };
@@ -350,15 +404,8 @@ impl CPU {
                 let value = match arg1 {
                     instruction::ADD_Arg_1::r8 => self.read_next_byte(),
                     _ => todo!("impl"),
-                } as i8; // 符号ありに変える
-
-                let value = value as i32;
-                let left = self.sp as i32;
-
-                self.registers.f.carry = (left & 0xFF) + (value & 0xFF) > 0xFF;
-                self.registers.f.half_carry = (left & 0x0F) + (value & 0x0F) > 0x0F;
-                let (new_value, _) = left.overflowing_add(value);
-                self.sp = new_value as u16;
+                };
+                self.sp = self.add_e8(self.sp, value);
                 self.update_flags(self.sp, flags);
             }
         }
@@ -444,6 +491,16 @@ impl CPU {
     fn ei(&mut self, flags: instruction::Flags) {}
     fn or(&mut self, arg0: instruction::OR_Arg_0, flags: instruction::Flags) {}
     fn rlc(&mut self, arg0: instruction::RLC_Arg_0, flags: instruction::Flags) {}
+
+    fn add_e8(&self, value: u16, add_value: u8) -> u16 {
+        let add_value = add_value as i8;
+        let add_value = add_value as i32;
+        let left = value as i32;
+        self.registers.f.carry = (left & 0xFF) + (add_value & 0xFF) > 0xFF;
+        self.registers.f.half_carry = (left & 0x0F) + (add_value & 0x0F) > 0x0F;
+        let new_value = left.wrapping_add(add_value);
+        new_value as u16
+    }
 
     fn update_flags(&mut self, value: u16, flags: instruction::Flags) {
         self.registers.f.zero = match flags.zero {
