@@ -1,3 +1,5 @@
+use core::panic;
+
 mod instruction;
 
 fn main() {
@@ -196,8 +198,8 @@ impl CPU {
         if jump_condition {
             self.pc = match arg0 {
                 instruction::JP_Arg_0::Indirect_HL => {
-                    // TODO 2バイト読む必要あり？
-                    self.bus.read_byte(self.registers.get_hl()) as u16 - 1
+                    // 「JP (HL)」は表記間違いで、正しくは「JP HL」となります。 単純にPC=HLするだけです。（HLが示す番地にジャンプ。）
+                    self.registers.get_hl() - 1
                 }
                 _ => self.read_next_word() - 3,
             };
@@ -266,6 +268,25 @@ impl CPU {
         arg1: instruction::LD_Arg_1,
         flags: instruction::Flags,
     ) {
+        // FIXME 1、「LD (C),A」と「LD A,(C)」の命令は2バイトになっていますが1バイトが正しいです。
+        if self.is_16bit_ld_operation(arg1) {
+            self.ld_16bit(arg0, arg1);
+        } else {
+            self.ld_8bit(arg0, arg1)
+        };
+    }
+
+    fn is_16bit_ld_operation(&self, arg1: instruction::LD_Arg_1) -> bool {
+        match arg1 {
+            instruction::LD_Arg_1::d16 => true,
+            instruction::LD_Arg_1::HL => true,
+            instruction::LD_Arg_1::SP => true,
+            instruction::LD_Arg_1::SP_r8 => true,
+            _ => false,
+        }
+    }
+
+    fn ld_16bit(&mut self, arg0: instruction::LD_Arg_0, arg1: instruction::LD_Arg_1) {
         let source_value = match arg1 {
             instruction::LD_Arg_1::d16 => self.read_next_word(),
             instruction::LD_Arg_1::HL => self.registers.get_hl(),
@@ -274,9 +295,30 @@ impl CPU {
                 self.sp = self.add_e8(self.sp, self.read_next_byte());
                 self.sp
             }
-            _ => 0, // TODO
+            _ => panic!("shound not reach"),
         };
 
+        match args0 {
+            instruction::LD_Arg_0::BC => {
+                self.registers.set_bc(source_value);
+            }
+            instruction::LD_Arg_0::DE => {
+                self.registers.set_de(source_value);
+            }
+            instruction::LD_Arg_0::HL => {
+                self.registers.set_hl(source_value);
+            }
+            instruction::LD_Arg_0::SP => {
+                self.sp = source_value;
+            }
+            instruction::LD_Arg_0::Indirect_a16 => {
+                self.bus.write_word(self.read_next_word(), source_value)
+            }
+            _ => panic!("shound not reach"),
+        }
+    }
+
+    fn ld_8bit(&mut self, arg0: instruction::LD_Arg_0, arg1: instruction::LD_Arg_1) {
         let source_value = match arg1 {
             instruction::LD_Arg_1::A => self.registers.a,
             instruction::LD_Arg_1::B => self.registers.b,
@@ -286,12 +328,10 @@ impl CPU {
             instruction::LD_Arg_1::H => self.registers.h,
             instruction::LD_Arg_1::L => self.registers.l,
             instruction::LD_Arg_1::d8 => self.read_next_byte(),
-            instruction::LD_Arg_1::d16 => panic!("should not reach"),
             instruction::LD_Arg_1::Indirect_a16 => {
                 let v = self.read_next_word();
                 self.bus.read_byte(v)
             }
-            instruction::LD_Arg_1::HL => panic!("should not reach"),
             instruction::LD_Arg_1::Indirect_HLI => {
                 let v = self.bus.read_byte(self.registers.get_hl());
                 self.registers
@@ -310,8 +350,7 @@ impl CPU {
             instruction::LD_Arg_1::Indirect_C => {
                 self.bus.read_byte(0xFF00 | self.registers.c as u16)
             }
-            instruction::LD_Arg_1::SP => panic!("should not reach"),
-            instruction::LD_Arg_1::SP_r8 => panic!("should not reach"),
+            _ => panic!("should not reach"),
         };
 
         match arg0 {
@@ -333,29 +372,16 @@ impl CPU {
             instruction::LD_Arg_0::Indirect_DE => {
                 self.bus.write_byte(self.registers.get_de(), source_value)
             }
-            instruction::LD_Arg_0::BC => {
-                self.registers.set_bc(source_value);
-            }
-            instruction::LD_Arg_0::DE => {
-                self.registers.set_de(source_value);
-            }
-            instruction::LD_Arg_0::HL => {
-                self.registers.set_hl(source_value);
-            }
-            instruction::LD_Arg_0::SP => {
-                self.sp = source_value;
-            }
             instruction::LD_Arg_0::Indirect_C => self
                 .bus
                 .write_byte(0xFF00 | self.registers.c as u16, source_value),
-
             instruction::LD_Arg_0::Indirect_a16 => {
-                // FIXME read_next_wordでよい？
                 self.bus.write_byte(self.read_next_word(), source_value)
             }
-            _ => todo!("impl"),
+            _ => panic!("should not reach"),
         };
     }
+
     fn add(
         &mut self,
         arg0: instruction::ADD_Arg_0,
@@ -479,7 +505,9 @@ impl CPU {
         flags: instruction::Flags,
     ) {
     }
-    fn sra(&mut self, arg0: instruction::SRA_Arg_0, flags: instruction::Flags) {}
+    fn sra(&mut self, arg0: instruction::SRA_Arg_0, flags: instruction::Flags) {
+        // 3、CB系のSRA命令（0x28～0x2F）のフラグが「Z 0 0 0」となっていますが「Z 0 0 C」が正しいです。
+    }
     fn rlca(&mut self, flags: instruction::Flags) {}
     fn adc(
         &mut self,
@@ -591,6 +619,13 @@ impl MemoryBus {
     }
     fn write_byte(&mut self, address: u16, value: u8) {
         self.memory[address as usize] = value;
+    }
+    fn write_word(&mut self, address: u16, value: u16) {
+        self.write_byte(address, (value & 0xFF) as u8);
+        self.write_byte(address + 1, (value >> 8) as u8);
+    }
+    fn read_word(&self, address: u16) -> u16 {
+        return self.read_byte(address) as u16 | (self.read_byte(address + 1) as u16) << 8;
     }
 }
 
