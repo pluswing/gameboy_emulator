@@ -62,7 +62,7 @@ proc flags_value_str(v: FlagValue): string =
 proc flags_str(f: Flags): string =
   return "Flags { zero: " & flags_value_str(f.zero) & ", subtract: " & flags_value_str(f.subtract) & ", half_carry: " & flags_value_str(f.half_carry) & ", carry: " & flags_value_str(f.carry) & " }"
 
-proc extract_operations(trs: seq[XmlNode]): OpsCodeList =
+proc extract_operations(trs: seq[XmlNode], prefiexed: bool): OpsCodeList =
   var operations = newSeq[OpsCode]()
   for i, tr in trs:
     if i == 0:
@@ -81,17 +81,29 @@ proc extract_operations(trs: seq[XmlNode]): OpsCodeList =
 
       let names = children[0].split(" ")
       let name = names[0]
-      let raw_args = if names.len == 1: @[] else: names[1].split(",")
-      let bytes = children[2]
+      var raw_args = if names.len == 1: @[] else: names[1].split(",")
+      var bytes = children[2]
       let cycles = collect(newSeq):
         for c in children[5].split("/"): c.parseInt
       let raw_flags = children[7].split(" ")
-      let flags = Flags(
+      var flags = Flags(
         zero: flag_value(raw_flags[0]),
         subtract: flag_value(raw_flags[1]),
         half_carry: flag_value(raw_flags[2]),
         carry: flag_value(raw_flags[3]),
       )
+
+      if prefiexed:
+          # 3、CB系のSRA命令（0x28～0x2F）のフラグが「Z 0 0 0」となっていますが「Z 0 0 C」が正しいです。
+          if 0x28 <= code and 0x2F >= code:
+            flags.carry = FlagValue.CHANGE
+      else:
+        # 1、「LD (C),A」と「LD A,(C)」の命令は2バイトになっていますが1バイトが正しいです。
+        if 0xE2 == code or 0xF2 == code:
+          bytes = "1"
+        # 2、「JP (HL)」は表記間違いで、正しくは「JP HL」となります。 単純にPC=HLするだけです。（HLが示す番地にジャンプ。）
+        if 0xE9 == code:
+          raw_args = @["HL"]
 
       # echo fmt"{code:#04X}: raw={raw_flags}"
       # echo fmt"{flags}"
@@ -216,8 +228,8 @@ proc main() =
 
   let ts = html.querySelectorAll("table")
 
-  let no_prefixed_ops = extract_operations(ts[0].querySelectorAll("tr"))
-  let prefixed_ops = extract_operations(ts[1].querySelectorAll("tr"))
+  let no_prefixed_ops = extract_operations(ts[0].querySelectorAll("tr"), false)
+  let prefixed_ops = extract_operations(ts[1].querySelectorAll("tr"), true)
 
   let all_ops = concat(no_prefixed_ops, prefixed_ops)
   let args = grouping_args(all_ops)

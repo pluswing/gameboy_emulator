@@ -197,10 +197,7 @@ impl CPU {
         };
         if jump_condition {
             self.pc = match arg0 {
-                instruction::JP_Arg_0::Indirect_HL => {
-                    // 「JP (HL)」は表記間違いで、正しくは「JP HL」となります。 単純にPC=HLするだけです。（HLが示す番地にジャンプ。）
-                    self.registers.get_hl() - 1
-                }
+                instruction::JP_Arg_0::Indirect_HL => self.registers.get_hl() - 1,
                 _ => self.read_next_word() - 3,
             };
         }
@@ -268,15 +265,14 @@ impl CPU {
         arg1: instruction::LD_Arg_1,
         flags: instruction::Flags,
     ) {
-        // FIXME 1、「LD (C),A」と「LD A,(C)」の命令は2バイトになっていますが1バイトが正しいです。
-        if self.is_16bit_ld_operation(arg1) {
-            self.ld_16bit(arg0, arg1);
+        if self.is_16bit_ld_operation(&arg1) {
+            self.ld_16bit(arg0, arg1, flags);
         } else {
-            self.ld_8bit(arg0, arg1)
+            self.ld_8bit(arg0, arg1, flags)
         };
     }
 
-    fn is_16bit_ld_operation(&self, arg1: instruction::LD_Arg_1) -> bool {
+    fn is_16bit_ld_operation(&self, arg1: &instruction::LD_Arg_1) -> bool {
         match arg1 {
             instruction::LD_Arg_1::d16 => true,
             instruction::LD_Arg_1::HL => true,
@@ -286,7 +282,12 @@ impl CPU {
         }
     }
 
-    fn ld_16bit(&mut self, arg0: instruction::LD_Arg_0, arg1: instruction::LD_Arg_1) {
+    fn ld_16bit(
+        &mut self,
+        arg0: instruction::LD_Arg_0,
+        arg1: instruction::LD_Arg_1,
+        flags: instruction::Flags,
+    ) {
         let source_value = match arg1 {
             instruction::LD_Arg_1::d16 => self.read_next_word(),
             instruction::LD_Arg_1::HL => self.registers.get_hl(),
@@ -298,7 +299,7 @@ impl CPU {
             _ => panic!("shound not reach"),
         };
 
-        match args0 {
+        match arg0 {
             instruction::LD_Arg_0::BC => {
                 self.registers.set_bc(source_value);
             }
@@ -312,13 +313,19 @@ impl CPU {
                 self.sp = source_value;
             }
             instruction::LD_Arg_0::Indirect_a16 => {
-                self.bus.write_word(self.read_next_word(), source_value)
+                self.bus.write_word(self.read_next_word(), source_value);
             }
             _ => panic!("shound not reach"),
-        }
+        };
+        self.update_flags(source_value, flags);
     }
 
-    fn ld_8bit(&mut self, arg0: instruction::LD_Arg_0, arg1: instruction::LD_Arg_1) {
+    fn ld_8bit(
+        &mut self,
+        arg0: instruction::LD_Arg_0,
+        arg1: instruction::LD_Arg_1,
+        flags: instruction::Flags,
+    ) {
         let source_value = match arg1 {
             instruction::LD_Arg_1::A => self.registers.a,
             instruction::LD_Arg_1::B => self.registers.b,
@@ -380,6 +387,7 @@ impl CPU {
             }
             _ => panic!("should not reach"),
         };
+        self.update_flags(source_value as u16, flags);
     }
 
     fn add(
@@ -505,9 +513,7 @@ impl CPU {
         flags: instruction::Flags,
     ) {
     }
-    fn sra(&mut self, arg0: instruction::SRA_Arg_0, flags: instruction::Flags) {
-        // 3、CB系のSRA命令（0x28～0x2F）のフラグが「Z 0 0 0」となっていますが「Z 0 0 C」が正しいです。
-    }
+    fn sra(&mut self, arg0: instruction::SRA_Arg_0, flags: instruction::Flags) {}
     fn rlca(&mut self, flags: instruction::Flags) {}
     fn adc(
         &mut self,
