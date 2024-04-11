@@ -62,7 +62,7 @@ proc flags_value_str(v: FlagValue): string =
 proc flags_str(f: Flags): string =
   return "Flags { zero: " & flags_value_str(f.zero) & ", subtract: " & flags_value_str(f.subtract) & ", half_carry: " & flags_value_str(f.half_carry) & ", carry: " & flags_value_str(f.carry) & " }"
 
-proc extract_operations(trs: seq[XmlNode], prefiexed: bool): OpsCodeList =
+proc extract_operations(trs: seq[XmlNode]): OpsCodeList =
   var operations = newSeq[OpsCode]()
   for i, tr in trs:
     if i == 0:
@@ -92,18 +92,6 @@ proc extract_operations(trs: seq[XmlNode], prefiexed: bool): OpsCodeList =
         half_carry: flag_value(raw_flags[2]),
         carry: flag_value(raw_flags[3]),
       )
-
-      if prefiexed:
-          # 3、CB系のSRA命令（0x28～0x2F）のフラグが「Z 0 0 0」となっていますが「Z 0 0 C」が正しいです。
-          if 0x28 <= code and 0x2F >= code:
-            flags.carry = FlagValue.CHANGE
-      else:
-        # 1、「LD (C),A」と「LD A,(C)」の命令は2バイトになっていますが1バイトが正しいです。
-        if 0xE2 == code or 0xF2 == code:
-          bytes = "1"
-        # 2、「JP (HL)」は表記間違いで、正しくは「JP HL」となります。 単純にPC=HLするだけです。（HLが示す番地にジャンプ。）
-        if 0xE9 == code:
-          raw_args = @["HL"]
 
       # echo fmt"{code:#04X}: raw={raw_flags}"
       # echo fmt"{flags}"
@@ -228,8 +216,23 @@ proc main() =
 
   let ts = html.querySelectorAll("table")
 
-  let no_prefixed_ops = extract_operations(ts[0].querySelectorAll("tr"), false)
-  let prefixed_ops = extract_operations(ts[1].querySelectorAll("tr"), true)
+  var no_prefixed_ops = extract_operations(ts[0].querySelectorAll("tr"))
+  var prefixed_ops = extract_operations(ts[1].querySelectorAll("tr"))
+
+  for i, op in no_prefixed_ops.mpairs:
+    # 1、「LD (C),A」と「LD A,(C)」の命令は2バイトになっていますが1バイトが正しいです。
+    if "0xE2" == op.code or "0xF2" == op.code:
+      op.bytes = 1
+
+    # 2、「JP (HL)」は表記間違いで、正しくは「JP HL」となります。 単純にPC=HLするだけです。（HLが示す番地にジャンプ。）
+    if "0xE9" == op.code:
+      op.args[0] = "HL";
+
+  for i, op in prefixed_ops.mpairs:
+    # 3、CB系のSRA命令（0x28～0x2F）のフラグが「Z 0 0 0」となっていますが「Z 0 0 C」が正しいです。
+    if 0x28 <= op.code.parseHexInt() and 0x2F >= op.code.parseHexInt():
+      op.flags.carry = FlagValue.CHANGE
+
 
   let all_ops = concat(no_prefixed_ops, prefixed_ops)
   let args = grouping_args(all_ops)
@@ -257,6 +260,21 @@ proc main() =
   writeFromByteFunction(f, prefixed_ops, args, "from_byte_prefixed")
 
   writeByteTable(f, no_prefixed_ops, prefixed_ops, "instruction_bytes")
+
+  # LD命令のテストコード出力
+  for op in all_ops:
+    if op.name == "LD":
+      echo "#[test]"
+      let arg = op.args.join("_").toLowerAscii
+      echo fmt"fn test_ld_{arg}()" & "{"
+      echo fmt"    let mut cpu = CPU::new();"
+      echo fmt"    cpu.bus.write_byte(0x0000, {op.code});"
+      for i in 0..op.bytes - 2:
+        echo fmt"    cpu.bus.write_byte(0x000{i + 1}, 0x00); // args";
+      echo fmt"    cpu.step();"
+      echo fmt"    assert_eq!(cpu.pc, 0x000{op.bytes})";
+      echo fmt"    assert_eq!(cpu.registers.f, F(false, false, false, false));"
+      echo "}\n"
 
 
   # # fn jump(&self, arg0: instruction::JP_Arg_0, arg1: instruction::JP_Arg_1) -> u16 {
