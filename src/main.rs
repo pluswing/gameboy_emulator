@@ -191,13 +191,12 @@ impl CPU {
             instruction::JP_Arg_0::Z => self.registers.f.zero,
             instruction::JP_Arg_0::NC => !self.registers.f.carry,
             instruction::JP_Arg_0::C => self.registers.f.carry,
-            instruction::JP_Arg_0::Indirect_HL => true,
+            instruction::JP_Arg_0::HL => true,
             instruction::JP_Arg_0::a16 => true,
-            _ => todo!("impl"),
         };
         if jump_condition {
             self.pc = match arg0 {
-                instruction::JP_Arg_0::Indirect_HL => self.registers.get_hl() - 1,
+                instruction::JP_Arg_0::HL => self.registers.get_hl() - 1,
                 _ => self.read_next_word() - 3,
             };
         }
@@ -526,7 +525,7 @@ impl CPU {
     fn or(&mut self, arg0: instruction::OR_Arg_0, flags: instruction::Flags) {}
     fn rlc(&mut self, arg0: instruction::RLC_Arg_0, flags: instruction::Flags) {}
 
-    fn add_e8(&self, value: u16, add_value: u8) -> u16 {
+    fn add_e8(&mut self, value: u16, add_value: u8) -> u16 {
         let add_value = add_value as i8;
         let add_value = add_value as i32;
         let left = value as i32;
@@ -907,6 +906,935 @@ mod test {
         assert_eq!(cpu.pc, 0x0003);
     }
 
-    // add tests
+    // TODO add tests
     // JP [HL]
+
+    #[test]
+    fn test_ld_bc_d16() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x01); // LD BC, d16
+        cpu.bus.write_byte(0x0001, 0x04); // args
+        cpu.bus.write_byte(0x0002, 0x03); // args
+        cpu.step();
+        assert_eq!(cpu.registers.get_bc(), 0x0304);
+        assert_eq!(cpu.pc, 0x0003);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_bc_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x02); // LD Indirect_BC, A
+        cpu.registers.a = 0x12;
+        cpu.registers.set_bc(0x0304);
+        cpu.step();
+        assert_eq!(cpu.bus.read_byte(0x0304), 0x12);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_b_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x06); // LD B, d8
+        cpu.bus.write_byte(0x0001, 0x33); // args
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x33);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_a16_sp() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x08); // LD Indirect_a16, SP
+        cpu.bus.write_byte(0x0001, 0x23); // args
+        cpu.bus.write_byte(0x0002, 0x34); // args
+        cpu.sp = 0x5467;
+        cpu.step();
+        assert_eq!(cpu.bus.read_byte(0x3423), 0x67);
+        assert_eq!(cpu.bus.read_byte(0x3424), 0x54);
+        assert_eq!(cpu.pc, 0x0003);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_indirect_bc() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x0A); // LD A, Indirect_BC
+        cpu.bus.write_byte(0x0403, 0x23);
+        cpu.registers.set_bc(0x0403);
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x23);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_c_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x0E); // LD C, d8
+        cpu.bus.write_byte(0x0001, 0x44); // args
+        cpu.step();
+        assert_eq!(cpu.registers.c, 0x44);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_de_d16() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x11); // LD DE, d16
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.bus.write_byte(0x0002, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0003);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_de_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x12); // LD Indirect_DE, A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_d_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x16); // LD D, d8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_indirect_de() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x1A); // LD A, Indirect_DE
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_e_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x1E); // LD E, d8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_hl_d16() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x21); // LD HL, d16
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.bus.write_byte(0x0002, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0003);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_hli_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x22); // LD Indirect_HLI, A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_h_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x26); // LD H, d8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_indirect_hli() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x2A); // LD A, Indirect_HLI
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_l_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x2E); // LD L, d8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_sp_d16() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x31); // LD SP, d16
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.bus.write_byte(0x0002, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0003);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_hld_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x32); // LD Indirect_HLD, A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_hl_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x36); // LD Indirect_HL, d8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_indirect_hld() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x3A); // LD A, Indirect_HLD
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x3E); // LD A, d8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_b_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x40); // LD B, B
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_b_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x41); // LD B, C
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_b_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x42); // LD B, D
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_b_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x43); // LD B, E
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_b_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x44); // LD B, H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_b_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x45); // LD B, L
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_b_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x46); // LD B, Indirect_HL
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_b_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x47); // LD B, A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_c_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x48); // LD C, B
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_c_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x49); // LD C, C
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_c_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x4A); // LD C, D
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_c_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x4B); // LD C, E
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_c_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x4C); // LD C, H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_c_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x4D); // LD C, L
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_c_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x4E); // LD C, Indirect_HL
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_c_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x4F); // LD C, A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_d_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x50); // LD D, B
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_d_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x51); // LD D, C
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_d_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x52); // LD D, D
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_d_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x53); // LD D, E
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_d_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x54); // LD D, H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_d_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x55); // LD D, L
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_d_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x56); // LD D, Indirect_HL
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_d_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x57); // LD D, A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_e_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x58); // LD E, B
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_e_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x59); // LD E, C
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_e_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x5A); // LD E, D
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_e_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x5B); // LD E, E
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_e_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x5C); // LD E, H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_e_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x5D); // LD E, L
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_e_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x5E); // LD E, Indirect_HL
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_e_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x5F); // LD E, A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_h_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x60); // LD H, B
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_h_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x61); // LD H, C
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_h_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x62); // LD H, D
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_h_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x63); // LD H, E
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_h_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x64); // LD H, H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_h_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x65); // LD H, L
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_h_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x66); // LD H, Indirect_HL
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_h_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x67); // LD H, A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_l_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x68); // LD L, B
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_l_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x69); // LD L, C
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_l_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x6A); // LD L, D
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_l_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x6B); // LD L, E
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_l_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x6C); // LD L, H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_l_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x6D); // LD L, L
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_l_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x6E); // LD L, Indirect_HL
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_l_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x6F); // LD L, A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_hl_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x70); // LD Indirect_HL, B
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_hl_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x71); // LD Indirect_HL, C
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_hl_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x72); // LD Indirect_HL, D
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_hl_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x73); // LD Indirect_HL, E
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_hl_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x74); // LD Indirect_HL, H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_hl_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x75); // LD Indirect_HL, L
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_hl_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x77); // LD Indirect_HL, A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x78); // LD A, B
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x79); // LD A, C
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x7A); // LD A, D
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x7B); // LD A, E
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x7C); // LD A, H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x7D); // LD A, L
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x7E); // LD A, Indirect_HL
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x7F); // LD A, A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_c_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xE2); // LD Indirect_C, A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_indirect_a16_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xEA); // LD Indirect_a16, A
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.bus.write_byte(0x0002, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0003);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_indirect_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xF2); // LD A, Indirect_C
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_hl_sp_r8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xF8); // LD HL, SP_r8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_sp_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xF9); // LD SP, HL
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_a_indirect_a16() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xFA); // LD A, Indirect_a16
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.bus.write_byte(0x0002, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0003);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
 }

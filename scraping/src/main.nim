@@ -219,7 +219,7 @@ proc main() =
   var no_prefixed_ops = extract_operations(ts[0].querySelectorAll("tr"))
   var prefixed_ops = extract_operations(ts[1].querySelectorAll("tr"))
 
-  for i, op in no_prefixed_ops.mpairs:
+  for op in no_prefixed_ops.mitems:
     # 1、「LD (C),A」と「LD A,(C)」の命令は2バイトになっていますが1バイトが正しいです。
     if "0xE2" == op.code or "0xF2" == op.code:
       op.bytes = 1
@@ -228,7 +228,7 @@ proc main() =
     if "0xE9" == op.code:
       op.args[0] = "HL";
 
-  for i, op in prefixed_ops.mpairs:
+  for op in prefixed_ops.mitems:
     # 3、CB系のSRA命令（0x28～0x2F）のフラグが「Z 0 0 0」となっていますが「Z 0 0 C」が正しいです。
     if 0x28 <= op.code.parseHexInt() and 0x2F >= op.code.parseHexInt():
       op.flags.carry = FlagValue.CHANGE
@@ -266,13 +266,15 @@ proc main() =
     if op.name == "LD":
       echo "#[test]"
       let arg = op.args.join("_").toLowerAscii
+      let arg2 = op.args.join(", ")
       echo fmt"fn test_ld_{arg}()" & "{"
       echo fmt"    let mut cpu = CPU::new();"
-      echo fmt"    cpu.bus.write_byte(0x0000, {op.code});"
+      echo fmt"    cpu.bus.write_byte(0x0000, {op.code}); // LD {arg2}"
       for i in 0..op.bytes - 2:
         echo fmt"    cpu.bus.write_byte(0x000{i + 1}, 0x00); // args";
       echo fmt"    cpu.step();"
-      echo fmt"    assert_eq!(cpu.pc, 0x000{op.bytes})";
+      echo "// FIXME"
+      echo fmt"    assert_eq!(cpu.pc, 0x000{op.bytes});";
       echo fmt"    assert_eq!(cpu.registers.f, F(false, false, false, false));"
       echo "}\n"
 
