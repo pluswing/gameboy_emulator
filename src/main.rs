@@ -367,10 +367,18 @@ impl CPU {
             instruction::LD_Arg_0::E => self.registers.e = source_value,
             instruction::LD_Arg_0::H => self.registers.h = source_value,
             instruction::LD_Arg_0::L => self.registers.l = source_value,
-            instruction::LD_Arg_0::Indirect_HL
-            | instruction::LD_Arg_0::Indirect_HLI
-            | instruction::LD_Arg_0::Indirect_HLD => {
+            instruction::LD_Arg_0::Indirect_HL => {
                 self.bus.write_byte(self.registers.get_hl(), source_value)
+            }
+            instruction::LD_Arg_0::Indirect_HLI => {
+                self.bus.write_byte(self.registers.get_hl(), source_value);
+                self.registers
+                    .set_hl(self.registers.get_hl().wrapping_add(1));
+            }
+            instruction::LD_Arg_0::Indirect_HLD => {
+                self.bus.write_byte(self.registers.get_hl(), source_value);
+                self.registers
+                    .set_hl(self.registers.get_hl().wrapping_sub(1));
             }
             instruction::LD_Arg_0::Indirect_BC => {
                 self.bus.write_byte(self.registers.get_bc(), source_value)
@@ -985,10 +993,10 @@ mod test {
     fn test_ld_de_d16() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x11); // LD DE, d16
-        cpu.bus.write_byte(0x0001, 0x00); // args
-        cpu.bus.write_byte(0x0002, 0x00); // args
+        cpu.bus.write_byte(0x0001, 0x12); // args
+        cpu.bus.write_byte(0x0002, 0x34); // args
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.get_de(), 0x3412);
         assert_eq!(cpu.pc, 0x0003);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -997,8 +1005,10 @@ mod test {
     fn test_ld_indirect_de_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x12); // LD Indirect_DE, A
+        cpu.registers.a = 0x05;
+        cpu.registers.set_de(0x0987);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0x0987), 0x05);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1007,9 +1017,9 @@ mod test {
     fn test_ld_d_d8() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x16); // LD D, d8
-        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.bus.write_byte(0x0001, 0x50); // args
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.d, 0x50);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1018,8 +1028,10 @@ mod test {
     fn test_ld_a_indirect_de() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x1A); // LD A, Indirect_DE
+        cpu.registers.set_de(0x3467);
+        cpu.bus.write_byte(0x3467, 0x77);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x77);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1028,9 +1040,9 @@ mod test {
     fn test_ld_e_d8() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x1E); // LD E, d8
-        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.bus.write_byte(0x0001, 0x44); // args
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.e, 0x44);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1039,10 +1051,10 @@ mod test {
     fn test_ld_hl_d16() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x21); // LD HL, d16
-        cpu.bus.write_byte(0x0001, 0x00); // args
-        cpu.bus.write_byte(0x0002, 0x00); // args
+        cpu.bus.write_byte(0x0001, 0x45); // args
+        cpu.bus.write_byte(0x0002, 0x54); // args
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.get_hl(), 0x5445);
         assert_eq!(cpu.pc, 0x0003);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1051,8 +1063,11 @@ mod test {
     fn test_ld_indirect_hli_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x22); // LD Indirect_HLI, A
+        cpu.registers.a = 0x33;
+        cpu.registers.set_hl(0x4455);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0x4455), 0x33);
+        assert_eq!(cpu.registers.get_hl(), 0x4456);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1061,9 +1076,9 @@ mod test {
     fn test_ld_h_d8() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x26); // LD H, d8
-        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.bus.write_byte(0x0001, 0x46); // args
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.h, 0x46);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1072,8 +1087,11 @@ mod test {
     fn test_ld_a_indirect_hli() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x2A); // LD A, Indirect_HLI
+        cpu.registers.set_hl(0x4455);
+        cpu.bus.write_byte(0x4455, 0x77);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x77);
+        assert_eq!(cpu.registers.get_hl(), 0x4456);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1082,9 +1100,9 @@ mod test {
     fn test_ld_l_d8() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x2E); // LD L, d8
-        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.bus.write_byte(0x0001, 0x67); // args
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.l, 0x67);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1093,10 +1111,10 @@ mod test {
     fn test_ld_sp_d16() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x31); // LD SP, d16
-        cpu.bus.write_byte(0x0001, 0x00); // args
-        cpu.bus.write_byte(0x0002, 0x00); // args
+        cpu.bus.write_byte(0x0001, 0x65); // args
+        cpu.bus.write_byte(0x0002, 0x32); // args
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.sp, 0x3265);
         assert_eq!(cpu.pc, 0x0003);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1105,8 +1123,11 @@ mod test {
     fn test_ld_indirect_hld_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x32); // LD Indirect_HLD, A
+        cpu.registers.a = 0x33;
+        cpu.registers.set_hl(0x4455);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0x4455), 0x33);
+        assert_eq!(cpu.registers.get_hl(), 0x4454);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1115,9 +1136,10 @@ mod test {
     fn test_ld_indirect_hl_d8() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x36); // LD Indirect_HL, d8
-        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.bus.write_byte(0x0001, 0x38); // args
+        cpu.registers.set_hl(0x4455);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0x4455), 0x38);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1126,8 +1148,11 @@ mod test {
     fn test_ld_a_indirect_hld() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x3A); // LD A, Indirect_HLD
+        cpu.registers.set_hl(0x4455);
+        cpu.bus.write_byte(0x4455, 0x77);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x77);
+        assert_eq!(cpu.registers.get_hl(), 0x4454);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1136,9 +1161,9 @@ mod test {
     fn test_ld_a_d8() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x3E); // LD A, d8
-        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.bus.write_byte(0x0001, 0x90); // args
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x90);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1147,8 +1172,9 @@ mod test {
     fn test_ld_b_b() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x40); // LD B, B
+        cpu.registers.b = 0x12;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.b, 0x12);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1157,8 +1183,9 @@ mod test {
     fn test_ld_b_c() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x41); // LD B, C
+        cpu.registers.c = 0x13;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.b, 0x13);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1167,8 +1194,9 @@ mod test {
     fn test_ld_b_d() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x42); // LD B, D
+        cpu.registers.d = 0x14;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.b, 0x14);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1177,8 +1205,9 @@ mod test {
     fn test_ld_b_e() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x43); // LD B, E
+        cpu.registers.e = 0x15;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.b, 0x15);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1187,8 +1216,9 @@ mod test {
     fn test_ld_b_h() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x44); // LD B, H
+        cpu.registers.h = 0x16;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.b, 0x16);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1197,8 +1227,9 @@ mod test {
     fn test_ld_b_l() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x45); // LD B, L
+        cpu.registers.l = 0x17;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.b, 0x17);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1207,8 +1238,10 @@ mod test {
     fn test_ld_b_indirect_hl() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x46); // LD B, Indirect_HL
+        cpu.registers.set_hl(0x1040);
+        cpu.bus.write_word(0x1040, 0x18);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.b, 0x18);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1217,8 +1250,9 @@ mod test {
     fn test_ld_b_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x47); // LD B, A
+        cpu.registers.a = 0x19;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.b, 0x19);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1227,8 +1261,9 @@ mod test {
     fn test_ld_c_b() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x48); // LD C, B
+        cpu.registers.b = 0x20;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.c, 0x20);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1237,8 +1272,9 @@ mod test {
     fn test_ld_c_c() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x49); // LD C, C
+        cpu.registers.c = 0x21;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.c, 0x21);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1247,8 +1283,9 @@ mod test {
     fn test_ld_c_d() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x4A); // LD C, D
+        cpu.registers.d = 0x22;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.c, 0x22);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1257,8 +1294,9 @@ mod test {
     fn test_ld_c_e() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x4B); // LD C, E
+        cpu.registers.e = 0x23;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.c, 0x23);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1267,8 +1305,9 @@ mod test {
     fn test_ld_c_h() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x4C); // LD C, H
+        cpu.registers.h = 0x24;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.c, 0x24);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1277,8 +1316,9 @@ mod test {
     fn test_ld_c_l() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x4D); // LD C, L
+        cpu.registers.l = 0x25;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.c, 0x25);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1287,8 +1327,10 @@ mod test {
     fn test_ld_c_indirect_hl() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x4E); // LD C, Indirect_HL
+        cpu.registers.set_hl(0x1040);
+        cpu.bus.write_byte(0x1040, 0x26);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.c, 0x26);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1297,8 +1339,9 @@ mod test {
     fn test_ld_c_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x4F); // LD C, A
+        cpu.registers.a = 0x27;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.c, 0x27);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1307,8 +1350,9 @@ mod test {
     fn test_ld_d_b() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x50); // LD D, B
+        cpu.registers.b = 0x28;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.d, 0x28);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1317,8 +1361,9 @@ mod test {
     fn test_ld_d_c() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x51); // LD D, C
+        cpu.registers.c = 0x29;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.d, 0x29);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1327,8 +1372,9 @@ mod test {
     fn test_ld_d_d() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x52); // LD D, D
+        cpu.registers.d = 0x2A;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.d, 0x2A);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1337,8 +1383,9 @@ mod test {
     fn test_ld_d_e() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x53); // LD D, E
+        cpu.registers.e = 0x2B;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.d, 0x2B);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1347,8 +1394,9 @@ mod test {
     fn test_ld_d_h() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x54); // LD D, H
+        cpu.registers.h = 0x2C;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.d, 0x2C);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1357,8 +1405,9 @@ mod test {
     fn test_ld_d_l() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x55); // LD D, L
+        cpu.registers.l = 0x2D;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.d, 0x2D);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1367,8 +1416,10 @@ mod test {
     fn test_ld_d_indirect_hl() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x56); // LD D, Indirect_HL
+        cpu.registers.set_hl(0x1040);
+        cpu.bus.write_byte(0x1040, 0x2E);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.d, 0x2E);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1377,8 +1428,9 @@ mod test {
     fn test_ld_d_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x57); // LD D, A
+        cpu.registers.a = 0x2F;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.d, 0x2F);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1387,8 +1439,9 @@ mod test {
     fn test_ld_e_b() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x58); // LD E, B
+        cpu.registers.b = 0x30;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.e, 0x30);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1397,8 +1450,9 @@ mod test {
     fn test_ld_e_c() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x59); // LD E, C
+        cpu.registers.c = 0x31;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.e, 0x31);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1407,8 +1461,9 @@ mod test {
     fn test_ld_e_d() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x5A); // LD E, D
+        cpu.registers.d = 0x32;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.e, 0x32);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1417,8 +1472,9 @@ mod test {
     fn test_ld_e_e() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x5B); // LD E, E
+        cpu.registers.e = 0x33;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.e, 0x33);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1427,8 +1483,9 @@ mod test {
     fn test_ld_e_h() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x5C); // LD E, H
+        cpu.registers.h = 0x34;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.e, 0x34);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1437,8 +1494,9 @@ mod test {
     fn test_ld_e_l() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x5D); // LD E, L
+        cpu.registers.l = 0x35;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.e, 0x35);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1447,8 +1505,10 @@ mod test {
     fn test_ld_e_indirect_hl() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x5E); // LD E, Indirect_HL
+        cpu.registers.set_hl(0x1040);
+        cpu.bus.write_byte(0x1040, 0x36);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.e, 0x36);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1457,8 +1517,9 @@ mod test {
     fn test_ld_e_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x5F); // LD E, A
+        cpu.registers.a = 0x37;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.e, 0x37);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1467,8 +1528,9 @@ mod test {
     fn test_ld_h_b() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x60); // LD H, B
+        cpu.registers.b = 0x38;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.h, 0x38);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1477,8 +1539,9 @@ mod test {
     fn test_ld_h_c() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x61); // LD H, C
+        cpu.registers.c = 0x39;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.h, 0x39);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1487,8 +1550,9 @@ mod test {
     fn test_ld_h_d() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x62); // LD H, D
+        cpu.registers.d = 0x3A;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.h, 0x3A);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1497,8 +1561,9 @@ mod test {
     fn test_ld_h_e() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x63); // LD H, E
+        cpu.registers.e = 0x3B;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.h, 0x3B);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1507,8 +1572,9 @@ mod test {
     fn test_ld_h_h() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x64); // LD H, H
+        cpu.registers.h = 0x3C;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.h, 0x3C);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1517,8 +1583,9 @@ mod test {
     fn test_ld_h_l() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x65); // LD H, L
+        cpu.registers.l = 0x3D;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.h, 0x3D);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1527,8 +1594,10 @@ mod test {
     fn test_ld_h_indirect_hl() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x66); // LD H, Indirect_HL
+        cpu.registers.set_hl(0x1040);
+        cpu.bus.write_byte(0x1040, 0x3E);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.h, 0x3E);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1537,8 +1606,9 @@ mod test {
     fn test_ld_h_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x67); // LD H, A
+        cpu.registers.a = 0x3F;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.h, 0x3F);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1547,8 +1617,9 @@ mod test {
     fn test_ld_l_b() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x68); // LD L, B
+        cpu.registers.b = 0x40;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.l, 0x40);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1557,8 +1628,9 @@ mod test {
     fn test_ld_l_c() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x69); // LD L, C
+        cpu.registers.c = 0x41;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.l, 0x41);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1567,8 +1639,9 @@ mod test {
     fn test_ld_l_d() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x6A); // LD L, D
+        cpu.registers.d = 0x42;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.l, 0x42);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1577,8 +1650,9 @@ mod test {
     fn test_ld_l_e() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x6B); // LD L, E
+        cpu.registers.e = 0x43;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.l, 0x43);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1587,8 +1661,9 @@ mod test {
     fn test_ld_l_h() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x6C); // LD L, H
+        cpu.registers.h = 0x44;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.l, 0x44);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1597,8 +1672,9 @@ mod test {
     fn test_ld_l_l() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x6D); // LD L, L
+        cpu.registers.l = 0x45;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.l, 0x45);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1607,8 +1683,10 @@ mod test {
     fn test_ld_l_indirect_hl() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x6E); // LD L, Indirect_HL
+        cpu.registers.set_hl(0x1040);
+        cpu.bus.write_byte(0x1040, 0x46);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.l, 0x46);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1617,8 +1695,9 @@ mod test {
     fn test_ld_l_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x6F); // LD L, A
+        cpu.registers.a = 0x47;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.l, 0x47);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1627,8 +1706,10 @@ mod test {
     fn test_ld_indirect_hl_b() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x70); // LD Indirect_HL, B
+        cpu.registers.b = 0x48;
+        cpu.registers.set_hl(0x1040);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0x1040), 0x48);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1637,8 +1718,10 @@ mod test {
     fn test_ld_indirect_hl_c() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x71); // LD Indirect_HL, C
+        cpu.registers.c = 0x49;
+        cpu.registers.set_hl(0x1040);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0x1040), 0x49);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1647,8 +1730,10 @@ mod test {
     fn test_ld_indirect_hl_d() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x72); // LD Indirect_HL, D
+        cpu.registers.d = 0x4A;
+        cpu.registers.set_hl(0x1040);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0x1040), 0x4A);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1657,8 +1742,10 @@ mod test {
     fn test_ld_indirect_hl_e() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x73); // LD Indirect_HL, E
+        cpu.registers.e = 0x4B;
+        cpu.registers.set_hl(0x1040);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0x1040), 0x4B);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1667,8 +1754,9 @@ mod test {
     fn test_ld_indirect_hl_h() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x74); // LD Indirect_HL, H
+        cpu.registers.set_hl(0x1040);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0x1040), 0x10);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1677,8 +1765,9 @@ mod test {
     fn test_ld_indirect_hl_l() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x75); // LD Indirect_HL, L
+        cpu.registers.set_hl(0x104D);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0x104D), 0x4D);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1687,8 +1776,10 @@ mod test {
     fn test_ld_indirect_hl_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x77); // LD Indirect_HL, A
+        cpu.registers.a = 0x4F;
+        cpu.registers.set_hl(0x1040);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0x1040), 0x4F);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1697,8 +1788,9 @@ mod test {
     fn test_ld_a_b() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x78); // LD A, B
+        cpu.registers.b = 0x50;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x50);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1707,8 +1799,9 @@ mod test {
     fn test_ld_a_c() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x79); // LD A, C
+        cpu.registers.c = 0x51;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x51);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1717,8 +1810,9 @@ mod test {
     fn test_ld_a_d() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x7A); // LD A, D
+        cpu.registers.d = 0x52;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x52);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1727,8 +1821,9 @@ mod test {
     fn test_ld_a_e() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x7B); // LD A, E
+        cpu.registers.e = 0x53;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x53);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1737,8 +1832,9 @@ mod test {
     fn test_ld_a_h() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x7C); // LD A, H
+        cpu.registers.h = 0x54;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x54);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1747,8 +1843,9 @@ mod test {
     fn test_ld_a_l() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x7D); // LD A, L
+        cpu.registers.l = 0x55;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x55);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1757,8 +1854,10 @@ mod test {
     fn test_ld_a_indirect_hl() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x7E); // LD A, Indirect_HL
+        cpu.registers.set_hl(0x1040);
+        cpu.bus.write_byte(0x1040, 0x56);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x56);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1767,8 +1866,9 @@ mod test {
     fn test_ld_a_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0x7F); // LD A, A
+        cpu.registers.a = 0x57;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x57);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1777,8 +1877,10 @@ mod test {
     fn test_ld_indirect_c_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0xE2); // LD Indirect_C, A
+        cpu.registers.c = 0x58;
+        cpu.registers.a = 0x59;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0xFF58), 0x59);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1787,10 +1889,11 @@ mod test {
     fn test_ld_indirect_a16_a() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0xEA); // LD Indirect_a16, A
-        cpu.bus.write_byte(0x0001, 0x00); // args
-        cpu.bus.write_byte(0x0002, 0x00); // args
+        cpu.bus.write_byte(0x0001, 0x34); // args
+        cpu.bus.write_byte(0x0002, 0x66); // args
+        cpu.registers.a = 0x5A;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.bus.read_byte(0x6634), 0x5A);
         assert_eq!(cpu.pc, 0x0003);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1799,8 +1902,10 @@ mod test {
     fn test_ld_a_indirect_c() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0xF2); // LD A, Indirect_C
+        cpu.registers.c = 0x5B;
+        cpu.bus.write_byte(0xFF5B, 0x5C);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x5C);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1809,9 +1914,11 @@ mod test {
     fn test_ld_hl_sp_r8() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0xF8); // LD HL, SP_r8
-        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.bus.write_byte(0x0001, 0x67); // args
+        cpu.sp = 0x1040;
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.get_hl(), 0x1040 + 0x67);
+        assert_eq!(cpu.sp, 0x1040 + 0x67);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1820,8 +1927,9 @@ mod test {
     fn test_ld_sp_hl() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0xF9); // LD SP, HL
+        cpu.registers.set_hl(0x1040);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.sp, 0x1040);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1830,11 +1938,25 @@ mod test {
     fn test_ld_a_indirect_a16() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0xFA); // LD A, Indirect_a16
-        cpu.bus.write_byte(0x0001, 0x00); // args
-        cpu.bus.write_byte(0x0002, 0x00); // args
+        cpu.bus.write_byte(0x0001, 0x34); // args
+        cpu.bus.write_byte(0x0002, 0x55); // args
+        cpu.bus.write_byte(0x5534, 0x5D);
         cpu.step();
-        // FIXME
+        assert_eq!(cpu.registers.a, 0x5D);
         assert_eq!(cpu.pc, 0x0003);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ld_hl_sp_r8_minus() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xF8); // LD HL, SP_r8
+        cpu.bus.write_byte(0x0001, 0xFF); // args
+        cpu.sp = 0x1040;
+        cpu.step();
+        assert_eq!(cpu.sp, 0x1040 - 1);
+        assert_eq!(cpu.registers.get_hl(), 0x1040 - 1);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, true));
     }
 }
