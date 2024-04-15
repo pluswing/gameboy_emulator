@@ -528,6 +528,30 @@ impl CPU {
         arg1: instruction::ADC_Arg_1,
         flags: instruction::Flags,
     ) {
+        let source_value = match arg1 {
+            instruction::ADC_Arg_1::A => self.registers.a,
+            instruction::ADC_Arg_1::B => self.registers.b,
+            instruction::ADC_Arg_1::C => self.registers.c,
+            instruction::ADC_Arg_1::D => self.registers.d,
+            instruction::ADC_Arg_1::E => self.registers.e,
+            instruction::ADC_Arg_1::H => self.registers.h,
+            instruction::ADC_Arg_1::L => self.registers.l,
+            instruction::ADC_Arg_1::Indirect_HL => self.bus.read_byte(self.registers.get_hl()),
+            instruction::ADC_Arg_1::d8 => self.read_next_byte(),
+        };
+
+        let carry = if self.registers.f.carry { 1 } else { 0 };
+        let source_value = self.update_carry_u8(source_value, carry);
+
+        let c = self.registers.f.carry;
+        let hc = self.registers.f.half_carry;
+
+        self.registers.a = self.update_carry_u8(self.registers.a, source_value);
+
+        self.registers.f.carry = self.registers.f.carry | c;
+        self.registers.f.half_carry = self.registers.f.half_carry | hc;
+
+        self.update_flags(self.registers.a as u16, flags);
     }
     fn ei(&mut self, flags: instruction::Flags) {}
     fn or(&mut self, arg0: instruction::OR_Arg_0, flags: instruction::Flags) {}
@@ -541,6 +565,13 @@ impl CPU {
         self.registers.f.half_carry = (left & 0x0F) + (add_value & 0x0F) > 0x0F;
         let new_value = left.wrapping_add(add_value);
         new_value as u16
+    }
+
+    fn update_carry_u8(&mut self, left: u8, right: u8) -> u8 {
+        let (new_value, did_overflow) = left.overflowing_add(right);
+        self.registers.f.carry = did_overflow;
+        self.registers.f.half_carry = (left & 0x0F) + (right & 0x0F) > 0x0F;
+        return new_value;
     }
 
     fn update_flags(&mut self, value: u16, flags: instruction::Flags) {
