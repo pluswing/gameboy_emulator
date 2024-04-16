@@ -419,10 +419,7 @@ impl CPU {
                     instruction::ADD_Arg_1::d8 => self.read_next_byte(),
                     _ => todo!("implement"),
                 };
-                let (new_value, did_overflow) = self.registers.a.overflowing_add(value);
-                self.registers.f.carry = did_overflow;
-                self.registers.f.half_carry = (self.registers.a & 0x0F) + (value & 0x0F) > 0x0F;
-                self.registers.a = new_value;
+                self.registers.a = self.update_carry_u8(self.registers.a, value);
                 self.update_flags(self.registers.a as u16, flags);
             }
             instruction::ADD_Arg_0::HL => {
@@ -539,6 +536,9 @@ impl CPU {
             instruction::ADC_Arg_1::Indirect_HL => self.bus.read_byte(self.registers.get_hl()),
             instruction::ADC_Arg_1::d8 => self.read_next_byte(),
         };
+
+        // TODO A + SOURCE + CARRY の結果を↓
+        // TODO ビット演算でcarry & half_carryを計算したほうが良い。
 
         let carry = if self.registers.f.carry { 1 } else { 0 };
         let source_value = self.update_carry_u8(source_value, carry);
@@ -1989,5 +1989,115 @@ mod test {
         assert_eq!(cpu.registers.get_hl(), 0x1040 - 1);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, true));
+    }
+
+    #[test]
+    fn test_adc_a_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x88); // ADC A, B
+        cpu.registers.a = 0x10;
+        cpu.registers.b = 0x20;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x30);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_adc_a_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x89); // ADC A, C
+        cpu.registers.a = 0x10;
+        cpu.registers.c = 0x03;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x13);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_adc_a_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x8A); // ADC A, D
+        cpu.registers.a = 0x10;
+        cpu.registers.d = 0x03;
+        cpu.registers.f.carry = true;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x14);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_adc_a_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x8B); // ADC A, E
+        cpu.registers.a = 0xFF;
+        cpu.registers.e = 0x00;
+        cpu.registers.f.carry = true;
+        cpu.step();
+        cpu.registers.a = 0x00;
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(true, false, true, true));
+    }
+
+    #[test]
+    fn test_adc_a_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x8C); // ADC A, H
+        cpu.registers.a = 0xFF;
+        cpu.registers.h = 0x01;
+        cpu.step();
+        cpu.registers.a = 0x00;
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(true, false, true, true));
+    }
+
+    #[test]
+    fn test_adc_a_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x8D); // ADC A, L
+        cpu.registers.a = 0x10;
+        cpu.registers.l = 0x06;
+        cpu.step();
+        cpu.registers.a = 0x16;
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_adc_a_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x8E); // ADC A, Indirect_HL
+        cpu.registers.a = 0x30;
+        cpu.registers.set_hl(0x5432);
+        cpu.bus.write_byte(0x5432, 0x04);
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x34);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_adc_a_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x8F); // ADC A, A
+        cpu.registers.a = 0x10;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x20);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_adc_a_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCE); // ADC A, d8
+        cpu.bus.write_byte(0x0001, 0x07); // args
+        cpu.registers.a = 0x12;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x19);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
 }

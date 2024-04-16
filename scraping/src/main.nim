@@ -263,13 +263,13 @@ proc main() =
 
   # LD命令のテストコード出力
   for op in all_ops:
-    if op.name == "LD":
+    if op.name == "ADC":
       echo "#[test]"
       let arg = op.args.join("_").toLowerAscii
       let arg2 = op.args.join(", ")
-      echo fmt"fn test_ld_{arg}()" & "{"
+      echo fmt"fn test_{op.name.toLowerAscii}_{arg}()" & "{"
       echo fmt"    let mut cpu = CPU::new();"
-      echo fmt"    cpu.bus.write_byte(0x0000, {op.code}); // LD {arg2}"
+      echo fmt"    cpu.bus.write_byte(0x0000, {op.code}); // {op.name} {arg2}"
       for i in 0..op.bytes - 2:
         echo fmt"    cpu.bus.write_byte(0x000{i + 1}, 0x00); // args";
       echo fmt"    cpu.step();"
