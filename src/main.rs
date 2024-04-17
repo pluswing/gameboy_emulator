@@ -462,7 +462,20 @@ impl CPU {
     fn sub(&mut self, arg0: instruction::SUB_Arg_0, flags: instruction::Flags) {}
     fn reti(&mut self, flags: instruction::Flags) {}
     fn nop(&mut self, flags: instruction::Flags) {}
-    fn cp(&mut self, arg0: instruction::CP_Arg_0, flags: instruction::Flags) {}
+    fn cp(&mut self, arg0: instruction::CP_Arg_0, flags: instruction::Flags) {
+        let source_value = match arg0 {
+            instruction::CP_Arg_0::A => self.registers.a,
+            instruction::CP_Arg_0::B => self.registers.b,
+            instruction::CP_Arg_0::C => self.registers.c,
+            instruction::CP_Arg_0::D => self.registers.d,
+            instruction::CP_Arg_0::E => self.registers.e,
+            instruction::CP_Arg_0::H => self.registers.h,
+            instruction::CP_Arg_0::L => self.registers.l,
+            instruction::CP_Arg_0::Indirect_HL => self.bus.read_byte(self.registers.get_hl()),
+            instruction::CP_Arg_0::d8 => self.read_next_byte(),
+        };
+        // TODO
+    }
     fn rrca(&mut self, flags: instruction::Flags) {}
     fn sla(&mut self, arg0: instruction::SLA_Arg_0, flags: instruction::Flags) {}
     fn jr(
@@ -492,7 +505,21 @@ impl CPU {
         flags: instruction::Flags,
     ) {
     }
-    fn and(&mut self, arg0: instruction::AND_Arg_0, flags: instruction::Flags) {}
+    fn and(&mut self, arg0: instruction::AND_Arg_0, flags: instruction::Flags) {
+        let source_value = match arg0 {
+            instruction::AND_Arg_0::A => self.registers.a,
+            instruction::AND_Arg_0::B => self.registers.b,
+            instruction::AND_Arg_0::C => self.registers.c,
+            instruction::AND_Arg_0::D => self.registers.d,
+            instruction::AND_Arg_0::E => self.registers.e,
+            instruction::AND_Arg_0::H => self.registers.h,
+            instruction::AND_Arg_0::L => self.registers.l,
+            instruction::AND_Arg_0::Indirect_HL => self.bus.read_byte(self.registers.get_hl()),
+            instruction::AND_Arg_0::d8 => self.read_next_byte(),
+        };
+        self.registers.a = self.registers.a & source_value;
+        self.update_flags(self.registers.a as u16, flags);
+    }
     fn halt(&mut self, flags: instruction::Flags) {}
     fn xor(&mut self, arg0: instruction::XOR_Arg_0, flags: instruction::Flags) {}
     fn bit(
@@ -2099,5 +2126,113 @@ mod test {
         assert_eq!(cpu.registers.a, 0x19);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_and_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xA7); // AND A
+        cpu.registers.a = 0xF1;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0xF1);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
+    }
+
+    #[test]
+    fn test_and_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xA0); // AND B
+        cpu.registers.a = 0x07; // 0b0111
+        cpu.registers.b = 0x0A; // 0b1010
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x02);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
+    }
+
+    #[test]
+    fn test_and_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xA1); // AND C
+        cpu.registers.a = 0x00;
+        cpu.registers.c = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x00);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(true, false, true, false));
+    }
+
+    #[test]
+    fn test_and_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xA2); // AND D
+        cpu.registers.a = 0x01;
+        cpu.registers.d = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x01);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
+    }
+
+    #[test]
+    fn test_and_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xA3); // AND E
+        cpu.registers.a = 0x10;
+        cpu.registers.e = 0x1F;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x10);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
+    }
+
+    #[test]
+    fn test_and_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xA4); // AND H
+        cpu.registers.a = 0x10;
+        cpu.registers.h = 0x1F;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x10);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
+    }
+
+    #[test]
+    fn test_and_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xA5); // AND L
+        cpu.registers.a = 0x10;
+        cpu.registers.l = 0x1F;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x10);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
+    }
+
+    #[test]
+    fn test_and_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xA6); // AND Indirect_HL
+        cpu.registers.a = 0x10;
+        cpu.registers.set_hl(0x0032);
+        cpu.bus.write_byte(0x0032, 0x1F);
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x10);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
+    }
+
+    #[test]
+    fn test_and_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xE6); // AND d8
+        cpu.bus.write_byte(0x0001, 0x3F); // args
+        cpu.registers.a = 0x10;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x10);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
     }
 }
