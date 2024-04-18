@@ -263,7 +263,7 @@ proc main() =
 
   # LD命令のテストコード出力
   for op in all_ops:
-    if op.name == "AND":
+    if op.name == "CP":
       echo "#[test]"
       let arg = op.args.join("_").toLowerAscii
       let arg2 = op.args.join(", ")

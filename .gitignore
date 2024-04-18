@@ -1,1 +1,3 @@
 /target
+/scraping/src/main
+/scraping/instruction.rs
