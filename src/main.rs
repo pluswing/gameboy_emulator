@@ -449,7 +449,74 @@ impl CPU {
         }
     }
 
-    fn dec(&mut self, arg0: instruction::DEC_Arg_0, flags: instruction::Flags) {}
+    fn dec(&mut self, arg0: instruction::DEC_Arg_0, flags: instruction::Flags) {
+        match arg0 {
+            instruction::DEC_Arg_0::A => {
+                let v = self.registers.a.wrapping_sub(1);
+                self.registers.f.half_carry = (v & 0x0F) > (self.registers.a & 0x0F);
+                self.registers.a = v;
+                self.update_flags(v as u16, flags);
+            }
+            instruction::DEC_Arg_0::B => {
+                let v = self.registers.b.wrapping_sub(1);
+                self.registers.f.half_carry = (v & 0x0F) > (self.registers.b & 0x0F);
+                self.registers.b = v;
+                self.update_flags(v as u16, flags);
+            }
+            instruction::DEC_Arg_0::C => {
+                let v = self.registers.c.wrapping_sub(1);
+                self.registers.f.half_carry = (v & 0x0F) > (self.registers.c & 0x0F);
+                self.registers.c = v;
+                self.update_flags(v as u16, flags);
+            }
+            instruction::DEC_Arg_0::D => {
+                let v = self.registers.d.wrapping_sub(1);
+                self.registers.f.half_carry = (v & 0x0F) > (self.registers.d & 0x0F);
+                self.registers.d = v;
+                self.update_flags(v as u16, flags);
+            }
+            instruction::DEC_Arg_0::E => {
+                let v = self.registers.e.wrapping_sub(1);
+                self.registers.f.half_carry = (v & 0x0F) > (self.registers.e & 0x0F);
+                self.registers.e = v;
+                self.update_flags(v as u16, flags);
+            }
+            instruction::DEC_Arg_0::H => {
+                let v = self.registers.h.wrapping_sub(1);
+                self.registers.f.half_carry = (v & 0x0F) > (self.registers.h & 0x0F);
+                self.registers.h = v;
+                self.update_flags(v as u16, flags);
+            }
+            instruction::DEC_Arg_0::L => {
+                let v = self.registers.l.wrapping_sub(1);
+                self.registers.f.half_carry = (v & 0x0F) > (self.registers.l & 0x0F);
+                self.registers.l = v;
+                self.update_flags(v as u16, flags);
+            }
+            instruction::DEC_Arg_0::Indirect_HL => {
+                let v = self.bus.read_byte(self.registers.get_hl());
+                let sub = v.wrapping_sub(1);
+                self.registers.f.half_carry = (sub & 0x0F) > (v & 0x0F);
+                self.bus.write_byte(self.registers.get_hl(), sub);
+                self.update_flags(v as u16, flags);
+            }
+            instruction::DEC_Arg_0::BC => {
+                self.registers
+                    .set_bc(self.registers.get_bc().wrapping_sub(1));
+            }
+            instruction::DEC_Arg_0::DE => {
+                self.registers
+                    .set_de(self.registers.get_de().wrapping_sub(1));
+            }
+            instruction::DEC_Arg_0::HL => {
+                self.registers
+                    .set_hl(self.registers.get_hl().wrapping_sub(1));
+            }
+            instruction::DEC_Arg_0::SP => {
+                self.sp = self.sp.wrapping_sub(1);
+            }
+        };
+    }
     fn daa(&mut self, flags: instruction::Flags) {}
     fn sbc(
         &mut self,
@@ -475,7 +542,7 @@ impl CPU {
             instruction::CP_Arg_0::d8 => self.read_next_byte(),
         };
         let sub = self.registers.a.wrapping_sub(source_value);
-        self.registers.f.half_carry = (sub & 0x10) != (self.registers.a & 0x10);
+        self.registers.f.half_carry = (sub & 0x0F) > (self.registers.a & 0x0F);
         self.registers.f.carry = source_value > self.registers.a;
         self.update_flags(sub as u16, flags)
     }
@@ -2254,11 +2321,11 @@ mod test {
     fn test_cp_c() {
         let mut cpu = CPU::new();
         cpu.bus.write_byte(0x0000, 0xB9); // CP C
-        cpu.registers.a = 0x10;
-        cpu.registers.c = 0x10;
+        cpu.registers.a = 0x15;
+        cpu.registers.c = 0x06;
         cpu.step();
         assert_eq!(cpu.pc, 0x0001);
-        assert_eq!(cpu.registers.f, F(true, true, true, false));
+        assert_eq!(cpu.registers.f, F(false, true, true, false));
     }
 
     #[test]
@@ -2269,7 +2336,7 @@ mod test {
         cpu.registers.d = 0x11;
         cpu.step();
         assert_eq!(cpu.pc, 0x0001);
-        assert_eq!(cpu.registers.f, F(false, true, false, true));
+        assert_eq!(cpu.registers.f, F(false, true, true, true));
     }
 
     #[test]
@@ -2324,7 +2391,7 @@ mod test {
         cpu.registers.a = 0x10;
         cpu.step();
         assert_eq!(cpu.pc, 0x0001);
-        assert_eq!(cpu.registers.f, F(true, true, true, false));
+        assert_eq!(cpu.registers.f, F(true, true, false, false));
     }
 
     #[test]
@@ -2335,6 +2402,139 @@ mod test {
         cpu.registers.a = 0x09;
         cpu.step();
         assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, true, false, false));
+    }
+
+    #[test]
+    fn test_dec_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x05); // DEC B
+        cpu.registers.b = 0x02;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x01);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, true, false, false));
+    }
+
+    #[test]
+    fn test_dec_bc() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x0B); // DEC BC
+        cpu.registers.set_bc(0x0003);
+        cpu.step();
+        assert_eq!(cpu.registers.get_bc(), 0x0002);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_dec_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x0D); // DEC C
+        cpu.registers.c = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.c, 0x00);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(true, true, false, false));
+    }
+
+    #[test]
+    fn test_dec_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x15); // DEC D
+        cpu.registers.d = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.d, 0xFF);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, true, true, false));
+    }
+
+    #[test]
+    fn test_dec_de() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x1B); // DEC DE
+        cpu.registers.set_de(0x0001);
+        cpu.step();
+        assert_eq!(cpu.registers.get_de(), 0x0000);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_dec_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x1D); // DEC E
+        cpu.registers.e = 0x11;
+        cpu.step();
+        assert_eq!(cpu.registers.e, 0x10);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, true, false, false));
+    }
+
+    #[test]
+    fn test_dec_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x25); // DEC H
+        cpu.registers.h = 0x03;
+        cpu.step();
+        assert_eq!(cpu.registers.h, 0x02);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, true, false, false));
+    }
+
+    #[test]
+    fn test_dec_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x2B); // DEC HL
+        cpu.registers.set_hl(0x0000);
+        cpu.step();
+        assert_eq!(cpu.registers.get_hl(), 0xFFFF);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_dec_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x2D); // DEC L
+        cpu.registers.l = 0x03;
+        cpu.step();
+        assert_eq!(cpu.registers.l, 0x02);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, true, false, false));
+    }
+
+    #[test]
+    fn test_dec_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x35); // DEC Indirect_HL
+        cpu.registers.set_hl(0x1234);
+        cpu.bus.write_byte(0x1234, 0x02);
+        cpu.step();
+        assert_eq!(cpu.bus.read_byte(0x1234), 0x01);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, true, false, false));
+    }
+
+    #[test]
+    fn test_dec_sp() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x3B); // DEC SP
+        cpu.sp = 0x02;
+        cpu.step();
+        assert_eq!(cpu.sp, 0x01);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_dec_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x3D); // DEC A
+        cpu.registers.a = 0x03;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x02);
+        assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, true, false, false));
     }
 }
