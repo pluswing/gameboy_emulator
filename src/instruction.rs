@@ -27,6 +27,41 @@ pub enum DEC_Arg_0{
     A,
 }
 
+impl DEC_Arg_0 {
+  fn get_value(&self, cpu: CPU) -> u16 {
+      match *self {
+        DEC_Arg_0::B => cpu.registers.b as u16,
+        DEC_Arg_0::BC => cpu.registers.get_bc(),
+        DEC_Arg_0::C => cpu.registers.c,
+        DEC_Arg_0::D => cpu.registers.d,
+        DEC_Arg_0::DE => cpu.registers.get_de(),
+        DEC_Arg_0::E => cpu.registers.e,
+        DEC_Arg_0::H => cpu.registers.h,
+        DEC_Arg_0::HL => cpu.registers.get_hl(),
+        DEC_Arg_0::L => cpu.registers.l,
+        DEC_Arg_0::Indirect_HL => cpu.bus.read_byte(cpu.registers.get_hl()),
+        DEC_Arg_0::SP => cpu.sp,
+        DEC_Arg_0::A => cpu.registers.a,
+      }
+  }
+  fn set_value(&self, cpu: &mut CPU, value: u16) -> {
+    match *self {
+      DEC_Arg_0::B => cpu.registers.b = value as u8,
+      DEC_Arg_0::BC => cpu.registers.set_bc(value),
+      // DEC_Arg_0::C => cpu.registers.c,
+      // DEC_Arg_0::D => cpu.registers.d,
+      // DEC_Arg_0::DE => cpu.registers.get_de(),
+      // DEC_Arg_0::E => cpu.registers.e,
+      // DEC_Arg_0::H => cpu.registers.h,
+      // DEC_Arg_0::HL => cpu.registers.get_hl(),
+      // DEC_Arg_0::L => cpu.registers.l,
+      // DEC_Arg_0::Indirect_HL => cpu.bus.read_byte(cpu.registers.get_hl()),
+      // DEC_Arg_0::SP => cpu.sp,
+      // DEC_Arg_0::A => cpu.registers.a,
+    }
+  }
+}
+
 pub enum JP_Arg_0{
     NZ,
     a16,

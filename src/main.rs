@@ -498,7 +498,7 @@ impl CPU {
                 let sub = v.wrapping_sub(1);
                 self.registers.f.half_carry = (sub & 0x0F) > (v & 0x0F);
                 self.bus.write_byte(self.registers.get_hl(), sub);
-                self.update_flags(v as u16, flags);
+                self.update_flags(sub as u16, flags);
             }
             instruction::DEC_Arg_0::BC => {
                 self.registers
@@ -2133,7 +2133,7 @@ mod test {
         cpu.registers.e = 0x00;
         cpu.registers.f.carry = true;
         cpu.step();
-        cpu.registers.a = 0x00;
+        assert_eq!(cpu.registers.a, 0x00);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(true, false, true, true));
     }
@@ -2145,7 +2145,7 @@ mod test {
         cpu.registers.a = 0xFF;
         cpu.registers.h = 0x01;
         cpu.step();
-        cpu.registers.a = 0x00;
+        assert_eq!(cpu.registers.a, 0x00);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(true, false, true, true));
     }
@@ -2157,7 +2157,7 @@ mod test {
         cpu.registers.a = 0x10;
         cpu.registers.l = 0x06;
         cpu.step();
-        cpu.registers.a = 0x16;
+        assert_eq!(cpu.registers.a, 0x16);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -2514,6 +2514,18 @@ mod test {
         assert_eq!(cpu.bus.read_byte(0x1234), 0x01);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, true, false, false));
+    }
+
+    #[test]
+    fn test_dec_indirect_hl_zero() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x35); // DEC Indirect_HL
+        cpu.registers.set_hl(0x1234);
+        cpu.bus.write_byte(0x1234, 0x01);
+        cpu.step();
+        assert_eq!(cpu.bus.read_byte(0x1234), 0x00);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(true, true, false, false));
     }
 
     #[test]
