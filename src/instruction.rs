@@ -1,3 +1,5 @@
+use crate::cpu;
+
 pub enum FlagValue {
     NO_CHANGE,
     CHANGE,
@@ -28,36 +30,36 @@ pub enum DEC_Arg_0{
 }
 
 impl DEC_Arg_0 {
-  fn get_value(&self, cpu: CPU) -> u16 {
+  pub fn get_value(&self, cpu: &cpu::CPU) -> u16 {
       match *self {
         DEC_Arg_0::B => cpu.registers.b as u16,
         DEC_Arg_0::BC => cpu.registers.get_bc(),
-        DEC_Arg_0::C => cpu.registers.c,
-        DEC_Arg_0::D => cpu.registers.d,
+        DEC_Arg_0::C => cpu.registers.c as u16,
+        DEC_Arg_0::D => cpu.registers.d as u16,
         DEC_Arg_0::DE => cpu.registers.get_de(),
-        DEC_Arg_0::E => cpu.registers.e,
-        DEC_Arg_0::H => cpu.registers.h,
+        DEC_Arg_0::E => cpu.registers.e as u16,
+        DEC_Arg_0::H => cpu.registers.h as u16,
         DEC_Arg_0::HL => cpu.registers.get_hl(),
-        DEC_Arg_0::L => cpu.registers.l,
-        DEC_Arg_0::Indirect_HL => cpu.bus.read_byte(cpu.registers.get_hl()),
+        DEC_Arg_0::L => cpu.registers.l as u16,
+        DEC_Arg_0::Indirect_HL => cpu.bus.read_byte(cpu.registers.get_hl()) as u16,
         DEC_Arg_0::SP => cpu.sp,
-        DEC_Arg_0::A => cpu.registers.a,
+        DEC_Arg_0::A => cpu.registers.a as u16,
       }
   }
-  fn set_value(&self, cpu: &mut CPU, value: u16) -> {
+  pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
     match *self {
       DEC_Arg_0::B => cpu.registers.b = value as u8,
       DEC_Arg_0::BC => cpu.registers.set_bc(value),
-      // DEC_Arg_0::C => cpu.registers.c,
-      // DEC_Arg_0::D => cpu.registers.d,
-      // DEC_Arg_0::DE => cpu.registers.get_de(),
-      // DEC_Arg_0::E => cpu.registers.e,
-      // DEC_Arg_0::H => cpu.registers.h,
-      // DEC_Arg_0::HL => cpu.registers.get_hl(),
-      // DEC_Arg_0::L => cpu.registers.l,
-      // DEC_Arg_0::Indirect_HL => cpu.bus.read_byte(cpu.registers.get_hl()),
-      // DEC_Arg_0::SP => cpu.sp,
-      // DEC_Arg_0::A => cpu.registers.a,
+      DEC_Arg_0::C => cpu.registers.c = value as u8,
+      DEC_Arg_0::D => cpu.registers.d = value as u8,
+      DEC_Arg_0::DE => cpu.registers.set_de(value),
+      DEC_Arg_0::E => cpu.registers.e = value as u8,
+      DEC_Arg_0::H => cpu.registers.h = value as u8,
+      DEC_Arg_0::HL => cpu.registers.set_hl(value),
+      DEC_Arg_0::L => cpu.registers.l = value as u8,
+      DEC_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
+      DEC_Arg_0::SP => cpu.sp = value,
+      DEC_Arg_0::A => cpu.registers.a = value as u8,
     }
   }
 }
