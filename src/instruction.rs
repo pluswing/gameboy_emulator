@@ -1,5 +1,6 @@
 use crate::cpu;
 
+#[derive(Debug, PartialEq)]
 pub enum FlagValue {
     NO_CHANGE,
     CHANGE,

@@ -1,6 +1,6 @@
 use core::panic;
 
-use crate::instruction;
+use crate::instruction::{self, FlagValue};
 
 pub struct Registers {
     pub a: u8,
@@ -449,22 +449,10 @@ impl CPU {
         let value = arg0.get_value(self);
         let sub = value.wrapping_sub(1);
         arg0.set_value(self, sub);
-        match arg0 {
-            instruction::DEC_Arg_0::A
-            | instruction::DEC_Arg_0::B
-            | instruction::DEC_Arg_0::C
-            | instruction::DEC_Arg_0::D
-            | instruction::DEC_Arg_0::E
-            | instruction::DEC_Arg_0::H
-            | instruction::DEC_Arg_0::L
-            | instruction::DEC_Arg_0::Indirect_HL => {
-                self.registers.f.half_carry = 0x01 > (value & 0x0F);
-                self.update_flags(sub, flags);
-            }
-            _ => {
-                // フラグ更新なし
-            }
+        if flags.half_carry == FlagValue::CHANGE {
+            self.registers.f.half_carry = 0x01 > (value & 0x0F);
         }
+        self.update_flags(sub, flags);
     }
     fn daa(&mut self, flags: instruction::Flags) {}
     fn sbc(

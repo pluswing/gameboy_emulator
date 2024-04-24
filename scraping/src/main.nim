@@ -149,15 +149,73 @@ proc grouping_args(operations: OpsCodeList): ArgsTable =
   return op_args
 
 
+proc writeGetValueFunction(f: File, name: string, list: seq) =
+  var codeTable = {
+    "B": "cpu.registers.b as u16,",
+    "BC": "cpu.registers.get_bc(),",
+    "C": "cpu.registers.c as u16,",
+    "D": "cpu.registers.d as u16,",
+    "DE": "cpu.registers.get_de(),",
+    "E": "cpu.registers.e as u16,",
+    "H": "cpu.registers.h as u16,",
+    "HL": "cpu.registers.get_hl(),",
+    "L": "cpu.registers.l as u16,",
+    "Indirect_HL": "cpu.bus.read_byte(cpu.registers.get_hl()) as u16,",
+    "SP": "cpu.sp,",
+    "A": "cpu.registers.a as u16,",
+  }.toTable
+
+  f.writeLine("    pub fn get_value(&self, cpu: &cpu::CPU) -> u16 {")
+  f.writeLine("        match *self {")
+  for v in list:
+    let code = codeTable[v]
+    f.writeLine(fmt"        {name}::{v} => {code}")
+  f.writeLine("        }")
+  f.writeLine("    }")
+
+
+proc writeSetValueFunction(f: File, name: string, list: seq) =
+  var codeTable = {
+    "B": "cpu.registers.b = value as u8,",
+    "BC": "cpu.registers.set_bc(value),",
+    "C": "cpu.registers.c = value as u8,",
+    "D": "cpu.registers.d = value as u8,",
+    "DE": "cpu.registers.set_de(value),",
+    "E": "cpu.registers.e = value as u8,",
+    "H": "cpu.registers.h = value as u8,",
+    "HL": "cpu.registers.set_hl(value),",
+    "L": "cpu.registers.l = value as u8,",
+    "Indirect_HL": "cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),",
+    "SP": "cpu.sp = value,",
+    "A": "cpu.registers.a = value as u8,",
+  }.toTable
+
+  f.writeLine("    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {")
+  f.writeLine("        match *self {")
+  for v in list:
+    let code = codeTable[v]
+    f.writeLine(fmt"        {name}::{v} => {code}")
+  f.writeLine("        }")
+  f.writeLine("    }")
+
+
 proc writeEnums(f: File, op_args: ArgsTable) =
 
   # enum ArithmeticTarget { ...
   for name, args in op_args:
     for i, list in args:
+      f.writeLine("#[derive(Debug, PartialEq)]")
       f.writeLine fmt"pub enum {name}_Arg_{i}" & "{"
       for v in list:
         f.writeLine fmt"    {v},"
       f.writeLine "}\n"
+      f.writeLine(fmt"impl {name}_Arg_{i}" & "{")
+      if "NZ" in list:
+        # writeIsFunction(f, name, list)
+      else:
+        writeGetValueFunction(f, name, list)
+        writeSetValueFunction(f, name, list)
+      f.writeLine("}")
 
   # enum Instruction {
   f.writeLine "pub enum Instruction {"
@@ -241,6 +299,8 @@ proc main() =
   defer:
     close(f)
 
+  f.writeLine("use crate::cpu;\n")
+  f.writeLine("#[derive(Debug, PartialEq)]")
   f.writeLine("pub enum FlagValue {")
   f.writeLine("    NO_CHANGE,")
   f.writeLine("    CHANGE,")
