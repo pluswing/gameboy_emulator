@@ -163,6 +163,13 @@ proc writeGetValueFunction(f: File, name: string, list: seq) =
     "Indirect_HL": "cpu.bus.read_byte(cpu.registers.get_hl()) as u16,",
     "SP": "cpu.sp,",
     "A": "cpu.registers.a as u16,",
+    "NONE": "{},",
+    "a16": "cpu.read_next_word(),",
+    "d8": "cpu.read_next_byte(),",
+    "r8": "cpu.read_next_byte(),",
+    "AF": "cpu.registers.get_af(),",
+    "Indirect_BC": "cpu.bus.read_byte(cpu.registers.get_bc()) as u16,",
+    "Indirect_a16": "cpu.bus.read_byte(cpu.read_next_word()) as u16,",
   }.toTable
 
   f.writeLine("    pub fn get_value(&self, cpu: &cpu::CPU) -> u16 {")
@@ -188,6 +195,13 @@ proc writeSetValueFunction(f: File, name: string, list: seq) =
     "Indirect_HL": "cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),",
     "SP": "cpu.sp = value,",
     "A": "cpu.registers.a = value as u8,",
+    "NONE": "{},",
+    "a16": "panic!(\"can not call!\"),",
+    "d8": "panic!(\"can not call!\"),",
+    "r8": "panic!(\"can not call!\"),",
+    "AF": "cpu.registers.set_af(value),",
+    "Indirect_BC": "cpu.bus.write_byte(cpu.registers.get_bc(), value as u8),",
+    "Indirect_a16": "cpu.bus.write_byte(cpu.read_next_word(), value),",
   }.toTable
 
   f.writeLine("    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {")
@@ -199,23 +213,55 @@ proc writeSetValueFunction(f: File, name: string, list: seq) =
   f.writeLine("    }")
 
 
+proc writeConditionFunction(f: File, name: string, list: seq) =
+  var codeTable = {
+    "NZ": "!cpu.registers.f.zero,",
+    "Z": "cpu.registers.f.zero,",
+    "NC": "!cpu.registers.f.carry,",
+    "C": "cpu.registers.f.carry,",
+    "HL": "true,",
+    "a16": "true,",
+    "NONE": "panic!(\"can not call!\"),",
+    "r8": "true,",
+  }.toTable
+
+  f.writeLine("    pub fn condition(&self, cpu: &cpu::CPU) -> bool {")
+  f.writeLine("        match *self {")
+  for v in list:
+    let code = codeTable[v]
+    f.writeLine(fmt"        {name}::{v} => {code}")
+  f.writeLine("        }")
+  f.writeLine("    }")
+
+
+proc isInUnderscore(list: seq[string]): bool =
+  for v in list:
+    if v.startsWith("_"):
+      return true
+  return false
+
+
 proc writeEnums(f: File, op_args: ArgsTable) =
 
   # enum ArithmeticTarget { ...
   for name, args in op_args:
     for i, list in args:
+      let enumName = fmt"{name}_Arg_{i}"
       f.writeLine("#[derive(Debug, PartialEq)]")
-      f.writeLine fmt"pub enum {name}_Arg_{i}" & "{"
+      f.writeLine fmt"pub enum {enumName}" & "{"
       for v in list:
         f.writeLine fmt"    {v},"
       f.writeLine "}\n"
-      f.writeLine(fmt"impl {name}_Arg_{i}" & "{")
-      if "NZ" in list:
-        # writeIsFunction(f, name, list)
+      f.writeLine(fmt"impl {enumName}" & "{")
+      if "CB" in list or isInUnderscore(list):
+        f.writeLine("}\n")
+        continue
+      elif "NZ" in list:
+        writeConditionFunction(f, enumName, list)
       else:
-        writeGetValueFunction(f, name, list)
-        writeSetValueFunction(f, name, list)
-      f.writeLine("}")
+        writeGetValueFunction(f, enumName, list)
+        writeSetValueFunction(f, enumName, list)
+      f.writeLine("}\n")
 
   # enum Instruction {
   f.writeLine "pub enum Instruction {"
