@@ -163,16 +163,23 @@ proc writeGetValueFunction(f: File, name: string, list: seq) =
     "Indirect_HL": "cpu.bus.read_byte(cpu.registers.get_hl()) as u16,",
     "SP": "cpu.sp,",
     "A": "cpu.registers.a as u16,",
-    "NONE": "{},",
+    "NONE": "panic!(\"can not call!\"),",
     "a16": "cpu.read_next_word(),",
-    "d8": "cpu.read_next_byte(),",
-    "r8": "cpu.read_next_byte(),",
+    "d8": "cpu.read_next_byte() as u16,",
+    "r8": "cpu.read_next_byte() as u16,",
     "AF": "cpu.registers.get_af(),",
     "Indirect_BC": "cpu.bus.read_byte(cpu.registers.get_bc()) as u16,",
     "Indirect_a16": "cpu.bus.read_byte(cpu.read_next_word()) as u16,",
+    "Indirect_DE": "cpu.bus.read_byte(cpu.registers.get_de()) as u16,",
+    "Indirect_HLI": "{\nlet value = cpu.bus.read_byte(cpu.registers.get_hl()) as u16;\ncpu.registers.set_hl(cpu.registers.get_hl().wrapping_add(1));\nvalue\n}",
+    "Indirect_HLD": "{\nlet value = cpu.bus.read_byte(cpu.registers.get_hl()) as u16;\ncpu.registers.set_hl(cpu.registers.get_hl().wrapping_sub(1));\nvalue\n}",
+    "Indirect_C": "cpu.bus.read_byte(0xFF00 | cpu.registers.c as u16) as u16,",
+    "d16": "cpu.read_next_word(),",
+    "SP_r8": "{\ncpu.sp = cpu.add_e8(cpu.sp, cpu.read_next_byte());\ncpu.sp\n}",
+    "Indirect_a8": "cpu.bus.read_byte(cpu.read_next_byte() as u16) as u16,",
   }.toTable
 
-  f.writeLine("    pub fn get_value(&self, cpu: &cpu::CPU) -> u16 {")
+  f.writeLine("    pub fn get_value(&self, cpu: &mut cpu::CPU) -> u16 {")
   f.writeLine("        match *self {")
   for v in list:
     let code = codeTable[v]
@@ -195,13 +202,20 @@ proc writeSetValueFunction(f: File, name: string, list: seq) =
     "Indirect_HL": "cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),",
     "SP": "cpu.sp = value,",
     "A": "cpu.registers.a = value as u8,",
-    "NONE": "{},",
+    "NONE": "panic!(\"can not call!\"),",
     "a16": "panic!(\"can not call!\"),",
     "d8": "panic!(\"can not call!\"),",
     "r8": "panic!(\"can not call!\"),",
     "AF": "cpu.registers.set_af(value),",
     "Indirect_BC": "cpu.bus.write_byte(cpu.registers.get_bc(), value as u8),",
-    "Indirect_a16": "cpu.bus.write_byte(cpu.read_next_word(), value),",
+    "Indirect_a16": "cpu.bus.write_byte(cpu.read_next_word(), value as u8),",
+    "Indirect_DE": "cpu.bus.write_byte(cpu.registers.get_de(), value as u8),",
+    "Indirect_HLI": "{\ncpu.bus.write_byte(cpu.registers.get_hl(), value as u8);\ncpu.registers.set_hl(cpu.registers.get_hl().wrapping_add(1));\n}",
+    "Indirect_HLD": "{\ncpu.bus.write_byte(cpu.registers.get_hl(), value as u8);\ncpu.registers.set_hl(cpu.registers.get_hl().wrapping_sub(1));\n}",
+    "Indirect_C": "cpu.bus.write_byte(0xFF00 | cpu.registers.c as u16, value as u8),",
+    "d16": "panic!(\"can not call!\"),",
+    "SP_r8": "panic!(\"can not call!\"),",
+    "Indirect_a8": "cpu.bus.write_byte(cpu.read_next_byte() as u16, value as u8),",
   }.toTable
 
   f.writeLine("    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {")

@@ -591,7 +591,7 @@ impl CPU {
     fn or(&mut self, arg0: instruction::OR_Arg_0, flags: instruction::Flags) {}
     fn rlc(&mut self, arg0: instruction::RLC_Arg_0, flags: instruction::Flags) {}
 
-    fn add_e8(&mut self, value: u16, add_value: u8) -> u16 {
+    pub fn add_e8(&mut self, value: u16, add_value: u8) -> u16 {
         let add_value = add_value as i8;
         let add_value = add_value as i32;
         let left = value as i32;
@@ -656,11 +656,11 @@ impl CPU {
             .wrapping_add(instruction::instruction_bytes(instruction_byte, prefixed))
     }
 
-    fn read_next_byte(&self) -> u8 {
+    pub fn read_next_byte(&self) -> u8 {
         self.bus.read_byte(self.pc + 1)
     }
 
-    fn read_next_word(&self) -> u16 {
+    pub fn read_next_word(&self) -> u16 {
         let l = self.bus.read_byte(self.pc + 1) as u16;
         let u = self.bus.read_byte(self.pc + 2) as u16;
         return (u << 8) | l;
