@@ -182,14 +182,7 @@ impl CPU {
         arg1: instruction::JP_Arg_1,
         flags: instruction::Flags,
     ) {
-        let jump_condition = match arg0 {
-            instruction::JP_Arg_0::NZ => !self.registers.f.zero,
-            instruction::JP_Arg_0::Z => self.registers.f.zero,
-            instruction::JP_Arg_0::NC => !self.registers.f.carry,
-            instruction::JP_Arg_0::C => self.registers.f.carry,
-            instruction::JP_Arg_0::HL => true,
-            instruction::JP_Arg_0::a16 => true,
-        };
+        let jump_condition = arg0.condition(self);
         if jump_condition {
             self.pc = match arg0 {
                 instruction::JP_Arg_0::HL => self.registers.get_hl() - 1,
@@ -467,17 +460,7 @@ impl CPU {
     fn reti(&mut self, flags: instruction::Flags) {}
     fn nop(&mut self, flags: instruction::Flags) {}
     fn cp(&mut self, arg0: instruction::CP_Arg_0, flags: instruction::Flags) {
-        let source_value = match arg0 {
-            instruction::CP_Arg_0::A => self.registers.a,
-            instruction::CP_Arg_0::B => self.registers.b,
-            instruction::CP_Arg_0::C => self.registers.c,
-            instruction::CP_Arg_0::D => self.registers.d,
-            instruction::CP_Arg_0::E => self.registers.e,
-            instruction::CP_Arg_0::H => self.registers.h,
-            instruction::CP_Arg_0::L => self.registers.l,
-            instruction::CP_Arg_0::Indirect_HL => self.bus.read_byte(self.registers.get_hl()),
-            instruction::CP_Arg_0::d8 => self.read_next_byte(),
-        };
+        let source_value = arg0.get_value(self) as u8;
         let sub = self.registers.a.wrapping_sub(source_value);
         self.registers.f.half_carry = (source_value & 0x0F) > (self.registers.a & 0x0F);
         self.registers.f.carry = source_value > self.registers.a;
