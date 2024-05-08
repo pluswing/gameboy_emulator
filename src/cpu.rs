@@ -182,8 +182,7 @@ impl CPU {
         arg1: instruction::JP_Arg_1,
         flags: instruction::Flags,
     ) {
-        let jump_condition = arg0.condition(self);
-        if jump_condition {
+        if arg0.condition(self) {
             self.pc = match arg0 {
                 instruction::JP_Arg_0::HL => self.registers.get_hl() - 1,
                 _ => self.read_next_word() - 3,
@@ -198,29 +197,14 @@ impl CPU {
         arg1: instruction::CALL_Arg_1,
         flags: instruction::Flags,
     ) {
-        let jump_condition = match arg0 {
-            instruction::CALL_Arg_0::NZ => !self.registers.f.zero,
-            instruction::CALL_Arg_0::Z => self.registers.f.zero,
-            instruction::CALL_Arg_0::NC => !self.registers.f.carry,
-            instruction::CALL_Arg_0::C => self.registers.f.carry,
-            instruction::CALL_Arg_0::a16 => true,
-        };
-        let next_pc = self.pc.wrapping_add(3);
-        if jump_condition {
-            self.push_u16(next_pc);
+        if arg0.condition(self) {
+            self.push_u16(self.pc.wrapping_add(3));
             self.pc = self.pc.wrapping_add(self.read_next_word().wrapping_sub(3))
         }
         self.update_flags(0, flags);
     }
     fn ret(&mut self, arg0: instruction::RET_Arg_0, flags: instruction::Flags) {
-        let jump_condition = match arg0 {
-            instruction::RET_Arg_0::NZ => !self.registers.f.zero,
-            instruction::RET_Arg_0::Z => self.registers.f.zero,
-            instruction::RET_Arg_0::NC => !self.registers.f.carry,
-            instruction::RET_Arg_0::C => self.registers.f.carry,
-            instruction::RET_Arg_0::NONE => true,
-        };
-        if jump_condition {
+        if arg0.condition(self) {
             let pc = self.pop_u16();
             // 共通処理でPCがbyte数足されるので、それを考慮して引いておく。
             self.pc = pc - 1
@@ -228,23 +212,13 @@ impl CPU {
         self.update_flags(0, flags);
     }
     fn push(&mut self, arg0: instruction::PUSH_Arg_0, flags: instruction::Flags) {
-        let value = match arg0 {
-            instruction::PUSH_Arg_0::AF => self.registers.get_af(),
-            instruction::PUSH_Arg_0::BC => self.registers.get_bc(),
-            instruction::PUSH_Arg_0::DE => self.registers.get_de(),
-            instruction::PUSH_Arg_0::HL => self.registers.get_hl(),
-        };
+        let value = arg0.get_value(self);
         self.push_u16(value);
         self.update_flags(value, flags);
     }
     fn pop(&mut self, arg0: instruction::POP_Arg_0, flags: instruction::Flags) {
         let value = self.pop_u16();
-        match arg0 {
-            instruction::POP_Arg_0::AF => self.registers.set_af(value),
-            instruction::POP_Arg_0::BC => self.registers.set_bc(value),
-            instruction::POP_Arg_0::DE => self.registers.set_de(value),
-            instruction::POP_Arg_0::HL => self.registers.set_hl(value),
-        };
+        arg0.set_value(self, value);
         self.update_flags(value, flags);
     }
     fn ld(
@@ -253,137 +227,9 @@ impl CPU {
         arg1: instruction::LD_Arg_1,
         flags: instruction::Flags,
     ) {
-        if self.is_16bit_ld_operation(&arg1) {
-            self.ld_16bit(arg0, arg1, flags);
-        } else {
-            self.ld_8bit(arg0, arg1, flags)
-        };
-    }
-
-    fn is_16bit_ld_operation(&self, arg1: &instruction::LD_Arg_1) -> bool {
-        match arg1 {
-            instruction::LD_Arg_1::d16 => true,
-            instruction::LD_Arg_1::HL => true,
-            instruction::LD_Arg_1::SP => true,
-            instruction::LD_Arg_1::SP_r8 => true,
-            _ => false,
-        }
-    }
-
-    fn ld_16bit(
-        &mut self,
-        arg0: instruction::LD_Arg_0,
-        arg1: instruction::LD_Arg_1,
-        flags: instruction::Flags,
-    ) {
-        let source_value = match arg1 {
-            instruction::LD_Arg_1::d16 => self.read_next_word(),
-            instruction::LD_Arg_1::HL => self.registers.get_hl(),
-            instruction::LD_Arg_1::SP => self.sp,
-            instruction::LD_Arg_1::SP_r8 => {
-                self.sp = self.add_e8(self.sp, self.read_next_byte());
-                self.sp
-            }
-            _ => panic!("shound not reach"),
-        };
-
-        match arg0 {
-            instruction::LD_Arg_0::BC => {
-                self.registers.set_bc(source_value);
-            }
-            instruction::LD_Arg_0::DE => {
-                self.registers.set_de(source_value);
-            }
-            instruction::LD_Arg_0::HL => {
-                self.registers.set_hl(source_value);
-            }
-            instruction::LD_Arg_0::SP => {
-                self.sp = source_value;
-            }
-            instruction::LD_Arg_0::Indirect_a16 => {
-                self.bus.write_word(self.read_next_word(), source_value);
-            }
-            _ => panic!("shound not reach"),
-        };
+        let source_value = arg1.get_value(self);
+        arg0.set_value(self, source_value);
         self.update_flags(source_value, flags);
-    }
-
-    fn ld_8bit(
-        &mut self,
-        arg0: instruction::LD_Arg_0,
-        arg1: instruction::LD_Arg_1,
-        flags: instruction::Flags,
-    ) {
-        let source_value = match arg1 {
-            instruction::LD_Arg_1::A => self.registers.a,
-            instruction::LD_Arg_1::B => self.registers.b,
-            instruction::LD_Arg_1::C => self.registers.c,
-            instruction::LD_Arg_1::D => self.registers.d,
-            instruction::LD_Arg_1::E => self.registers.e,
-            instruction::LD_Arg_1::H => self.registers.h,
-            instruction::LD_Arg_1::L => self.registers.l,
-            instruction::LD_Arg_1::d8 => self.read_next_byte(),
-            instruction::LD_Arg_1::Indirect_a16 => {
-                let v = self.read_next_word();
-                self.bus.read_byte(v)
-            }
-            instruction::LD_Arg_1::Indirect_HLI => {
-                let v = self.bus.read_byte(self.registers.get_hl());
-                self.registers
-                    .set_hl(self.registers.get_hl().wrapping_add(1));
-                v
-            }
-            instruction::LD_Arg_1::Indirect_HLD => {
-                let v = self.bus.read_byte(self.registers.get_hl());
-                self.registers
-                    .set_hl(self.registers.get_hl().wrapping_sub(1));
-                v
-            }
-            instruction::LD_Arg_1::Indirect_BC => self.bus.read_byte(self.registers.get_bc()),
-            instruction::LD_Arg_1::Indirect_DE => self.bus.read_byte(self.registers.get_de()),
-            instruction::LD_Arg_1::Indirect_HL => self.bus.read_byte(self.registers.get_hl()),
-            instruction::LD_Arg_1::Indirect_C => {
-                self.bus.read_byte(0xFF00 | self.registers.c as u16)
-            }
-            _ => panic!("should not reach"),
-        };
-
-        match arg0 {
-            instruction::LD_Arg_0::A => self.registers.a = source_value,
-            instruction::LD_Arg_0::B => self.registers.b = source_value,
-            instruction::LD_Arg_0::C => self.registers.c = source_value,
-            instruction::LD_Arg_0::D => self.registers.d = source_value,
-            instruction::LD_Arg_0::E => self.registers.e = source_value,
-            instruction::LD_Arg_0::H => self.registers.h = source_value,
-            instruction::LD_Arg_0::L => self.registers.l = source_value,
-            instruction::LD_Arg_0::Indirect_HL => {
-                self.bus.write_byte(self.registers.get_hl(), source_value)
-            }
-            instruction::LD_Arg_0::Indirect_HLI => {
-                self.bus.write_byte(self.registers.get_hl(), source_value);
-                self.registers
-                    .set_hl(self.registers.get_hl().wrapping_add(1));
-            }
-            instruction::LD_Arg_0::Indirect_HLD => {
-                self.bus.write_byte(self.registers.get_hl(), source_value);
-                self.registers
-                    .set_hl(self.registers.get_hl().wrapping_sub(1));
-            }
-            instruction::LD_Arg_0::Indirect_BC => {
-                self.bus.write_byte(self.registers.get_bc(), source_value)
-            }
-            instruction::LD_Arg_0::Indirect_DE => {
-                self.bus.write_byte(self.registers.get_de(), source_value)
-            }
-            instruction::LD_Arg_0::Indirect_C => self
-                .bus
-                .write_byte(0xFF00 | self.registers.c as u16, source_value),
-            instruction::LD_Arg_0::Indirect_a16 => {
-                self.bus.write_byte(self.read_next_word(), source_value)
-            }
-            _ => panic!("should not reach"),
-        };
-        self.update_flags(source_value as u16, flags);
     }
 
     fn add(
@@ -394,31 +240,13 @@ impl CPU {
     ) {
         match arg0 {
             instruction::ADD_Arg_0::A => {
-                let value = match arg1 {
-                    instruction::ADD_Arg_1::A => self.registers.a,
-                    instruction::ADD_Arg_1::B => self.registers.b,
-                    instruction::ADD_Arg_1::C => self.registers.c,
-                    instruction::ADD_Arg_1::D => self.registers.d,
-                    instruction::ADD_Arg_1::E => self.registers.e,
-                    instruction::ADD_Arg_1::H => self.registers.h,
-                    instruction::ADD_Arg_1::L => self.registers.l,
-                    instruction::ADD_Arg_1::Indirect_HL => {
-                        self.bus.read_byte(self.registers.get_hl())
-                    }
-                    instruction::ADD_Arg_1::d8 => self.read_next_byte(),
-                    _ => todo!("implement"),
-                };
+                let value = arg1.get_value(self) as u8;
                 self.registers.a = self.update_carry_u8(self.registers.a, value);
                 self.update_flags(self.registers.a as u16, flags);
             }
             instruction::ADD_Arg_0::HL => {
-                let value = match arg1 {
-                    instruction::ADD_Arg_1::BC => self.registers.get_bc(),
-                    instruction::ADD_Arg_1::DE => self.registers.get_de(),
-                    instruction::ADD_Arg_1::HL => self.registers.get_hl(),
-                    instruction::ADD_Arg_1::SP => self.sp,
-                    _ => todo!("impl"),
-                };
+                let value = arg1.get_value(self);
+                // TODO ここの処理を関数化する ==> update_carry_u16
                 let (new_value, did_overflow) = self.registers.get_hl().overflowing_add(value);
                 self.registers.f.carry = did_overflow;
                 self.registers.f.half_carry =
@@ -428,10 +256,7 @@ impl CPU {
                 self.update_flags(self.registers.get_hl(), flags)
             }
             instruction::ADD_Arg_0::SP => {
-                let value = match arg1 {
-                    instruction::ADD_Arg_1::r8 => self.read_next_byte(),
-                    _ => todo!("impl"),
-                };
+                let value = arg1.get_value(self) as u8;
                 self.sp = self.add_e8(self.sp, value);
                 self.update_flags(self.sp, flags);
             }
@@ -496,17 +321,7 @@ impl CPU {
     ) {
     }
     fn and(&mut self, arg0: instruction::AND_Arg_0, flags: instruction::Flags) {
-        let source_value = match arg0 {
-            instruction::AND_Arg_0::A => self.registers.a,
-            instruction::AND_Arg_0::B => self.registers.b,
-            instruction::AND_Arg_0::C => self.registers.c,
-            instruction::AND_Arg_0::D => self.registers.d,
-            instruction::AND_Arg_0::E => self.registers.e,
-            instruction::AND_Arg_0::H => self.registers.h,
-            instruction::AND_Arg_0::L => self.registers.l,
-            instruction::AND_Arg_0::Indirect_HL => self.bus.read_byte(self.registers.get_hl()),
-            instruction::AND_Arg_0::d8 => self.read_next_byte(),
-        };
+        let source_value = arg0.get_value(self) as u8;
         self.registers.a = self.registers.a & source_value;
         self.update_flags(self.registers.a as u16, flags);
     }
@@ -542,17 +357,7 @@ impl CPU {
         arg1: instruction::ADC_Arg_1,
         flags: instruction::Flags,
     ) {
-        let source_value = match arg1 {
-            instruction::ADC_Arg_1::A => self.registers.a,
-            instruction::ADC_Arg_1::B => self.registers.b,
-            instruction::ADC_Arg_1::C => self.registers.c,
-            instruction::ADC_Arg_1::D => self.registers.d,
-            instruction::ADC_Arg_1::E => self.registers.e,
-            instruction::ADC_Arg_1::H => self.registers.h,
-            instruction::ADC_Arg_1::L => self.registers.l,
-            instruction::ADC_Arg_1::Indirect_HL => self.bus.read_byte(self.registers.get_hl()),
-            instruction::ADC_Arg_1::d8 => self.read_next_byte(),
-        };
+        let source_value = arg1.get_value(self) as u8;
 
         // TODO A + SOURCE + CARRY の結果を↓
         // TODO ビット演算でcarry & half_carryを計算したほうが良い。
