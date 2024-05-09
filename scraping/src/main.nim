@@ -103,6 +103,11 @@ proc extract_operations(trs: seq[XmlNode]): OpsCodeList =
           args.add("Indirect_HLI")
         elif a == "(HL-)":
           args.add("Indirect_HLD")
+        elif a == "(a16)":
+          if code == 0xEA or code == 0xFA:
+            args.add("Indirect_a16_8")
+          else:
+            args.add("Indirect_a16")
         elif a.startsWith("("):
           args.add("Indirect_" & a.replace("(", "").replace(")", ""))
         elif a.match(re"^\d.*").isSome:
@@ -169,7 +174,7 @@ proc writeGetValueFunction(f: File, name: string, list: seq) =
     "r8": "cpu.read_next_byte() as u16,",
     "AF": "cpu.registers.get_af(),",
     "Indirect_BC": "cpu.bus.read_byte(cpu.registers.get_bc()) as u16,",
-    # "Indirect_a16": "cpu.bus.read_byte(cpu.read_next_word()) as u16,",
+    "Indirect_a16_8": "cpu.bus.read_byte(cpu.read_next_word()) as u16,",
     "Indirect_a16": "cpu.bus.read_word(cpu.read_next_word()),",
     "Indirect_DE": "cpu.bus.read_byte(cpu.registers.get_de()) as u16,",
     "Indirect_HLI": "{\nlet value = cpu.bus.read_byte(cpu.registers.get_hl()) as u16;\ncpu.registers.set_hl(cpu.registers.get_hl().wrapping_add(1));\nvalue\n}",
@@ -209,7 +214,7 @@ proc writeSetValueFunction(f: File, name: string, list: seq) =
     "r8": "panic!(\"can not call!\"),",
     "AF": "cpu.registers.set_af(value),",
     "Indirect_BC": "cpu.bus.write_byte(cpu.registers.get_bc(), value as u8),",
-    # "Indirect_a16": "cpu.bus.write_byte(cpu.read_next_word(), value as u8),",
+    "Indirect_a16_8": "cpu.bus.write_byte(cpu.read_next_word(), value as u8),",
     "Indirect_a16": "cpu.bus.write_word(cpu.read_next_word(), value),",
     "Indirect_DE": "cpu.bus.write_byte(cpu.registers.get_de(), value as u8),",
     "Indirect_HLI": "{\ncpu.bus.write_byte(cpu.registers.get_hl(), value as u8);\ncpu.registers.set_hl(cpu.registers.get_hl().wrapping_add(1));\n}",
@@ -385,7 +390,7 @@ proc main() =
 
   # LD命令のテストコード出力
   for op in all_ops:
-    if op.name == "DEC":
+    if op.name == "INC":
       echo "#[test]"
       let arg = op.args.join("_").toLowerAscii
       let arg2 = op.args.join(", ")

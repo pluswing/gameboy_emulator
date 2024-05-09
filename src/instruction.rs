@@ -870,6 +870,7 @@ pub enum LD_Arg_0{
     Indirect_HLD,
     Indirect_HL,
     Indirect_C,
+    Indirect_a16_8,
 }
 
 impl LD_Arg_0{
@@ -901,6 +902,7 @@ value
 }
         LD_Arg_0::Indirect_HL => cpu.bus.read_byte(cpu.registers.get_hl()) as u16,
         LD_Arg_0::Indirect_C => cpu.bus.read_byte(0xFF00 | cpu.registers.c as u16) as u16,
+        LD_Arg_0::Indirect_a16_8 => cpu.bus.read_byte(cpu.read_next_word()) as u16,
         }
     }
     pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
@@ -929,6 +931,7 @@ cpu.registers.set_hl(cpu.registers.get_hl().wrapping_sub(1));
 }
         LD_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
         LD_Arg_0::Indirect_C => cpu.bus.write_byte(0xFF00 | cpu.registers.c as u16, value as u8),
+        LD_Arg_0::Indirect_a16_8 => cpu.bus.write_byte(cpu.read_next_word(), value as u8),
         }
     }
 }
@@ -953,7 +956,7 @@ pub enum LD_Arg_1{
     Indirect_C,
     SP_r8,
     HL,
-    Indirect_a16,
+    Indirect_a16_8,
 }
 
 impl LD_Arg_1{
@@ -988,7 +991,7 @@ cpu.sp = cpu.add_e8(cpu.sp, cpu.read_next_byte());
 cpu.sp
 }
         LD_Arg_1::HL => cpu.registers.get_hl(),
-        LD_Arg_1::Indirect_a16 => cpu.bus.read_word(cpu.read_next_word()),
+        LD_Arg_1::Indirect_a16_8 => cpu.bus.read_byte(cpu.read_next_word()) as u16,
         }
     }
     pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
@@ -1017,7 +1020,7 @@ cpu.registers.set_hl(cpu.registers.get_hl().wrapping_sub(1));
         LD_Arg_1::Indirect_C => cpu.bus.write_byte(0xFF00 | cpu.registers.c as u16, value as u8),
         LD_Arg_1::SP_r8 => panic!("can not call!"),
         LD_Arg_1::HL => cpu.registers.set_hl(value),
-        LD_Arg_1::Indirect_a16 => cpu.bus.write_word(cpu.read_next_word(), value),
+        LD_Arg_1::Indirect_a16_8 => cpu.bus.write_byte(cpu.read_next_word(), value as u8),
         }
     }
 }
@@ -1729,7 +1732,7 @@ pub fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
         0xE7 => Some(Instruction::RST(RST_Arg_0::_20H, Flags { zero: FlagValue::NO_CHANGE, subtract: FlagValue::NO_CHANGE, half_carry: FlagValue::NO_CHANGE, carry: FlagValue::NO_CHANGE })),
         0xE8 => Some(Instruction::ADD(ADD_Arg_0::SP, ADD_Arg_1::r8, Flags { zero: FlagValue::FORCE_FALSE, subtract: FlagValue::FORCE_FALSE, half_carry: FlagValue::CHANGE, carry: FlagValue::CHANGE })),
         0xE9 => Some(Instruction::JP(JP_Arg_0::HL, JP_Arg_1::NONE, Flags { zero: FlagValue::NO_CHANGE, subtract: FlagValue::NO_CHANGE, half_carry: FlagValue::NO_CHANGE, carry: FlagValue::NO_CHANGE })),
-        0xEA => Some(Instruction::LD(LD_Arg_0::Indirect_a16, LD_Arg_1::A, Flags { zero: FlagValue::NO_CHANGE, subtract: FlagValue::NO_CHANGE, half_carry: FlagValue::NO_CHANGE, carry: FlagValue::NO_CHANGE })),
+        0xEA => Some(Instruction::LD(LD_Arg_0::Indirect_a16_8, LD_Arg_1::A, Flags { zero: FlagValue::NO_CHANGE, subtract: FlagValue::NO_CHANGE, half_carry: FlagValue::NO_CHANGE, carry: FlagValue::NO_CHANGE })),
         0xEE => Some(Instruction::XOR(XOR_Arg_0::d8, Flags { zero: FlagValue::CHANGE, subtract: FlagValue::FORCE_FALSE, half_carry: FlagValue::FORCE_FALSE, carry: FlagValue::FORCE_FALSE })),
         0xEF => Some(Instruction::RST(RST_Arg_0::_28H, Flags { zero: FlagValue::NO_CHANGE, subtract: FlagValue::NO_CHANGE, half_carry: FlagValue::NO_CHANGE, carry: FlagValue::NO_CHANGE })),
         0xF0 => Some(Instruction::LDH(LDH_Arg_0::A, LDH_Arg_1::Indirect_a8, Flags { zero: FlagValue::NO_CHANGE, subtract: FlagValue::NO_CHANGE, half_carry: FlagValue::NO_CHANGE, carry: FlagValue::NO_CHANGE })),
@@ -1741,7 +1744,7 @@ pub fn from_byte_not_prefixed(byte: u8) -> Option<Instruction> {
         0xF7 => Some(Instruction::RST(RST_Arg_0::_30H, Flags { zero: FlagValue::NO_CHANGE, subtract: FlagValue::NO_CHANGE, half_carry: FlagValue::NO_CHANGE, carry: FlagValue::NO_CHANGE })),
         0xF8 => Some(Instruction::LD(LD_Arg_0::HL, LD_Arg_1::SP_r8, Flags { zero: FlagValue::FORCE_FALSE, subtract: FlagValue::FORCE_FALSE, half_carry: FlagValue::CHANGE, carry: FlagValue::CHANGE })),
         0xF9 => Some(Instruction::LD(LD_Arg_0::SP, LD_Arg_1::HL, Flags { zero: FlagValue::NO_CHANGE, subtract: FlagValue::NO_CHANGE, half_carry: FlagValue::NO_CHANGE, carry: FlagValue::NO_CHANGE })),
-        0xFA => Some(Instruction::LD(LD_Arg_0::A, LD_Arg_1::Indirect_a16, Flags { zero: FlagValue::NO_CHANGE, subtract: FlagValue::NO_CHANGE, half_carry: FlagValue::NO_CHANGE, carry: FlagValue::NO_CHANGE })),
+        0xFA => Some(Instruction::LD(LD_Arg_0::A, LD_Arg_1::Indirect_a16_8, Flags { zero: FlagValue::NO_CHANGE, subtract: FlagValue::NO_CHANGE, half_carry: FlagValue::NO_CHANGE, carry: FlagValue::NO_CHANGE })),
         0xFB => Some(Instruction::EI(Flags { zero: FlagValue::NO_CHANGE, subtract: FlagValue::NO_CHANGE, half_carry: FlagValue::NO_CHANGE, carry: FlagValue::NO_CHANGE })),
         0xFE => Some(Instruction::CP(CP_Arg_0::d8, Flags { zero: FlagValue::CHANGE, subtract: FlagValue::FORCE_TRUE, half_carry: FlagValue::CHANGE, carry: FlagValue::CHANGE })),
         0xFF => Some(Instruction::RST(RST_Arg_0::_38H, Flags { zero: FlagValue::NO_CHANGE, subtract: FlagValue::NO_CHANGE, half_carry: FlagValue::NO_CHANGE, carry: FlagValue::NO_CHANGE })),

@@ -311,7 +311,15 @@ impl CPU {
     fn di(&mut self, flags: instruction::Flags) {}
     fn rrc(&mut self, arg0: instruction::RRC_Arg_0, flags: instruction::Flags) {}
     fn scf(&mut self, flags: instruction::Flags) {}
-    fn inc(&mut self, arg0: instruction::INC_Arg_0, flags: instruction::Flags) {}
+    fn inc(&mut self, arg0: instruction::INC_Arg_0, flags: instruction::Flags) {
+        let value = arg0.get_value(self);
+        let value = value.wrapping_add(1);
+        arg0.set_value(self, value);
+        if flags.half_carry == FlagValue::CHANGE {
+            self.registers.f.half_carry = 0x01 > (value & 0x0F);
+        }
+        self.update_flags(value, flags);
+    }
     fn rst(&mut self, arg0: instruction::RST_Arg_0, flags: instruction::Flags) {}
     fn res(
         &mut self,
@@ -1745,8 +1753,11 @@ mod test {
         cpu.bus.write_byte(0x0001, 0x34); // args
         cpu.bus.write_byte(0x0002, 0x66); // args
         cpu.registers.a = 0x5A;
+        cpu.bus.write_byte(0x6634, 0x01);
+        cpu.bus.write_byte(0x6635, 0x02);
         cpu.step();
         assert_eq!(cpu.bus.read_byte(0x6634), 0x5A);
+        assert_eq!(cpu.bus.read_byte(0x6635), 0x02);
         assert_eq!(cpu.pc, 0x0003);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
@@ -1794,6 +1805,7 @@ mod test {
         cpu.bus.write_byte(0x0001, 0x34); // args
         cpu.bus.write_byte(0x0002, 0x55); // args
         cpu.bus.write_byte(0x5534, 0x5D);
+        cpu.bus.write_byte(0x5535, 0x01);
         cpu.step();
         assert_eq!(cpu.registers.a, 0x5D);
         assert_eq!(cpu.pc, 0x0003);
@@ -2273,5 +2285,138 @@ mod test {
         assert_eq!(cpu.registers.a, 0x02);
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, true, false, false));
+    }
+
+    #[test]
+    fn test_inc_bc() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x03); // INC BC
+        cpu.registers.set_bc(0x0001);
+        cpu.step();
+        assert_eq!(cpu.registers.get_bc(), 0x0002);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_inc_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x04); // INC B
+        cpu.registers.b = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x02);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_inc_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x0C); // INC C
+        cpu.registers.c = 0xFF;
+        cpu.step();
+        assert_eq!(cpu.registers.c, 0x00);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
+    }
+
+    #[test]
+    fn test_inc_de() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x13); // INC DE
+        cpu.registers.set_de(0x0101);
+        cpu.step();
+        assert_eq!(cpu.registers.get_de(), 0x0102);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_inc_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x14); // INC D
+        cpu.registers.d = 0x0F;
+        cpu.step();
+        assert_eq!(cpu.registers.d, 0x10);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, true, false));
+    }
+
+    #[test]
+    fn test_inc_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x1C); // INC E
+        cpu.registers.e = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.e, 0x02);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_inc_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x23); // INC HL
+        cpu.registers.set_hl(0x0101);
+        cpu.step();
+        assert_eq!(cpu.registers.get_hl(), 0x0102);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_inc_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x24); // INC H
+        cpu.registers.h = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.h, 0x02);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_inc_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x2C); // INC L
+        cpu.registers.l = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.l, 0x02);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_inc_sp() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x33); // INC SP
+        cpu.sp = 0x0001;
+        cpu.step();
+        assert_eq!(cpu.sp, 0x0002);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_inc_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x34); // INC Indirect_HL
+        cpu.registers.set_hl(0x3456);
+        cpu.bus.write_byte(0x3456, 0x03);
+        cpu.step();
+        assert_eq!(cpu.bus.read_byte(0x3456), 0x04);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_inc_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x3C); // INC A
+        cpu.registers.a = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x02);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
 }
