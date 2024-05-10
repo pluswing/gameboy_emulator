@@ -313,12 +313,12 @@ impl CPU {
     fn scf(&mut self, flags: instruction::Flags) {}
     fn inc(&mut self, arg0: instruction::INC_Arg_0, flags: instruction::Flags) {
         let value = arg0.get_value(self);
-        let value = value.wrapping_add(1);
-        arg0.set_value(self, value);
+        let add = value.wrapping_add(1);
+        let add = arg0.set_value(self, add);
         if flags.half_carry == FlagValue::CHANGE {
-            self.registers.f.half_carry = 0x01 > (value & 0x0F);
+            self.registers.f.half_carry = (0x01 & 0x0F) + (value & 0x0F) > 0x0F;
         }
-        self.update_flags(value, flags);
+        self.update_flags(add, flags);
     }
     fn rst(&mut self, arg0: instruction::RST_Arg_0, flags: instruction::Flags) {}
     fn res(
@@ -384,7 +384,13 @@ impl CPU {
         self.update_flags(self.registers.a as u16, flags);
     }
     fn ei(&mut self, flags: instruction::Flags) {}
-    fn or(&mut self, arg0: instruction::OR_Arg_0, flags: instruction::Flags) {}
+
+    fn or(&mut self, arg0: instruction::OR_Arg_0, flags: instruction::Flags) {
+        let value = arg0.get_value(self) as u8;
+        self.registers.a = self.registers.a | value;
+        self.update_flags(self.registers.a as u16, flags);
+    }
+
     fn rlc(&mut self, arg0: instruction::RLC_Arg_0, flags: instruction::Flags) {}
 
     pub fn add_e8(&mut self, value: u16, add_value: u8) -> u16 {
@@ -2317,7 +2323,7 @@ mod test {
         cpu.step();
         assert_eq!(cpu.registers.c, 0x00);
         assert_eq!(cpu.pc, 0x0001);
-        assert_eq!(cpu.registers.f, F(false, false, true, false));
+        assert_eq!(cpu.registers.f, F(true, false, true, false));
     }
 
     #[test]
@@ -2417,6 +2423,99 @@ mod test {
         cpu.step();
         assert_eq!(cpu.registers.a, 0x02);
         assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_or_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xB0); // OR B
+        cpu.registers.a = 0x06;
+        cpu.registers.b = 0x03;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x07);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_or_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xB1); // OR C
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_or_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xB2); // OR D
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_or_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xB3); // OR E
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_or_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xB4); // OR H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_or_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xB5); // OR L
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_or_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xB6); // OR Indirect_HL
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_or_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xB7); // OR A
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_or_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xF6); // OR d8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
 }

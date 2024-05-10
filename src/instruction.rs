@@ -48,20 +48,20 @@ impl DEC_Arg_0{
         DEC_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        DEC_Arg_0::B => cpu.registers.b = value as u8,
-        DEC_Arg_0::BC => cpu.registers.set_bc(value),
-        DEC_Arg_0::C => cpu.registers.c = value as u8,
-        DEC_Arg_0::D => cpu.registers.d = value as u8,
-        DEC_Arg_0::DE => cpu.registers.set_de(value),
-        DEC_Arg_0::E => cpu.registers.e = value as u8,
-        DEC_Arg_0::H => cpu.registers.h = value as u8,
-        DEC_Arg_0::HL => cpu.registers.set_hl(value),
-        DEC_Arg_0::L => cpu.registers.l = value as u8,
-        DEC_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        DEC_Arg_0::SP => cpu.sp = value,
-        DEC_Arg_0::A => cpu.registers.a = value as u8,
+        DEC_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        DEC_Arg_0::BC => {cpu.registers.set_bc(value); value}
+        DEC_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        DEC_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        DEC_Arg_0::DE => {cpu.registers.set_de(value); value}
+        DEC_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        DEC_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        DEC_Arg_0::HL => {cpu.registers.set_hl(value); value}
+        DEC_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        DEC_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        DEC_Arg_0::SP => {cpu.sp = value; value}
+        DEC_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -102,7 +102,7 @@ impl JP_Arg_1{
         JP_Arg_1::a16 => cpu.read_next_word(),
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
         JP_Arg_1::NONE => panic!("can not call!"),
         JP_Arg_1::a16 => panic!("can not call!"),
@@ -121,9 +121,9 @@ impl SBC_Arg_0{
         SBC_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        SBC_Arg_0::A => cpu.registers.a = value as u8,
+        SBC_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -155,16 +155,16 @@ impl SBC_Arg_1{
         SBC_Arg_1::d8 => cpu.read_next_byte() as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        SBC_Arg_1::B => cpu.registers.b = value as u8,
-        SBC_Arg_1::C => cpu.registers.c = value as u8,
-        SBC_Arg_1::D => cpu.registers.d = value as u8,
-        SBC_Arg_1::E => cpu.registers.e = value as u8,
-        SBC_Arg_1::H => cpu.registers.h = value as u8,
-        SBC_Arg_1::L => cpu.registers.l = value as u8,
-        SBC_Arg_1::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        SBC_Arg_1::A => cpu.registers.a = value as u8,
+        SBC_Arg_1::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        SBC_Arg_1::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        SBC_Arg_1::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        SBC_Arg_1::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        SBC_Arg_1::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        SBC_Arg_1::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        SBC_Arg_1::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        SBC_Arg_1::A => {cpu.registers.a = value as u8; value as u8 as u16}
         SBC_Arg_1::d8 => panic!("can not call!"),
         }
     }
@@ -195,16 +195,16 @@ impl SWAP_Arg_0{
         SWAP_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        SWAP_Arg_0::B => cpu.registers.b = value as u8,
-        SWAP_Arg_0::C => cpu.registers.c = value as u8,
-        SWAP_Arg_0::D => cpu.registers.d = value as u8,
-        SWAP_Arg_0::E => cpu.registers.e = value as u8,
-        SWAP_Arg_0::H => cpu.registers.h = value as u8,
-        SWAP_Arg_0::L => cpu.registers.l = value as u8,
-        SWAP_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        SWAP_Arg_0::A => cpu.registers.a = value as u8,
+        SWAP_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        SWAP_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        SWAP_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        SWAP_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        SWAP_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        SWAP_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        SWAP_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        SWAP_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -236,16 +236,16 @@ impl SUB_Arg_0{
         SUB_Arg_0::d8 => cpu.read_next_byte() as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        SUB_Arg_0::B => cpu.registers.b = value as u8,
-        SUB_Arg_0::C => cpu.registers.c = value as u8,
-        SUB_Arg_0::D => cpu.registers.d = value as u8,
-        SUB_Arg_0::E => cpu.registers.e = value as u8,
-        SUB_Arg_0::H => cpu.registers.h = value as u8,
-        SUB_Arg_0::L => cpu.registers.l = value as u8,
-        SUB_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        SUB_Arg_0::A => cpu.registers.a = value as u8,
+        SUB_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        SUB_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        SUB_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        SUB_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        SUB_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        SUB_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        SUB_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        SUB_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         SUB_Arg_0::d8 => panic!("can not call!"),
         }
     }
@@ -285,7 +285,7 @@ impl CALL_Arg_1{
         CALL_Arg_1::a16 => cpu.read_next_word(),
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
         CALL_Arg_1::NONE => panic!("can not call!"),
         CALL_Arg_1::a16 => panic!("can not call!"),
@@ -320,16 +320,16 @@ impl CP_Arg_0{
         CP_Arg_0::d8 => cpu.read_next_byte() as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        CP_Arg_0::B => cpu.registers.b = value as u8,
-        CP_Arg_0::C => cpu.registers.c = value as u8,
-        CP_Arg_0::D => cpu.registers.d = value as u8,
-        CP_Arg_0::E => cpu.registers.e = value as u8,
-        CP_Arg_0::H => cpu.registers.h = value as u8,
-        CP_Arg_0::L => cpu.registers.l = value as u8,
-        CP_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        CP_Arg_0::A => cpu.registers.a = value as u8,
+        CP_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        CP_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        CP_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        CP_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        CP_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        CP_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        CP_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        CP_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         CP_Arg_0::d8 => panic!("can not call!"),
         }
     }
@@ -381,16 +381,16 @@ impl SLA_Arg_0{
         SLA_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        SLA_Arg_0::B => cpu.registers.b = value as u8,
-        SLA_Arg_0::C => cpu.registers.c = value as u8,
-        SLA_Arg_0::D => cpu.registers.d = value as u8,
-        SLA_Arg_0::E => cpu.registers.e = value as u8,
-        SLA_Arg_0::H => cpu.registers.h = value as u8,
-        SLA_Arg_0::L => cpu.registers.l = value as u8,
-        SLA_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        SLA_Arg_0::A => cpu.registers.a = value as u8,
+        SLA_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        SLA_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        SLA_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        SLA_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        SLA_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        SLA_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        SLA_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        SLA_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -429,7 +429,7 @@ impl JR_Arg_1{
         JR_Arg_1::r8 => cpu.read_next_byte() as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
         JR_Arg_1::NONE => panic!("can not call!"),
         JR_Arg_1::r8 => panic!("can not call!"),
@@ -485,16 +485,16 @@ impl SET_Arg_1{
         SET_Arg_1::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        SET_Arg_1::B => cpu.registers.b = value as u8,
-        SET_Arg_1::C => cpu.registers.c = value as u8,
-        SET_Arg_1::D => cpu.registers.d = value as u8,
-        SET_Arg_1::E => cpu.registers.e = value as u8,
-        SET_Arg_1::H => cpu.registers.h = value as u8,
-        SET_Arg_1::L => cpu.registers.l = value as u8,
-        SET_Arg_1::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        SET_Arg_1::A => cpu.registers.a = value as u8,
+        SET_Arg_1::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        SET_Arg_1::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        SET_Arg_1::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        SET_Arg_1::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        SET_Arg_1::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        SET_Arg_1::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        SET_Arg_1::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        SET_Arg_1::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -524,16 +524,16 @@ impl RRC_Arg_0{
         RRC_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        RRC_Arg_0::B => cpu.registers.b = value as u8,
-        RRC_Arg_0::C => cpu.registers.c = value as u8,
-        RRC_Arg_0::D => cpu.registers.d = value as u8,
-        RRC_Arg_0::E => cpu.registers.e = value as u8,
-        RRC_Arg_0::H => cpu.registers.h = value as u8,
-        RRC_Arg_0::L => cpu.registers.l = value as u8,
-        RRC_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        RRC_Arg_0::A => cpu.registers.a = value as u8,
+        RRC_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        RRC_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        RRC_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        RRC_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        RRC_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        RRC_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        RRC_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        RRC_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -571,20 +571,20 @@ impl INC_Arg_0{
         INC_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        INC_Arg_0::BC => cpu.registers.set_bc(value),
-        INC_Arg_0::B => cpu.registers.b = value as u8,
-        INC_Arg_0::C => cpu.registers.c = value as u8,
-        INC_Arg_0::DE => cpu.registers.set_de(value),
-        INC_Arg_0::D => cpu.registers.d = value as u8,
-        INC_Arg_0::E => cpu.registers.e = value as u8,
-        INC_Arg_0::HL => cpu.registers.set_hl(value),
-        INC_Arg_0::H => cpu.registers.h = value as u8,
-        INC_Arg_0::L => cpu.registers.l = value as u8,
-        INC_Arg_0::SP => cpu.sp = value,
-        INC_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        INC_Arg_0::A => cpu.registers.a = value as u8,
+        INC_Arg_0::BC => {cpu.registers.set_bc(value); value}
+        INC_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        INC_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        INC_Arg_0::DE => {cpu.registers.set_de(value); value}
+        INC_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        INC_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        INC_Arg_0::HL => {cpu.registers.set_hl(value); value}
+        INC_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        INC_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        INC_Arg_0::SP => {cpu.sp = value; value}
+        INC_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        INC_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -644,16 +644,16 @@ impl RES_Arg_1{
         RES_Arg_1::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        RES_Arg_1::B => cpu.registers.b = value as u8,
-        RES_Arg_1::C => cpu.registers.c = value as u8,
-        RES_Arg_1::D => cpu.registers.d = value as u8,
-        RES_Arg_1::E => cpu.registers.e = value as u8,
-        RES_Arg_1::H => cpu.registers.h = value as u8,
-        RES_Arg_1::L => cpu.registers.l = value as u8,
-        RES_Arg_1::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        RES_Arg_1::A => cpu.registers.a = value as u8,
+        RES_Arg_1::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        RES_Arg_1::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        RES_Arg_1::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        RES_Arg_1::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        RES_Arg_1::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        RES_Arg_1::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        RES_Arg_1::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        RES_Arg_1::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -685,16 +685,16 @@ impl AND_Arg_0{
         AND_Arg_0::d8 => cpu.read_next_byte() as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        AND_Arg_0::B => cpu.registers.b = value as u8,
-        AND_Arg_0::C => cpu.registers.c = value as u8,
-        AND_Arg_0::D => cpu.registers.d = value as u8,
-        AND_Arg_0::E => cpu.registers.e = value as u8,
-        AND_Arg_0::H => cpu.registers.h = value as u8,
-        AND_Arg_0::L => cpu.registers.l = value as u8,
-        AND_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        AND_Arg_0::A => cpu.registers.a = value as u8,
+        AND_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        AND_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        AND_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        AND_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        AND_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        AND_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        AND_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        AND_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         AND_Arg_0::d8 => panic!("can not call!"),
         }
     }
@@ -717,12 +717,12 @@ impl PUSH_Arg_0{
         PUSH_Arg_0::AF => cpu.registers.get_af(),
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        PUSH_Arg_0::BC => cpu.registers.set_bc(value),
-        PUSH_Arg_0::DE => cpu.registers.set_de(value),
-        PUSH_Arg_0::HL => cpu.registers.set_hl(value),
-        PUSH_Arg_0::AF => cpu.registers.set_af(value),
+        PUSH_Arg_0::BC => {cpu.registers.set_bc(value); value}
+        PUSH_Arg_0::DE => {cpu.registers.set_de(value); value}
+        PUSH_Arg_0::HL => {cpu.registers.set_hl(value); value}
+        PUSH_Arg_0::AF => {cpu.registers.set_af(value); value}
         }
     }
 }
@@ -754,16 +754,16 @@ impl XOR_Arg_0{
         XOR_Arg_0::d8 => cpu.read_next_byte() as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        XOR_Arg_0::B => cpu.registers.b = value as u8,
-        XOR_Arg_0::C => cpu.registers.c = value as u8,
-        XOR_Arg_0::D => cpu.registers.d = value as u8,
-        XOR_Arg_0::E => cpu.registers.e = value as u8,
-        XOR_Arg_0::H => cpu.registers.h = value as u8,
-        XOR_Arg_0::L => cpu.registers.l = value as u8,
-        XOR_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        XOR_Arg_0::A => cpu.registers.a = value as u8,
+        XOR_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        XOR_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        XOR_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        XOR_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        XOR_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        XOR_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        XOR_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        XOR_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         XOR_Arg_0::d8 => panic!("can not call!"),
         }
     }
@@ -786,12 +786,12 @@ impl POP_Arg_0{
         POP_Arg_0::AF => cpu.registers.get_af(),
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        POP_Arg_0::BC => cpu.registers.set_bc(value),
-        POP_Arg_0::DE => cpu.registers.set_de(value),
-        POP_Arg_0::HL => cpu.registers.set_hl(value),
-        POP_Arg_0::AF => cpu.registers.set_af(value),
+        POP_Arg_0::BC => {cpu.registers.set_bc(value); value}
+        POP_Arg_0::DE => {cpu.registers.set_de(value); value}
+        POP_Arg_0::HL => {cpu.registers.set_hl(value); value}
+        POP_Arg_0::AF => {cpu.registers.set_af(value); value}
         }
     }
 }
@@ -836,16 +836,16 @@ impl BIT_Arg_1{
         BIT_Arg_1::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        BIT_Arg_1::B => cpu.registers.b = value as u8,
-        BIT_Arg_1::C => cpu.registers.c = value as u8,
-        BIT_Arg_1::D => cpu.registers.d = value as u8,
-        BIT_Arg_1::E => cpu.registers.e = value as u8,
-        BIT_Arg_1::H => cpu.registers.h = value as u8,
-        BIT_Arg_1::L => cpu.registers.l = value as u8,
-        BIT_Arg_1::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        BIT_Arg_1::A => cpu.registers.a = value as u8,
+        BIT_Arg_1::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        BIT_Arg_1::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        BIT_Arg_1::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        BIT_Arg_1::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        BIT_Arg_1::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        BIT_Arg_1::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        BIT_Arg_1::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        BIT_Arg_1::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -905,33 +905,33 @@ value
         LD_Arg_0::Indirect_a16_8 => cpu.bus.read_byte(cpu.read_next_word()) as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        LD_Arg_0::BC => cpu.registers.set_bc(value),
-        LD_Arg_0::Indirect_BC => cpu.bus.write_byte(cpu.registers.get_bc(), value as u8),
-        LD_Arg_0::B => cpu.registers.b = value as u8,
-        LD_Arg_0::Indirect_a16 => cpu.bus.write_word(cpu.read_next_word(), value),
-        LD_Arg_0::A => cpu.registers.a = value as u8,
-        LD_Arg_0::C => cpu.registers.c = value as u8,
-        LD_Arg_0::DE => cpu.registers.set_de(value),
-        LD_Arg_0::Indirect_DE => cpu.bus.write_byte(cpu.registers.get_de(), value as u8),
-        LD_Arg_0::D => cpu.registers.d = value as u8,
-        LD_Arg_0::E => cpu.registers.e = value as u8,
-        LD_Arg_0::HL => cpu.registers.set_hl(value),
+        LD_Arg_0::BC => {cpu.registers.set_bc(value); value}
+        LD_Arg_0::Indirect_BC => {cpu.bus.write_byte(cpu.registers.get_bc(), value as u8); value as u8 as u16}
+        LD_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        LD_Arg_0::Indirect_a16 => {cpu.bus.write_word(cpu.read_next_word(), value); value}
+        LD_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
+        LD_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        LD_Arg_0::DE => {cpu.registers.set_de(value); value}
+        LD_Arg_0::Indirect_DE => {cpu.bus.write_byte(cpu.registers.get_de(), value as u8); value as u8 as u16}
+        LD_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        LD_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        LD_Arg_0::HL => {cpu.registers.set_hl(value); value}
         LD_Arg_0::Indirect_HLI => {
 cpu.bus.write_byte(cpu.registers.get_hl(), value as u8);
 cpu.registers.set_hl(cpu.registers.get_hl().wrapping_add(1));
-}
-        LD_Arg_0::H => cpu.registers.h = value as u8,
-        LD_Arg_0::L => cpu.registers.l = value as u8,
-        LD_Arg_0::SP => cpu.sp = value,
+value as u8 as u16}
+        LD_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        LD_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        LD_Arg_0::SP => {cpu.sp = value; value}
         LD_Arg_0::Indirect_HLD => {
-cpu.bus.write_byte(cpu.registers.get_hl(), value as u8);
+cpu.bus.write_byte(cpu.registers.get_hl(),value as u8);
 cpu.registers.set_hl(cpu.registers.get_hl().wrapping_sub(1));
-}
-        LD_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        LD_Arg_0::Indirect_C => cpu.bus.write_byte(0xFF00 | cpu.registers.c as u16, value as u8),
-        LD_Arg_0::Indirect_a16_8 => cpu.bus.write_byte(cpu.read_next_word(), value as u8),
+value as u8 as u16}
+        LD_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        LD_Arg_0::Indirect_C => {cpu.bus.write_byte(0xFF00 | cpu.registers.c as u16, value as u8); value as u8 as u16}
+        LD_Arg_0::Indirect_a16_8 => {cpu.bus.write_byte(cpu.read_next_word(), value as u8); value as u8 as u16}
         }
     }
 }
@@ -994,33 +994,33 @@ cpu.sp
         LD_Arg_1::Indirect_a16_8 => cpu.bus.read_byte(cpu.read_next_word()) as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
         LD_Arg_1::d16 => panic!("can not call!"),
-        LD_Arg_1::A => cpu.registers.a = value as u8,
+        LD_Arg_1::A => {cpu.registers.a = value as u8; value as u8 as u16}
         LD_Arg_1::d8 => panic!("can not call!"),
-        LD_Arg_1::SP => cpu.sp = value,
-        LD_Arg_1::Indirect_BC => cpu.bus.write_byte(cpu.registers.get_bc(), value as u8),
-        LD_Arg_1::Indirect_DE => cpu.bus.write_byte(cpu.registers.get_de(), value as u8),
+        LD_Arg_1::SP => {cpu.sp = value; value}
+        LD_Arg_1::Indirect_BC => {cpu.bus.write_byte(cpu.registers.get_bc(), value as u8); value as u8 as u16}
+        LD_Arg_1::Indirect_DE => {cpu.bus.write_byte(cpu.registers.get_de(), value as u8); value as u8 as u16}
         LD_Arg_1::Indirect_HLI => {
 cpu.bus.write_byte(cpu.registers.get_hl(), value as u8);
 cpu.registers.set_hl(cpu.registers.get_hl().wrapping_add(1));
-}
+value as u8 as u16}
         LD_Arg_1::Indirect_HLD => {
-cpu.bus.write_byte(cpu.registers.get_hl(), value as u8);
+cpu.bus.write_byte(cpu.registers.get_hl(),value as u8);
 cpu.registers.set_hl(cpu.registers.get_hl().wrapping_sub(1));
-}
-        LD_Arg_1::B => cpu.registers.b = value as u8,
-        LD_Arg_1::C => cpu.registers.c = value as u8,
-        LD_Arg_1::D => cpu.registers.d = value as u8,
-        LD_Arg_1::E => cpu.registers.e = value as u8,
-        LD_Arg_1::H => cpu.registers.h = value as u8,
-        LD_Arg_1::L => cpu.registers.l = value as u8,
-        LD_Arg_1::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        LD_Arg_1::Indirect_C => cpu.bus.write_byte(0xFF00 | cpu.registers.c as u16, value as u8),
+value as u8 as u16}
+        LD_Arg_1::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        LD_Arg_1::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        LD_Arg_1::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        LD_Arg_1::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        LD_Arg_1::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        LD_Arg_1::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        LD_Arg_1::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        LD_Arg_1::Indirect_C => {cpu.bus.write_byte(0xFF00 | cpu.registers.c as u16, value as u8); value as u8 as u16}
         LD_Arg_1::SP_r8 => panic!("can not call!"),
-        LD_Arg_1::HL => cpu.registers.set_hl(value),
-        LD_Arg_1::Indirect_a16_8 => cpu.bus.write_byte(cpu.read_next_word(), value as u8),
+        LD_Arg_1::HL => {cpu.registers.set_hl(value); value}
+        LD_Arg_1::Indirect_a16_8 => {cpu.bus.write_byte(cpu.read_next_word(), value as u8); value as u8 as u16}
         }
     }
 }
@@ -1058,16 +1058,16 @@ impl RL_Arg_0{
         RL_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        RL_Arg_0::B => cpu.registers.b = value as u8,
-        RL_Arg_0::C => cpu.registers.c = value as u8,
-        RL_Arg_0::D => cpu.registers.d = value as u8,
-        RL_Arg_0::E => cpu.registers.e = value as u8,
-        RL_Arg_0::H => cpu.registers.h = value as u8,
-        RL_Arg_0::L => cpu.registers.l = value as u8,
-        RL_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        RL_Arg_0::A => cpu.registers.a = value as u8,
+        RL_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        RL_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        RL_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        RL_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        RL_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        RL_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        RL_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        RL_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -1097,16 +1097,16 @@ impl RR_Arg_0{
         RR_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        RR_Arg_0::B => cpu.registers.b = value as u8,
-        RR_Arg_0::C => cpu.registers.c = value as u8,
-        RR_Arg_0::D => cpu.registers.d = value as u8,
-        RR_Arg_0::E => cpu.registers.e = value as u8,
-        RR_Arg_0::H => cpu.registers.h = value as u8,
-        RR_Arg_0::L => cpu.registers.l = value as u8,
-        RR_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        RR_Arg_0::A => cpu.registers.a = value as u8,
+        RR_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        RR_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        RR_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        RR_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        RR_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        RR_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        RR_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        RR_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -1136,16 +1136,16 @@ impl SRL_Arg_0{
         SRL_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        SRL_Arg_0::B => cpu.registers.b = value as u8,
-        SRL_Arg_0::C => cpu.registers.c = value as u8,
-        SRL_Arg_0::D => cpu.registers.d = value as u8,
-        SRL_Arg_0::E => cpu.registers.e = value as u8,
-        SRL_Arg_0::H => cpu.registers.h = value as u8,
-        SRL_Arg_0::L => cpu.registers.l = value as u8,
-        SRL_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        SRL_Arg_0::A => cpu.registers.a = value as u8,
+        SRL_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        SRL_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        SRL_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        SRL_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        SRL_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        SRL_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        SRL_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        SRL_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -1163,10 +1163,10 @@ impl LDH_Arg_0{
         LDH_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        LDH_Arg_0::Indirect_a8 => cpu.bus.write_byte(cpu.read_next_byte() as u16, value as u8),
-        LDH_Arg_0::A => cpu.registers.a = value as u8,
+        LDH_Arg_0::Indirect_a8 => {cpu.bus.write_byte(cpu.read_next_byte() as u16, value as u8); value as u8 as u16}
+        LDH_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -1184,10 +1184,10 @@ impl LDH_Arg_1{
         LDH_Arg_1::Indirect_a8 => cpu.bus.read_byte(cpu.read_next_byte() as u16) as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        LDH_Arg_1::A => cpu.registers.a = value as u8,
-        LDH_Arg_1::Indirect_a8 => cpu.bus.write_byte(cpu.read_next_byte() as u16, value as u8),
+        LDH_Arg_1::A => {cpu.registers.a = value as u8; value as u8 as u16}
+        LDH_Arg_1::Indirect_a8 => {cpu.bus.write_byte(cpu.read_next_byte() as u16, value as u8); value as u8 as u16}
         }
     }
 }
@@ -1217,16 +1217,16 @@ impl SRA_Arg_0{
         SRA_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        SRA_Arg_0::B => cpu.registers.b = value as u8,
-        SRA_Arg_0::C => cpu.registers.c = value as u8,
-        SRA_Arg_0::D => cpu.registers.d = value as u8,
-        SRA_Arg_0::E => cpu.registers.e = value as u8,
-        SRA_Arg_0::H => cpu.registers.h = value as u8,
-        SRA_Arg_0::L => cpu.registers.l = value as u8,
-        SRA_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        SRA_Arg_0::A => cpu.registers.a = value as u8,
+        SRA_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        SRA_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        SRA_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        SRA_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        SRA_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        SRA_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        SRA_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        SRA_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -1246,11 +1246,11 @@ impl ADD_Arg_0{
         ADD_Arg_0::SP => cpu.sp,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        ADD_Arg_0::HL => cpu.registers.set_hl(value),
-        ADD_Arg_0::A => cpu.registers.a = value as u8,
-        ADD_Arg_0::SP => cpu.sp = value,
+        ADD_Arg_0::HL => {cpu.registers.set_hl(value); value}
+        ADD_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
+        ADD_Arg_0::SP => {cpu.sp = value; value}
         }
     }
 }
@@ -1292,20 +1292,20 @@ impl ADD_Arg_1{
         ADD_Arg_1::r8 => cpu.read_next_byte() as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        ADD_Arg_1::BC => cpu.registers.set_bc(value),
-        ADD_Arg_1::DE => cpu.registers.set_de(value),
-        ADD_Arg_1::HL => cpu.registers.set_hl(value),
-        ADD_Arg_1::SP => cpu.sp = value,
-        ADD_Arg_1::B => cpu.registers.b = value as u8,
-        ADD_Arg_1::C => cpu.registers.c = value as u8,
-        ADD_Arg_1::D => cpu.registers.d = value as u8,
-        ADD_Arg_1::E => cpu.registers.e = value as u8,
-        ADD_Arg_1::H => cpu.registers.h = value as u8,
-        ADD_Arg_1::L => cpu.registers.l = value as u8,
-        ADD_Arg_1::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        ADD_Arg_1::A => cpu.registers.a = value as u8,
+        ADD_Arg_1::BC => {cpu.registers.set_bc(value); value}
+        ADD_Arg_1::DE => {cpu.registers.set_de(value); value}
+        ADD_Arg_1::HL => {cpu.registers.set_hl(value); value}
+        ADD_Arg_1::SP => {cpu.sp = value; value}
+        ADD_Arg_1::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        ADD_Arg_1::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        ADD_Arg_1::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        ADD_Arg_1::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        ADD_Arg_1::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        ADD_Arg_1::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        ADD_Arg_1::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        ADD_Arg_1::A => {cpu.registers.a = value as u8; value as u8 as u16}
         ADD_Arg_1::d8 => panic!("can not call!"),
         ADD_Arg_1::r8 => panic!("can not call!"),
         }
@@ -1323,9 +1323,9 @@ impl ADC_Arg_0{
         ADC_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        ADC_Arg_0::A => cpu.registers.a = value as u8,
+        ADC_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }
@@ -1357,16 +1357,16 @@ impl ADC_Arg_1{
         ADC_Arg_1::d8 => cpu.read_next_byte() as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        ADC_Arg_1::B => cpu.registers.b = value as u8,
-        ADC_Arg_1::C => cpu.registers.c = value as u8,
-        ADC_Arg_1::D => cpu.registers.d = value as u8,
-        ADC_Arg_1::E => cpu.registers.e = value as u8,
-        ADC_Arg_1::H => cpu.registers.h = value as u8,
-        ADC_Arg_1::L => cpu.registers.l = value as u8,
-        ADC_Arg_1::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        ADC_Arg_1::A => cpu.registers.a = value as u8,
+        ADC_Arg_1::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        ADC_Arg_1::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        ADC_Arg_1::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        ADC_Arg_1::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        ADC_Arg_1::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        ADC_Arg_1::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        ADC_Arg_1::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        ADC_Arg_1::A => {cpu.registers.a = value as u8; value as u8 as u16}
         ADC_Arg_1::d8 => panic!("can not call!"),
         }
     }
@@ -1399,16 +1399,16 @@ impl OR_Arg_0{
         OR_Arg_0::d8 => cpu.read_next_byte() as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        OR_Arg_0::B => cpu.registers.b = value as u8,
-        OR_Arg_0::C => cpu.registers.c = value as u8,
-        OR_Arg_0::D => cpu.registers.d = value as u8,
-        OR_Arg_0::E => cpu.registers.e = value as u8,
-        OR_Arg_0::H => cpu.registers.h = value as u8,
-        OR_Arg_0::L => cpu.registers.l = value as u8,
-        OR_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        OR_Arg_0::A => cpu.registers.a = value as u8,
+        OR_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        OR_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        OR_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        OR_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        OR_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        OR_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        OR_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        OR_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         OR_Arg_0::d8 => panic!("can not call!"),
         }
     }
@@ -1439,16 +1439,16 @@ impl RLC_Arg_0{
         RLC_Arg_0::A => cpu.registers.a as u16,
         }
     }
-    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {
+    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
-        RLC_Arg_0::B => cpu.registers.b = value as u8,
-        RLC_Arg_0::C => cpu.registers.c = value as u8,
-        RLC_Arg_0::D => cpu.registers.d = value as u8,
-        RLC_Arg_0::E => cpu.registers.e = value as u8,
-        RLC_Arg_0::H => cpu.registers.h = value as u8,
-        RLC_Arg_0::L => cpu.registers.l = value as u8,
-        RLC_Arg_0::Indirect_HL => cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),
-        RLC_Arg_0::A => cpu.registers.a = value as u8,
+        RLC_Arg_0::B => {cpu.registers.b = value as u8; value as u8 as u16}
+        RLC_Arg_0::C => {cpu.registers.c = value as u8; value as u8 as u16}
+        RLC_Arg_0::D => {cpu.registers.d = value as u8; value as u8 as u16}
+        RLC_Arg_0::E => {cpu.registers.e = value as u8; value as u8 as u16}
+        RLC_Arg_0::H => {cpu.registers.h = value as u8; value as u8 as u16}
+        RLC_Arg_0::L => {cpu.registers.l = value as u8; value as u8 as u16}
+        RLC_Arg_0::Indirect_HL => {cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}
+        RLC_Arg_0::A => {cpu.registers.a = value as u8; value as u8 as u16}
         }
     }
 }

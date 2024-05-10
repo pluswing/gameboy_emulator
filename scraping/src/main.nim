@@ -196,36 +196,36 @@ proc writeGetValueFunction(f: File, name: string, list: seq) =
 
 proc writeSetValueFunction(f: File, name: string, list: seq) =
   var codeTable = {
-    "B": "cpu.registers.b = value as u8,",
-    "BC": "cpu.registers.set_bc(value),",
-    "C": "cpu.registers.c = value as u8,",
-    "D": "cpu.registers.d = value as u8,",
-    "DE": "cpu.registers.set_de(value),",
-    "E": "cpu.registers.e = value as u8,",
-    "H": "cpu.registers.h = value as u8,",
-    "HL": "cpu.registers.set_hl(value),",
-    "L": "cpu.registers.l = value as u8,",
-    "Indirect_HL": "cpu.bus.write_byte(cpu.registers.get_hl(), value as u8),",
-    "SP": "cpu.sp = value,",
-    "A": "cpu.registers.a = value as u8,",
+    "B": "{cpu.registers.b = value as u8; value as u8 as u16}",
+    "BC": "{cpu.registers.set_bc(value); value}",
+    "C": "{cpu.registers.c = value as u8; value as u8 as u16}",
+    "D": "{cpu.registers.d = value as u8; value as u8 as u16}",
+    "DE": "{cpu.registers.set_de(value); value}",
+    "E": "{cpu.registers.e = value as u8; value as u8 as u16}",
+    "H": "{cpu.registers.h = value as u8; value as u8 as u16}",
+    "HL": "{cpu.registers.set_hl(value); value}",
+    "L": "{cpu.registers.l = value as u8; value as u8 as u16}",
+    "Indirect_HL": "{cpu.bus.write_byte(cpu.registers.get_hl(), value as u8); value as u8 as u16}",
+    "SP": "{cpu.sp = value; value}",
+    "A": "{cpu.registers.a = value as u8; value as u8 as u16}",
     "NONE": "panic!(\"can not call!\"),",
     "a16": "panic!(\"can not call!\"),",
     "d8": "panic!(\"can not call!\"),",
     "r8": "panic!(\"can not call!\"),",
-    "AF": "cpu.registers.set_af(value),",
-    "Indirect_BC": "cpu.bus.write_byte(cpu.registers.get_bc(), value as u8),",
-    "Indirect_a16_8": "cpu.bus.write_byte(cpu.read_next_word(), value as u8),",
-    "Indirect_a16": "cpu.bus.write_word(cpu.read_next_word(), value),",
-    "Indirect_DE": "cpu.bus.write_byte(cpu.registers.get_de(), value as u8),",
-    "Indirect_HLI": "{\ncpu.bus.write_byte(cpu.registers.get_hl(), value as u8);\ncpu.registers.set_hl(cpu.registers.get_hl().wrapping_add(1));\n}",
-    "Indirect_HLD": "{\ncpu.bus.write_byte(cpu.registers.get_hl(), value as u8);\ncpu.registers.set_hl(cpu.registers.get_hl().wrapping_sub(1));\n}",
-    "Indirect_C": "cpu.bus.write_byte(0xFF00 | cpu.registers.c as u16, value as u8),",
+    "AF": "{cpu.registers.set_af(value); value}",
+    "Indirect_BC": "{cpu.bus.write_byte(cpu.registers.get_bc(), value as u8); value as u8 as u16}",
+    "Indirect_a16_8": "{cpu.bus.write_byte(cpu.read_next_word(), value as u8); value as u8 as u16}",
+    "Indirect_a16": "{cpu.bus.write_word(cpu.read_next_word(), value); value}",
+    "Indirect_DE": "{cpu.bus.write_byte(cpu.registers.get_de(), value as u8); value as u8 as u16}",
+    "Indirect_HLI": "{\ncpu.bus.write_byte(cpu.registers.get_hl(), value as u8);\ncpu.registers.set_hl(cpu.registers.get_hl().wrapping_add(1));\nvalue as u8 as u16}",
+    "Indirect_HLD": "{\ncpu.bus.write_byte(cpu.registers.get_hl(),value as u8);\ncpu.registers.set_hl(cpu.registers.get_hl().wrapping_sub(1));\nvalue as u8 as u16}",
+    "Indirect_C": "{cpu.bus.write_byte(0xFF00 | cpu.registers.c as u16, value as u8); value as u8 as u16}",
     "d16": "panic!(\"can not call!\"),",
     "SP_r8": "panic!(\"can not call!\"),",
-    "Indirect_a8": "cpu.bus.write_byte(cpu.read_next_byte() as u16, value as u8),",
+    "Indirect_a8": "{cpu.bus.write_byte(cpu.read_next_byte() as u16, value as u8); value as u8 as u16}",
   }.toTable
 
-  f.writeLine("    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) {")
+  f.writeLine("    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {")
   f.writeLine("        match *self {")
   for v in list:
     let code = codeTable[v]
@@ -390,7 +390,7 @@ proc main() =
 
   # LD命令のテストコード出力
   for op in all_ops:
-    if op.name == "INC":
+    if op.name == "OR":
       echo "#[test]"
       let arg = op.args.join("_").toLowerAscii
       let arg2 = op.args.join(", ")
