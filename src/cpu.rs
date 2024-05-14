@@ -295,7 +295,11 @@ impl CPU {
         self.update_flags(self.registers.a as u16, flags);
     }
     fn swap(&mut self, arg0: instruction::SWAP_Arg_0, flags: instruction::Flags) {}
-    fn sub(&mut self, arg0: instruction::SUB_Arg_0, flags: instruction::Flags) {}
+    fn sub(&mut self, arg0: instruction::SUB_Arg_0, flags: instruction::Flags) {
+        let value = arg0.get_value(self) as u8;
+        self.registers.a = self.update_carry_u8_minus(self.registers.a, value);
+        self.update_flags(self.registers.a as u16, flags);
+    }
     fn reti(&mut self, flags: instruction::Flags) {}
     fn nop(&mut self, flags: instruction::Flags) {}
     fn cp(&mut self, arg0: instruction::CP_Arg_0, flags: instruction::Flags) {
@@ -348,7 +352,11 @@ impl CPU {
         self.update_flags(self.registers.a as u16, flags);
     }
     fn halt(&mut self, flags: instruction::Flags) {}
-    fn xor(&mut self, arg0: instruction::XOR_Arg_0, flags: instruction::Flags) {}
+    fn xor(&mut self, arg0: instruction::XOR_Arg_0, flags: instruction::Flags) {
+        let value = arg0.get_value(self) as u8;
+        self.registers.a = self.registers.a ^ value;
+        self.update_flags(self.registers.a as u16, flags);
+    }
     fn bit(
         &mut self,
         arg0: instruction::BIT_Arg_0,
@@ -2664,5 +2672,221 @@ mod test {
         assert_eq!(cpu.registers.a, 0x00);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(true, true, false, false));
+    }
+
+    #[test]
+    fn test_sub_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x90); // SUB B
+        cpu.registers.a = 0x03;
+        cpu.registers.b = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x02);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, true, false, false));
+    }
+
+    #[test]
+    fn test_sub_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x91); // SUB C
+        cpu.registers.a = 0x03;
+        cpu.registers.c = 0x03;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x00);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(true, true, false, false));
+    }
+
+    #[test]
+    fn test_sub_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x92); // SUB D
+        cpu.registers.a = 0x03;
+        cpu.registers.d = 0x04;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0xFF);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, true, true, true));
+    }
+
+    #[test]
+    fn test_sub_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x93); // SUB E
+        cpu.registers.a = 0x10;
+        cpu.registers.e = 0x20;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0xF0);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, true, false, true));
+    }
+
+    #[test]
+    fn test_sub_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x94); // SUB H
+        cpu.registers.a = 0x10;
+        cpu.registers.h = 0x10;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x00);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(true, true, false, false));
+    }
+
+    #[test]
+    fn test_sub_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x95); // SUB L
+        cpu.registers.a = 0x00;
+        cpu.registers.l = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x00);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(true, true, false, false));
+    }
+
+    #[test]
+    fn test_sub_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x96); // SUB Indirect_HL
+        cpu.registers.a = 0x10;
+        cpu.registers.set_hl(0x1234);
+        cpu.bus.write_byte(0x1234, 0x01);
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x0F);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, true, true, false));
+    }
+
+    #[test]
+    fn test_sub_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x97); // SUB A
+        cpu.registers.a = 0x06;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x00);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(true, true, false, false));
+    }
+
+    #[test]
+    fn test_sub_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xD6); // SUB d8
+        cpu.bus.write_byte(0x0001, 0x02); // args
+        cpu.registers.a = 0x04;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x02);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, true, false, false));
+    }
+
+    #[test]
+    fn test_xor_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xA8); // XOR B
+        cpu.registers.a = 0x0F;
+        cpu.registers.b = 0x05;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x0A);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_xor_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xA9); // XOR C
+        cpu.registers.a = 0x0F;
+        cpu.registers.c = 0x0F;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x00);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(true, false, false, false));
+    }
+
+    #[test]
+    fn test_xor_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xAA); // XOR D
+        cpu.registers.a = 0x05;
+        cpu.registers.d = 0x0F;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x0A);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_xor_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xAB); // XOR E
+        cpu.registers.a = 0x0E;
+        cpu.registers.e = 0x0F;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x01);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_xor_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xAC); // XOR H
+        cpu.registers.a = 0x08;
+        cpu.registers.h = 0x0F;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x07);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_xor_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xAD); // XOR L
+        cpu.registers.a = 0x0F;
+        cpu.registers.l = 0x08;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x07);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_xor_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xAE); // XOR Indirect_HL
+        cpu.registers.a = 0x0F;
+        cpu.registers.set_hl(0x1234);
+        cpu.bus.write_byte(0x1234, 0x0F);
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x00);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(true, false, false, false));
+    }
+
+    #[test]
+    fn test_xor_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xAF); // XOR A
+        cpu.registers.a = 0x05;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x00);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(true, false, false, false));
+    }
+
+    #[test]
+    fn test_xor_d8() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xEE); // XOR d8
+        cpu.bus.write_byte(0x0001, 0x07); // args
+        cpu.registers.a = 0x0F;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x08);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
 }

@@ -390,7 +390,7 @@ proc main() =
 
   # LD命令のテストコード出力
   for op in all_ops:
-    if op.name == "SBC":
+    if op.name == "XOR":
       echo "#[test]"
       let arg = op.args.join("_").toLowerAscii
       let arg2 = op.args.join(", ")
