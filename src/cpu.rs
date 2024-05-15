@@ -363,6 +363,19 @@ impl CPU {
         arg1: instruction::BIT_Arg_1,
         flags: instruction::Flags,
     ) {
+        let mask = match arg0 {
+            instruction::BIT_Arg_0::_0 => 1 << 0,
+            instruction::BIT_Arg_0::_1 => 1 << 1,
+            instruction::BIT_Arg_0::_2 => 1 << 2,
+            instruction::BIT_Arg_0::_3 => 1 << 3,
+            instruction::BIT_Arg_0::_4 => 1 << 4,
+            instruction::BIT_Arg_0::_5 => 1 << 5,
+            instruction::BIT_Arg_0::_6 => 1 << 6,
+            instruction::BIT_Arg_0::_7 => 1 << 7,
+        };
+        let value = arg1.get_value(self);
+        let masked = value & mask;
+        self.update_flags(masked, flags);
     }
     fn rra(&mut self, flags: instruction::Flags) {}
     fn rla(&mut self, flags: instruction::Flags) {}
@@ -470,7 +483,8 @@ impl CPU {
         let mut instruction_byte = self.bus.read_byte(self.pc);
         let prefixed = instruction_byte == 0xCB;
         if prefixed {
-            instruction_byte = self.bus.read_byte(self.pc + 1);
+            self.pc += 1;
+            instruction_byte = self.bus.read_byte(self.pc);
         }
         if let Some(instruction) = instruction::Instruction::from_byte(instruction_byte, prefixed) {
             self.execute(instruction)
@@ -482,9 +496,8 @@ impl CPU {
             );
             panic!("Unknown instruction found for: {}", description)
         };
-        self.pc = self
-            .pc
-            .wrapping_add(instruction::instruction_bytes(instruction_byte, prefixed))
+        let add = instruction::instruction_bytes(instruction_byte, prefixed);
+        self.pc = self.pc.wrapping_add(if prefixed { add - 1 } else { add })
     }
 
     pub fn read_next_byte(&self) -> u8 {
@@ -2889,4 +2902,181 @@ mod test {
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
+
+    #[test]
+    fn test_bit__0_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x46); // BIT _0, Indirect_HL
+        cpu.registers.set_hl(0x1234);
+        cpu.bus.write_byte(0x1234, 0x00);
+        cpu.step();
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(true, false, true, false));
+    }
+
+    // #[test]
+    // fn test_bit__0_a() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x47); // BIT _0, A
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__1_indirect_hl() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x4E); // BIT _1, Indirect_HL
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__1_a() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x4F); // BIT _1, A
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__2_indirect_hl() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x56); // BIT _2, Indirect_HL
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__2_a() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x57); // BIT _2, A
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__3_indirect_hl() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x5E); // BIT _3, Indirect_HL
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__3_a() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x5F); // BIT _3, A
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__4_indirect_hl() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x66); // BIT _4, Indirect_HL
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__4_a() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x67); // BIT _4, A
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__5_indirect_hl() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x6E); // BIT _5, Indirect_HL
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__5_a() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x6F); // BIT _5, A
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__6_indirect_hl() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x76); // BIT _6, Indirect_HL
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__6_a() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x77); // BIT _6, A
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__7_indirect_hl() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x7E); // BIT _7, Indirect_HL
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
+
+    // #[test]
+    // fn test_bit__7_a() {
+    //     let mut cpu = CPU::new();
+    //     cpu.bus.write_byte(0x0000, 0x7F); // BIT _7, A
+    //     cpu.bus.write_byte(0x0001, 0x00); // args
+    //     cpu.step();
+    //     // FIXME
+    //     assert_eq!(cpu.pc, 0x0002);
+    //     assert_eq!(cpu.registers.f, F(false, false, false, false));
+    // }
 }
