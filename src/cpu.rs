@@ -325,6 +325,20 @@ impl CPU {
         arg1: instruction::SET_Arg_1,
         flags: instruction::Flags,
     ) {
+        let mask = match arg0 {
+            instruction::SET_Arg_0::_0 => 1 << 0,
+            instruction::SET_Arg_0::_1 => 1 << 1,
+            instruction::SET_Arg_0::_2 => 1 << 2,
+            instruction::SET_Arg_0::_3 => 1 << 3,
+            instruction::SET_Arg_0::_4 => 1 << 4,
+            instruction::SET_Arg_0::_5 => 1 << 5,
+            instruction::SET_Arg_0::_6 => 1 << 6,
+            instruction::SET_Arg_0::_7 => 1 << 7,
+        };
+        let value = arg1.get_value(self);
+        let masked = value | mask;
+        arg1.set_value(self, masked);
+        self.update_flags(masked, flags);
     }
     fn di(&mut self, flags: instruction::Flags) {}
     fn rrc(&mut self, arg0: instruction::RRC_Arg_0, flags: instruction::Flags) {}
@@ -345,6 +359,20 @@ impl CPU {
         arg1: instruction::RES_Arg_1,
         flags: instruction::Flags,
     ) {
+        let mask = !match arg0 {
+            instruction::RES_Arg_0::_0 => 1 << 0,
+            instruction::RES_Arg_0::_1 => 1 << 1,
+            instruction::RES_Arg_0::_2 => 1 << 2,
+            instruction::RES_Arg_0::_3 => 1 << 3,
+            instruction::RES_Arg_0::_4 => 1 << 4,
+            instruction::RES_Arg_0::_5 => 1 << 5,
+            instruction::RES_Arg_0::_6 => 1 << 6,
+            instruction::RES_Arg_0::_7 => 1 << 7,
+        };
+        let value = arg1.get_value(self);
+        let masked = value & mask;
+        arg1.set_value(self, masked);
+        self.update_flags(masked, flags);
     }
     fn and(&mut self, arg0: instruction::AND_Arg_0, flags: instruction::Flags) {
         let source_value = arg0.get_value(self) as u8;
@@ -3085,5 +3113,197 @@ mod test {
         cpu.step();
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(true, false, true, false));
+    }
+
+    #[test]
+    fn test_res__0_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x80); // RES _0, B
+        cpu.registers.b = 0xFF;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0xFE);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_res__1_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x88); // RES _1, B
+        cpu.registers.b = 0xFF;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0xFD);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_res__2_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x90); // RES _2, B
+        cpu.registers.b = 0xFF;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0xFB);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_res__3_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x98); // RES _3, B
+        cpu.registers.b = 0xFF;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0xF7);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_res__4_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0xA0); // RES _4, B
+        cpu.registers.b = 0xFF;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0xEF);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_res__5_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0xA8); // RES _5, B
+        cpu.registers.b = 0xFF;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0xDF);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_res__6_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0xB0); // RES _6, B
+        cpu.registers.b = 0xFF;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0xBF);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_res__7_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0xB8); // RES _7, B
+        cpu.registers.b = 0xFF;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x7F);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_set__0_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0xC0); // SET _0, B
+        cpu.registers.b = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x01);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_set__1_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0xC8); // SET _1, B
+        cpu.registers.b = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x02);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_set__2_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0xD0); // SET _2, B
+        cpu.registers.b = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x04);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_set__3_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0xD8); // SET _3, B
+        cpu.registers.b = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x08);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_set__4_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0xE0); // SET _4, B
+        cpu.registers.b = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x10);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_set__5_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0xE8); // SET _5, B
+        cpu.registers.b = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x20);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_set__6_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0xF0); // SET _6, B
+        cpu.registers.b = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x40);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_set__7_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0xF8); // SET _7, B
+        cpu.registers.b = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x80);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
 }
