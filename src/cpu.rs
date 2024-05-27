@@ -294,7 +294,14 @@ impl CPU {
 
         self.update_flags(self.registers.a as u16, flags);
     }
-    fn swap(&mut self, arg0: instruction::SWAP_Arg_0, flags: instruction::Flags) {}
+    fn swap(&mut self, arg0: instruction::SWAP_Arg_0, flags: instruction::Flags) {
+        let value = arg0.get_value(self);
+        let upper = (value & 0xF0) >> 4;
+        let lower = value & 0x0F;
+        let value = lower << 4 | upper;
+        arg0.set_value(self, value);
+        self.update_flags(value, flags);
+    }
     fn sub(&mut self, arg0: instruction::SUB_Arg_0, flags: instruction::Flags) {
         let value = arg0.get_value(self) as u8;
         self.registers.a = self.update_carry_u8_minus(self.registers.a, value);
@@ -3303,6 +3310,103 @@ mod test {
         cpu.registers.b = 0x00;
         cpu.step();
         assert_eq!(cpu.registers.b, 0x80);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_swap_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x30); // SWAP B
+        cpu.registers.b = 0x1F;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0xF1);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_swap_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x31); // SWAP C
+        cpu.registers.c = 0x2F;
+        cpu.step();
+        assert_eq!(cpu.registers.c, 0xF2);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_swap_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x32); // SWAP D
+        cpu.registers.d = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.d, 0x00);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(true, false, false, false));
+    }
+
+    #[test]
+    fn test_swap_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x33); // SWAP E
+        cpu.registers.e = 0x87;
+        cpu.step();
+        assert_eq!(cpu.registers.e, 0x78);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_swap_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x34); // SWAP H
+        cpu.registers.h = 0x0F;
+        cpu.step();
+        assert_eq!(cpu.registers.h, 0xF0);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_swap_l() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x35); // SWAP L
+        cpu.registers.l = 0x12;
+        cpu.step();
+        assert_eq!(cpu.registers.l, 0x21);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_swap_indirect_hl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x36); // SWAP Indirect_HL
+        cpu.registers.set_hl(0x1234);
+        cpu.bus.write_byte(0x1234, 0x0F);
+        cpu.step();
+        assert_eq!(cpu.bus.read_byte(0x1234), 0xF0);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_swap_a() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x37); // SWAP A
+        cpu.registers.a = 0x58;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x85);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
