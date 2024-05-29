@@ -316,8 +316,22 @@ impl CPU {
         self.registers.f.carry = source_value > self.registers.a;
         self.update_flags(sub as u16, flags)
     }
-    fn rrca(&mut self, flags: instruction::Flags) {}
-    fn sla(&mut self, arg0: instruction::SLA_Arg_0, flags: instruction::Flags) {}
+    fn rrca(&mut self, flags: instruction::Flags) {
+        let value = self.registers.a;
+        let carry = (value & 0x01) != 0;
+        let value = (value >> 1 | if carry { 0x80 } else { 0x00 }) as u16;
+        self.registers.a = value as u8;
+        self.update_flags(value, flags);
+        self.registers.f.carry = carry;
+    }
+    fn sla(&mut self, arg0: instruction::SLA_Arg_0, flags: instruction::Flags) {
+        let value = arg0.get_value(self) as u8;
+        let carry = (value & 0x80) != 0;
+        let value = (value << 1) as u16;
+        arg0.set_value(self, value);
+        self.update_flags(value, flags);
+        self.registers.f.carry = carry;
+    }
     fn jr(
         &mut self,
         arg0: instruction::JR_Arg_0,
@@ -348,7 +362,14 @@ impl CPU {
         self.update_flags(masked, flags);
     }
     fn di(&mut self, flags: instruction::Flags) {}
-    fn rrc(&mut self, arg0: instruction::RRC_Arg_0, flags: instruction::Flags) {}
+    fn rrc(&mut self, arg0: instruction::RRC_Arg_0, flags: instruction::Flags) {
+        let value = arg0.get_value(self) as u8;
+        let carry = (value & 0x01) != 0;
+        let value = (value >> 1 | if carry { 0x80 } else { 0x00 }) as u16;
+        arg0.set_value(self, value);
+        self.update_flags(value, flags);
+        self.registers.f.carry = carry;
+    }
     fn scf(&mut self, flags: instruction::Flags) {}
     fn inc(&mut self, arg0: instruction::INC_Arg_0, flags: instruction::Flags) {
         let value = arg0.get_value(self);
@@ -446,7 +467,14 @@ impl CPU {
         self.update_flags(value, flags);
         self.registers.f.carry = carry;
     }
-    fn srl(&mut self, arg0: instruction::SRL_Arg_0, flags: instruction::Flags) {}
+    fn srl(&mut self, arg0: instruction::SRL_Arg_0, flags: instruction::Flags) {
+        let value = arg0.get_value(self) as u8;
+        let carry = (value & 0x01) != 0;
+        let value = (value >> 1) as u16;
+        arg0.set_value(self, value);
+        self.update_flags(value, flags);
+        self.registers.f.carry = carry;
+    }
     fn cpl(&mut self, flags: instruction::Flags) {}
     fn ldh(
         &mut self,
@@ -455,7 +483,15 @@ impl CPU {
         flags: instruction::Flags,
     ) {
     }
-    fn sra(&mut self, arg0: instruction::SRA_Arg_0, flags: instruction::Flags) {}
+    fn sra(&mut self, arg0: instruction::SRA_Arg_0, flags: instruction::Flags) {
+        let value = arg0.get_value(self) as u8;
+        let carry = (value & 0x01) != 0;
+        let u = value & 0x80;
+        let value = (value >> 1 | u) as u16;
+        arg0.set_value(self, value);
+        self.update_flags(value, flags);
+        self.registers.f.carry = carry;
+    }
     fn rlca(&mut self, flags: instruction::Flags) {
         let value = self.registers.a;
         let carry = (value & 0x80) != 0;
@@ -3780,6 +3816,185 @@ mod test {
         cpu.step();
         assert_eq!(cpu.registers.a, 0xC0);
         assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_rrc_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x08); // RRC B
+        cpu.registers.b = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x80);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, true));
+    }
+
+    #[test]
+    fn test_rrc_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x09); // RRC C
+        cpu.registers.c = 0x02;
+        cpu.step();
+        assert_eq!(cpu.registers.c, 0x01);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_rrc_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x0A); // RRC D
+        cpu.registers.d = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.d, 0x00);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(true, false, false, false));
+    }
+
+    #[test]
+    fn test_rrca() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x0F); // RRCA
+        cpu.registers.a = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0x80);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, true));
+    }
+
+    #[test]
+    fn test_sla_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x20); // SLA B
+        cpu.registers.b = 0x80;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x00);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(true, false, false, true));
+    }
+
+    #[test]
+    fn test_sla_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x21); // SLA C
+        cpu.registers.c = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.c, 0x00);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(true, false, false, false));
+    }
+
+    #[test]
+    fn test_sla_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x22); // SLA D
+        cpu.registers.d = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.d, 0x02);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_srl_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x38); // SRL B
+        cpu.registers.b = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0x00);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(true, false, false, true));
+    }
+
+    #[test]
+    fn test_srl_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x39); // SRL C
+        cpu.registers.c = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.c, 0x00);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(true, false, false, false));
+    }
+
+    #[test]
+    fn test_srl_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x3A); // SRL D
+        cpu.registers.d = 0x04;
+        cpu.step();
+        assert_eq!(cpu.registers.d, 0x02);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_sra_b() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x28); // SRA B
+        cpu.registers.b = 0x80;
+        cpu.step();
+        assert_eq!(cpu.registers.b, 0xC0);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_sra_c() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x29); // SRA C
+        cpu.registers.c = 0x40;
+        cpu.step();
+        assert_eq!(cpu.registers.c, 0x20);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_sra_d() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x2A); // SRA D
+        cpu.registers.d = 0x00;
+        cpu.step();
+        assert_eq!(cpu.registers.d, 0x00);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(true, false, false, false));
+    }
+
+    #[test]
+    fn test_sra_e() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x2B); // SRA E
+        cpu.registers.e = 0x01;
+        cpu.step();
+        assert_eq!(cpu.registers.e, 0x00);
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(true, false, false, true));
+    }
+
+    #[test]
+    fn test_sra_h() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0xCB);
+        cpu.bus.write_byte(0x0001, 0x2C); // SRA H
+        cpu.registers.h = 0x82;
+        cpu.step();
+        assert_eq!(cpu.registers.h, 0xC1);
+        assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
 }
