@@ -308,7 +308,9 @@ impl CPU {
         self.update_flags(self.registers.a as u16, flags);
     }
     fn reti(&mut self, flags: instruction::Flags) {}
-    fn nop(&mut self, flags: instruction::Flags) {}
+    fn nop(&mut self, flags: instruction::Flags) {
+        // なにもしない
+    }
     fn cp(&mut self, arg0: instruction::CP_Arg_0, flags: instruction::Flags) {
         let source_value = arg0.get_value(self) as u8;
         let sub = self.registers.a.wrapping_sub(source_value);
@@ -370,7 +372,10 @@ impl CPU {
         self.update_flags(value, flags);
         self.registers.f.carry = carry;
     }
-    fn scf(&mut self, flags: instruction::Flags) {}
+    fn scf(&mut self, flags: instruction::Flags) {
+        self.registers.f.carry = true;
+        self.update_flags(0, flags);
+    }
     fn inc(&mut self, arg0: instruction::INC_Arg_0, flags: instruction::Flags) {
         let value = arg0.get_value(self);
         let add = value.wrapping_add(1);
@@ -450,7 +455,10 @@ impl CPU {
         self.registers.f.carry = carry;
     }
     fn stop(&mut self, arg0: instruction::STOP_Arg_0, flags: instruction::Flags) {}
-    fn ccf(&mut self, flags: instruction::Flags) {}
+    fn ccf(&mut self, flags: instruction::Flags) {
+        self.registers.f.carry = !self.registers.f.carry;
+        self.update_flags(0, flags);
+    }
     fn rl(&mut self, arg0: instruction::RL_Arg_0, flags: instruction::Flags) {
         let value = arg0.get_value(self) as u8;
         let carry = (value & 0x80) != 0;
@@ -475,7 +483,10 @@ impl CPU {
         self.update_flags(value, flags);
         self.registers.f.carry = carry;
     }
-    fn cpl(&mut self, flags: instruction::Flags) {}
+    fn cpl(&mut self, flags: instruction::Flags) {
+        self.registers.a = !self.registers.a;
+        self.update_flags(self.registers.a as u16, flags);
+    }
     fn ldh(
         &mut self,
         arg0: instruction::LDH_Arg_0,
@@ -3996,5 +4007,45 @@ mod test {
         assert_eq!(cpu.registers.h, 0xC1);
         assert_eq!(cpu.pc, 0x0002);
         assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ccf_1() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x3F); // CCF
+        cpu.registers.f.carry = true;
+        cpu.step();
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ccf_0() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x3F); // CCF
+        cpu.registers.f.carry = false;
+        cpu.step();
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, true));
+    }
+
+    #[test]
+    fn test_cpl() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x2F); // CPL
+        cpu.registers.a = 0x53;
+        cpu.step();
+        assert_eq!(cpu.registers.a, 0xAC);
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, true, true, false));
+    }
+
+    #[test]
+    fn test_scf() {
+        let mut cpu = CPU::new();
+        cpu.bus.write_byte(0x0000, 0x37); // SCF
+        cpu.step();
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, true));
     }
 }

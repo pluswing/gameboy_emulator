@@ -390,7 +390,7 @@ proc main() =
 
   # LD命令のテストコード出力
   for op in all_ops:
-    if op.name == "SRA":
+    if op.name == "SCF":
       let prefixed = op in prefixed_ops
       echo "#[test]"
       let arg = op.args.join("_").toLowerAscii
