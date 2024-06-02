@@ -114,6 +114,7 @@ pub struct CPU {
     pub pc: u16,
     pub sp: u16,
     pub bus: MemoryBus,
+    pub is_halted: bool,
 }
 
 impl CPU {
@@ -123,10 +124,14 @@ impl CPU {
             pc: 0x0000,
             sp: 0x0000, // FIXME たぶん0xFFFF
             bus: MemoryBus::new(),
+            is_halted: false,
         }
     }
 
     fn execute(&mut self, instruction: instruction::Instruction) {
+        if self.is_halted {
+            return;
+        }
         match instruction {
             instruction::Instruction::DEC(arg0, flags) => self.dec(arg0, flags),
             instruction::Instruction::JP(arg0, arg1, flags) => self.jp(arg0, arg1, flags),
@@ -272,7 +277,9 @@ impl CPU {
         }
         self.update_flags(sub, flags);
     }
-    fn daa(&mut self, flags: instruction::Flags) {}
+    fn daa(&mut self, flags: instruction::Flags) {
+        panic!("call DAA");
+    }
     fn sbc(
         &mut self,
         arg0: instruction::SBC_Arg_0,
@@ -307,7 +314,9 @@ impl CPU {
         self.registers.a = self.update_carry_u8_minus(self.registers.a, value);
         self.update_flags(self.registers.a as u16, flags);
     }
-    fn reti(&mut self, flags: instruction::Flags) {}
+    fn reti(&mut self, flags: instruction::Flags) {
+        panic!("call RETI");
+    }
     fn nop(&mut self, flags: instruction::Flags) {
         // なにもしない
     }
@@ -341,7 +350,9 @@ impl CPU {
         flags: instruction::Flags,
     ) {
     }
-    fn prefix(&mut self, arg0: instruction::PREFIX_Arg_0, flags: instruction::Flags) {}
+    fn prefix(&mut self, arg0: instruction::PREFIX_Arg_0, flags: instruction::Flags) {
+        panic!("call CB !!");
+    }
     fn set(
         &mut self,
         arg0: instruction::SET_Arg_0,
@@ -363,7 +374,9 @@ impl CPU {
         arg1.set_value(self, masked);
         self.update_flags(masked, flags);
     }
-    fn di(&mut self, flags: instruction::Flags) {}
+    fn di(&mut self, flags: instruction::Flags) {
+        panic!("call DI");
+    }
     fn rrc(&mut self, arg0: instruction::RRC_Arg_0, flags: instruction::Flags) {
         let value = arg0.get_value(self) as u8;
         let carry = (value & 0x01) != 0;
@@ -385,7 +398,9 @@ impl CPU {
         }
         self.update_flags(add, flags);
     }
-    fn rst(&mut self, arg0: instruction::RST_Arg_0, flags: instruction::Flags) {}
+    fn rst(&mut self, arg0: instruction::RST_Arg_0, flags: instruction::Flags) {
+        panic!("call RST");
+    }
     fn res(
         &mut self,
         arg0: instruction::RES_Arg_0,
@@ -412,7 +427,9 @@ impl CPU {
         self.registers.a = self.registers.a & source_value;
         self.update_flags(self.registers.a as u16, flags);
     }
-    fn halt(&mut self, flags: instruction::Flags) {}
+    fn halt(&mut self, flags: instruction::Flags) {
+        self.is_halted = true
+    }
     fn xor(&mut self, arg0: instruction::XOR_Arg_0, flags: instruction::Flags) {
         let value = arg0.get_value(self) as u8;
         self.registers.a = self.registers.a ^ value;
@@ -454,7 +471,9 @@ impl CPU {
         self.update_flags(value as u16, flags);
         self.registers.f.carry = carry;
     }
-    fn stop(&mut self, arg0: instruction::STOP_Arg_0, flags: instruction::Flags) {}
+    fn stop(&mut self, arg0: instruction::STOP_Arg_0, flags: instruction::Flags) {
+        panic!("call STOP");
+    }
     fn ccf(&mut self, flags: instruction::Flags) {
         self.registers.f.carry = !self.registers.f.carry;
         self.update_flags(0, flags);
@@ -535,7 +554,9 @@ impl CPU {
 
         self.update_flags(self.registers.a as u16, flags);
     }
-    fn ei(&mut self, flags: instruction::Flags) {}
+    fn ei(&mut self, flags: instruction::Flags) {
+        panic!("call EI");
+    }
 
     fn or(&mut self, arg0: instruction::OR_Arg_0, flags: instruction::Flags) {
         let value = arg0.get_value(self) as u8;
