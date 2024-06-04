@@ -682,10 +682,20 @@ impl MemoryBus {
         }
     }
     pub fn read_byte(&self, address: u16) -> u8 {
-        self.memory[address as usize]
+        let address = address as usize;
+        match address {
+            VRAM_BEGIN..=VRAM_END => self.gpu.read_vram(address - VRAM_BEGIN),
+            _ => panic!("TODO: support other areas of memory"),
+        }
+        // self.memory[address]
     }
     pub fn write_byte(&mut self, address: u16, value: u8) {
-        self.memory[address as usize] = value;
+        let address = address as usize;
+        match address {
+            VRAM_BEGIN..=VRAM_END => self.gpu.write_vram(address - VRAM_BEGIN, value),
+            _ => panic!("TODO: support other areas of memory"),
+        }
+        // self.memory[address] = value;
     }
     pub fn write_word(&mut self, address: u16, value: u16) {
         self.write_byte(address, (value & 0xFF) as u8);
@@ -694,6 +704,28 @@ impl MemoryBus {
     pub fn read_word(&self, address: u16) -> u16 {
         return self.read_byte(address) as u16 | (self.read_byte(address + 1) as u16) << 8;
     }
+}
+
+const VRAM_BEGIN: usize = 0x8000;
+const VRAM_END: usize = 0x9FFF;
+const VRAM_SIZE: usize = VRAM_END - VRAM_BEGIN + 1;
+
+#[derive(Copy, Clone, Debug)]
+enum TilePixelValue {
+    Zero,
+    One,
+    Two,
+    Three,
+}
+
+type Tile = [[TilePixelValue; 8]; 8];
+fn empty_tile() -> Tile {
+    [[TilePixelValue::Zero; 8]; 8]
+}
+
+struct GPU {
+    vram: [u8; VRAM_SIZE],
+    tile_set: [Tile; 384],
 }
 
 #[cfg(test)]
