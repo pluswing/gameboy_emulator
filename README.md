@@ -2,6 +2,7 @@
 
 ## 全般
 ブートする方法（までの手順）
+ => https://github.com/akatsuki105/gb-docs-ja/blob/main/powerup.md
 バンク切り替え
 I/Oレジスタの中身 (0xFF00 ~ 0xFF7F, 0xFFFF)
   - https://gbdev.io/pandocs/Hardware_Reg_List.html
