@@ -642,7 +642,9 @@ impl CPU {
         };
         self.pc = self
             .pc
-            .wrapping_add(instruction::instruction_bytes(instruction_byte, prefixed))
+            .wrapping_add(instruction::instruction_bytes(instruction_byte, prefixed));
+
+        let cycle = instruction::instruction_cycles(instruction_byte, prefixed);
     }
 
     pub fn read_next_byte(&self) -> u8 {

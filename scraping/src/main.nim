@@ -334,6 +334,28 @@ proc writeByteTable(f: File, np_prefixed: OpsCodeList, prefixed: OpsCodeList, fu
   f.writeLine "    }"
   f.writeLine "}\n"
 
+
+proc writeCycleTable(f: File, np_prefixed: OpsCodeList, prefixed: OpsCodeList, func_name: string) =
+  f.writeLine fmt"pub fn {func_name}(byte: u8, prefiexed: bool) -> u16 " & "{"
+  f.writeLine "    match prefiexed {"
+  f.writeLine "        false => {"
+  f.writeLine "            match byte {"
+  for op in np_prefixed:
+    f.writeLine(fmt"                {op.code} => {op.cycles[0]},")
+  f.writeLine(fmt"                _ => 0,")
+  f.writeLine "            }"
+  f.writeLine "        },"
+  f.writeLine "        true => {"
+  f.writeLine "            match byte {"
+  for op in prefixed:
+    f.writeLine(fmt"                {op.code} => {op.cycles[0]},")
+  f.writeLine(fmt"                _ => 0,")
+  f.writeLine "            }"
+  f.writeLine "        }"
+  f.writeLine "    }"
+  f.writeLine "}\n"
+
+
 proc main() =
   let client = newHttpClient()
   let response = client.get(url)
@@ -387,6 +409,7 @@ proc main() =
   writeFromByteFunction(f, prefixed_ops, args, "from_byte_prefixed")
 
   writeByteTable(f, no_prefixed_ops, prefixed_ops, "instruction_bytes")
+  writeCycleTable(f, no_prefixed_ops, prefixed_ops, "instruction_cycles")
 
   # LD命令のテストコード出力
   for op in all_ops:
