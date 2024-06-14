@@ -644,7 +644,11 @@ impl CPU {
             .pc
             .wrapping_add(instruction::instruction_bytes(instruction_byte, prefixed));
 
-        let cycle = instruction::instruction_cycles(instruction_byte, prefixed);
+        let cycles = instruction::instruction_cycles(instruction_byte, prefixed);
+
+        // self.updateTimers(cyles);
+        self.bus.gpu.update(cycles);
+        // self.doInterrupts();
     }
 
     pub fn read_next_byte(&self) -> u8 {
@@ -730,13 +734,17 @@ fn empty_tile() -> Tile {
 struct GPU {
     vram: [u8; VRAM_SIZE],
     tile_set: [Tile; 384],
+    scanline_counter: u16,
+    frame: [u8; 160 * 3 * 144],
 }
 
 impl GPU {
     pub fn new() -> Self {
         GPU {
             vram: [0; VRAM_SIZE],
-            tile_set: [empty_tile(); 384], // TODO これでいい？
+            tile_set: [empty_tile(); 384],
+            scanline_counter: 0,
+            frame: [0 as u8; 160 * 3 * 144],
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
@@ -767,6 +775,32 @@ impl GPU {
             };
             self.tile_set[tile_index][row_index][pixel_index] = value;
         }
+    }
+
+    pub fn update(&mut self, bus: &mut MemoryBus, cycles: u16) {
+        self.scanline_counter += cycles;
+
+        if self.scanline_counter >= 456 {
+            // 1ライン描画した
+            self.scanline_counter -= 456;
+            // TODO メモリに書き込む必要あり。
+            // m_Rom[0xFF44]++;
+            let currentline = 0; // ReadMemory(0xFF44)
+            if currentline == 144 {
+                // VBLANKに突入。
+                //   VBRANK割り込み発生させる
+            } else if currentline > 153 {
+                // 1フレーム描画完了
+                // m_Rom[0xFF44] = 0;
+            } else if currentline < 144 {
+                self.draw_scan_line(currentline);
+            }
+        }
+    }
+
+    fn draw_scan_line(&mut self, line: u16) {
+        // 1ラインを描画する。
+        // self.frame
     }
 }
 
