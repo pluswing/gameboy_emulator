@@ -8,12 +8,6 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::EventPump;
 
 fn main() {
-    // let mut cpu = CPU::new();
-    // let mut memory_bus = MemoryBus::new();
-    // let mut gpu = GPU::new();
-    // memory_bus.bind_cpu(&cpu);
-    // memory_bus.bind_gpu(&gpu);
-
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let scale = 3;

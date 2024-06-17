@@ -693,6 +693,7 @@ impl MemoryBus {
         let address = address as usize;
         match address {
             VRAM_BEGIN..=VRAM_END => self.gpu.read_vram(address - VRAM_BEGIN),
+            0xFF44 => self.gpu.ly,
             _ => panic!("TODO: support other areas of memory"),
         }
         // self.memory[address]
@@ -701,6 +702,7 @@ impl MemoryBus {
         let address = address as usize;
         match address {
             VRAM_BEGIN..=VRAM_END => self.gpu.write_vram(address - VRAM_BEGIN, value),
+            0xFF44 => self.gpu.ly = value,
             _ => panic!("TODO: support other areas of memory"),
         }
         // self.memory[address] = value;
@@ -731,8 +733,34 @@ fn empty_tile() -> Tile {
     [[TilePixelValue::Zero; 8]; 8]
 }
 
+// 0xFF40
+struct LcdControlRegisters {
+    enabled: bool,           // LCD & PPU enable
+    window_tile_map: bool,   // Window tile map
+    window_enabled: bool,    // Window enable
+    tiles: bool,             // BG & Window tiles
+    bg_tile_map: bool,       // BG tile map
+    obj_size: bool,          // OBJ size
+    obj_enabled: bool,       // OBJ enable
+    bg_window_enabled: bool, // BG & Window enable / priority
+}
+
+// 0xFF41
+struct LcdStatusRegisters {
+    lyc_int_select: bool,   // LYC int select
+    mode2_int_select: bool, // Mode 2 int select
+    mode1_int_select: bool, // Mode 1 int select
+    mode0_int_select: bool, // Mode 0 int select
+    lyc_eq_ly: bool,        // LYC == LY
+    ppu_mode: u8,           // (2bit) PPU mode
+}
+
 struct GPU {
     vram: [u8; VRAM_SIZE],
+    ly: u8,  // 0xFF44
+    lyc: u8, // 0xFF45 (LY compare)
+    control: LcdControlRegisters,
+    status: LcdStatusRegisters,
     tile_set: [Tile; 384],
     scanline_counter: u16,
     frame: [u8; 160 * 3 * 144],
@@ -742,6 +770,10 @@ impl GPU {
     pub fn new() -> Self {
         GPU {
             vram: [0; VRAM_SIZE],
+            ly: 0,
+            lyc: 0,
+            // control: { ... },
+            // status: {... },
             tile_set: [empty_tile(); 384],
             scanline_counter: 0,
             frame: [0 as u8; 160 * 3 * 144],
@@ -777,28 +809,32 @@ impl GPU {
         }
     }
 
-    pub fn update(&mut self, bus: &mut MemoryBus, cycles: u16) {
+    pub fn update(&mut self, cycles: u16) {
+        // SetLCDStatus( ) ;
+
+        // if (!IsLCDEnabled()) {
+        //   return
+        //  }
         self.scanline_counter += cycles;
 
         if self.scanline_counter >= 456 {
             // 1ライン描画した
             self.scanline_counter -= 456;
-            // TODO メモリに書き込む必要あり。
-            // m_Rom[0xFF44]++;
-            let currentline = 0; // ReadMemory(0xFF44)
+            self.ly += 1;
+            let currentline = self.ly;
             if currentline == 144 {
                 // VBLANKに突入。
                 //   VBRANK割り込み発生させる
             } else if currentline > 153 {
                 // 1フレーム描画完了
-                // m_Rom[0xFF44] = 0;
+                self.ly = 0;
             } else if currentline < 144 {
                 self.draw_scan_line(currentline);
             }
         }
     }
 
-    fn draw_scan_line(&mut self, line: u16) {
+    fn draw_scan_line(&mut self, line: u8) {
         // 1ラインを描画する。
         // self.frame
     }
