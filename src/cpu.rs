@@ -694,6 +694,9 @@ impl MemoryBus {
         match address {
             VRAM_BEGIN..=VRAM_END => self.gpu.read_vram(address - VRAM_BEGIN),
             0xFF44 => self.gpu.ly,
+            0xFF45 => self.gpu.lyc,
+            0xFF40 => u8::from(self.gpu.control),
+            0xFF41 => u8::from(self.gpu.status),
             _ => panic!("TODO: support other areas of memory"),
         }
         // self.memory[address]
@@ -702,7 +705,12 @@ impl MemoryBus {
         let address = address as usize;
         match address {
             VRAM_BEGIN..=VRAM_END => self.gpu.write_vram(address - VRAM_BEGIN, value),
-            0xFF44 => self.gpu.ly = value,
+            0xFF44 => {
+                panic!("LY is read only!")
+            }
+            0xFF45 => self.gpu.lyc = value,
+            0xFF40 => self.gpu.control = LcdControlRegisters::from(value),
+            0xFF41 => self.gpu.status = LcdStatusRegisters::from(value),
             _ => panic!("TODO: support other areas of memory"),
         }
         // self.memory[address] = value;
@@ -734,6 +742,7 @@ fn empty_tile() -> Tile {
 }
 
 // 0xFF40
+#[derive(Debug, PartialEq, Clone, Copy)]
 struct LcdControlRegisters {
     enabled: bool,           // LCD & PPU enable
     window_tile_map: bool,   // Window tile map
@@ -745,7 +754,59 @@ struct LcdControlRegisters {
     bg_window_enabled: bool, // BG & Window enable / priority
 }
 
+impl LcdControlRegisters {
+    pub fn new() -> Self {
+        LcdControlRegisters {
+            enabled: false,
+            window_tile_map: false,
+            window_enabled: false,
+            tiles: false,
+            bg_tile_map: false,
+            obj_size: false,
+            obj_enabled: false,
+            bg_window_enabled: false,
+        }
+    }
+}
+
+impl std::convert::From<LcdControlRegisters> for u8 {
+    fn from(r: LcdControlRegisters) -> u8 {
+        (if r.enabled { 1 } else { 0 }) << 7
+            | (if r.window_tile_map { 1 } else { 0 }) << 6
+            | (if r.window_enabled { 1 } else { 0 }) << 5
+            | (if r.tiles { 1 } else { 0 }) << 4
+            | (if r.bg_tile_map { 1 } else { 0 }) << 3
+            | (if r.obj_size { 1 } else { 0 }) << 2
+            | (if r.obj_enabled { 1 } else { 0 }) << 1
+            | (if r.bg_window_enabled { 1 } else { 0 }) << 0
+    }
+}
+
+impl std::convert::From<u8> for LcdControlRegisters {
+    fn from(byte: u8) -> Self {
+        let enabled = ((byte >> 7) & 0x01) != 0;
+        let window_tile_map = ((byte >> 6) & 0x01) != 0;
+        let window_enabled = ((byte >> 5) & 0x01) != 0;
+        let tiles = ((byte >> 4) & 0x01) != 0;
+        let bg_tile_map = ((byte >> 3) & 0x01) != 0;
+        let obj_size = ((byte >> 2) & 0x01) != 0;
+        let obj_enabled = ((byte >> 1) & 0x01) != 0;
+        let bg_window_enabled = ((byte >> 0) & 0x01) != 0;
+        LcdControlRegisters {
+            enabled,
+            window_tile_map,
+            window_enabled,
+            tiles,
+            bg_tile_map,
+            obj_size,
+            obj_enabled,
+            bg_window_enabled,
+        }
+    }
+}
+
 // 0xFF41
+#[derive(Debug, PartialEq, Clone, Copy)]
 struct LcdStatusRegisters {
     lyc_int_select: bool,   // LYC int select
     mode2_int_select: bool, // Mode 2 int select
@@ -753,6 +814,49 @@ struct LcdStatusRegisters {
     mode0_int_select: bool, // Mode 0 int select
     lyc_eq_ly: bool,        // LYC == LY
     ppu_mode: u8,           // (2bit) PPU mode
+}
+
+impl LcdStatusRegisters {
+    pub fn new() -> Self {
+        LcdStatusRegisters {
+            lyc_int_select: false,
+            mode2_int_select: false,
+            mode1_int_select: false,
+            mode0_int_select: false,
+            lyc_eq_ly: false,
+            ppu_mode: 0,
+        }
+    }
+}
+
+impl std::convert::From<LcdStatusRegisters> for u8 {
+    fn from(r: LcdStatusRegisters) -> u8 {
+        (if r.lyc_int_select { 1 } else { 0 }) << 6
+            | (if r.mode2_int_select { 1 } else { 0 }) << 5
+            | (if r.mode1_int_select { 1 } else { 0 }) << 4
+            | (if r.mode0_int_select { 1 } else { 0 }) << 3
+            | (if r.lyc_eq_ly { 1 } else { 0 }) << 2
+            | (r.ppu_mode & 0x03)
+    }
+}
+
+impl std::convert::From<u8> for LcdStatusRegisters {
+    fn from(byte: u8) -> Self {
+        let lyc_int_select = ((byte >> 6) & 0x01) != 0;
+        let mode2_int_select = ((byte >> 5) & 0x01) != 0;
+        let mode1_int_select = ((byte >> 4) & 0x01) != 0;
+        let mode0_int_select = ((byte >> 3) & 0x01) != 0;
+        let lyc_eq_ly = ((byte >> 2) & 0x01) != 0;
+        let ppu_mode = byte & 0x03;
+        LcdStatusRegisters {
+            lyc_int_select,
+            mode2_int_select,
+            mode1_int_select,
+            mode0_int_select,
+            lyc_eq_ly,
+            ppu_mode,
+        }
+    }
 }
 
 struct GPU {
@@ -772,8 +876,8 @@ impl GPU {
             vram: [0; VRAM_SIZE],
             ly: 0,
             lyc: 0,
-            // control: { ... },
-            // status: {... },
+            control: LcdControlRegisters::new(),
+            status: LcdStatusRegisters::new(),
             tile_set: [empty_tile(); 384],
             scanline_counter: 0,
             frame: [0 as u8; 160 * 3 * 144],
@@ -825,6 +929,7 @@ impl GPU {
             if currentline == 144 {
                 // VBLANKに突入。
                 //   VBRANK割り込み発生させる
+                self.draw_all(); // for test
             } else if currentline > 153 {
                 // 1フレーム描画完了
                 self.ly = 0;
@@ -837,6 +942,10 @@ impl GPU {
     fn draw_scan_line(&mut self, line: u8) {
         // 1ラインを描画する。
         // self.frame
+    }
+
+    fn draw_all(&mut self) {
+        // self.frame を全書き換えする
     }
 }
 
