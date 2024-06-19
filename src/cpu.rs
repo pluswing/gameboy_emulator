@@ -741,6 +741,15 @@ fn empty_tile() -> Tile {
     [[TilePixelValue::Zero; 8]; 8]
 }
 
+fn tilePixelValueToColor(value: TilePixelValue) -> sdl2::pixels::Color {
+    match value {
+        TilePixelValue::Zero => sdl2::pixels::Color::RGB(0, 0, 0),
+        TilePixelValue::One => sdl2::pixels::Color::RGB(85, 85, 85),
+        TilePixelValue::Two => sdl2::pixels::Color::RGB(170, 170, 170),
+        TilePixelValue::Three => sdl2::pixels::Color::RGB(255, 255, 255),
+    }
+}
+
 // 0xFF40
 #[derive(Debug, PartialEq, Clone, Copy)]
 struct LcdControlRegisters {
@@ -946,6 +955,30 @@ impl GPU {
 
     fn draw_all(&mut self) {
         // self.frame を全書き換えする
+
+        // $9800-$9BFF のデータを見て、どのタイルがどこに配置されるかを計算する
+        for addr in 0x9800..=0x9BFF {
+            let index = addr as usize - VRAM_BEGIN;
+            let tile = self.tile_set[index];
+            let sx = index % 32;
+            let sy = index / 32;
+            if sx >= 160 || sy >= 144 {
+                // FIXME
+                continue;
+            }
+            for tx in 0..8 {
+                for ty in 0..8 {
+                    let value = tile[tx][ty];
+                    let color = tilePixelValueToColor(value);
+                    let x = sx + tx;
+                    let y = sy + ty;
+                    let o = (y * 160 + x) as usize;
+                    self.frame[o] = color.rgb().0;
+                    self.frame[o + 1] = color.rgb().1;
+                    self.frame[o + 2] = color.rgb().2;
+                }
+            }
+        }
     }
 }
 
