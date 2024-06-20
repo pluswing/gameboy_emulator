@@ -741,12 +741,13 @@ fn empty_tile() -> Tile {
     [[TilePixelValue::Zero; 8]; 8]
 }
 
-fn tilePixelValueToColor(value: TilePixelValue) -> sdl2::pixels::Color {
+fn tilePixelValueToColor(value: TilePixelValue) -> [u8; 3] {
+    // TODO 0xFF47を見る必要あり。
     match value {
-        TilePixelValue::Zero => sdl2::pixels::Color::RGB(0, 0, 0),
-        TilePixelValue::One => sdl2::pixels::Color::RGB(85, 85, 85),
-        TilePixelValue::Two => sdl2::pixels::Color::RGB(170, 170, 170),
-        TilePixelValue::Three => sdl2::pixels::Color::RGB(255, 255, 255),
+        TilePixelValue::Zero => [0, 0, 0],
+        TilePixelValue::One => [85, 85, 85],
+        TilePixelValue::Two => [170, 170, 170],
+        TilePixelValue::Three => [255, 255, 255],
     }
 }
 
@@ -874,6 +875,7 @@ struct GPU {
     lyc: u8, // 0xFF45 (LY compare)
     control: LcdControlRegisters,
     status: LcdStatusRegisters,
+    // TODO 0xFF47が必要。palette
     tile_set: [Tile; 384],
     scanline_counter: u16,
     frame: [u8; 160 * 3 * 144],
@@ -955,27 +957,26 @@ impl GPU {
 
     fn draw_all(&mut self) {
         // self.frame を全書き換えする
-
         // $9800-$9BFF のデータを見て、どのタイルがどこに配置されるかを計算する
         for addr in 0x9800..=0x9BFF {
-            let index = addr as usize - VRAM_BEGIN;
+            let addr = addr as usize - VRAM_BEGIN;
+            let index = self.vram[addr] as usize;
             let tile = self.tile_set[index];
-            let sx = index % 32;
-            let sy = index / 32;
-            if sx >= 160 || sy >= 144 {
-                // FIXME
-                continue;
-            }
+            let sx = (index % 32) * 8;
+            let sy = (index / 32) * 8;
             for tx in 0..8 {
                 for ty in 0..8 {
                     let value = tile[tx][ty];
                     let color = tilePixelValueToColor(value);
                     let x = sx + tx;
                     let y = sy + ty;
+                    if x > 160 || y > 144 {
+                        continue;
+                    }
                     let o = (y * 160 + x) as usize;
-                    self.frame[o] = color.rgb().0;
-                    self.frame[o + 1] = color.rgb().1;
-                    self.frame[o + 2] = color.rgb().2;
+                    self.frame[o] = color[0];
+                    self.frame[o + 1] = color[1];
+                    self.frame[o + 2] = color[2];
                 }
             }
         }
