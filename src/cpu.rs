@@ -962,8 +962,9 @@ impl GPU {
             let addr = addr as usize - VRAM_BEGIN;
             let index = self.vram[addr] as usize;
             let tile = self.tile_set[index];
-            let sx = (index % 32) * 8;
-            let sy = (index / 32) * 8;
+            let i = addr - 0x1800;
+            let sx = (i % 32) * 8;
+            let sy = (i / 32) * 8;
             for tx in 0..8 {
                 for ty in 0..8 {
                     let value = tile[tx][ty];

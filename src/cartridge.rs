@@ -1,4 +1,5 @@
 use std::fs::{self, File};
+use std::io::Read;
 
 pub struct Cartridge {}
 
@@ -9,7 +10,16 @@ impl Cartridge {
         let mut raw = vec![0; metadata.len() as usize];
         f.read(&mut raw).expect("buffer overflow");
 
-        println!(raw[0x0104..=0x0133]) // 任天堂ロゴ
+        // raw[0x0143] // CGB flag
+        // 0x0146 — SGB flag
+
+        // 0x0147 — Cartridge type ==> mapper
+        // 0148 — ROM size
+        // 0149 — RAM size
+
+        // MBC1 の対応が必要。
+
+        println!("{:02X?}", &raw[0x0147..=0x0149]);
     }
 }
 

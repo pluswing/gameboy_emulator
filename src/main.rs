@@ -3,14 +3,13 @@ mod cpu;
 mod instruction;
 
 use cartridge::Cartridge;
-use cpu::MemoryBus;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::EventPump;
 
 fn main() {
-    Cartridge::test("rom/cpu_instruction.gb");
+    Cartridge::test("rom/cpu_instruction_test.gb");
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let scale = 3;
