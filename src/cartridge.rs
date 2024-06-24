@@ -1,10 +1,34 @@
 use std::fs::{self, File};
 use std::io::Read;
 
-pub struct Cartridge {}
+enum CartridgeType {
+    RomOnly, // $00
+    MBC1,    // $01
+             // ...
+}
+
+enum RomSize {
+    Bank2, // $00	32 KiB	2 (no banking)
+    Bank4, // $01	64 KiB	4
+           // ...
+}
+
+enum RamSize {
+    No,     // $00	0	No RAM
+    Unused, // $01	–	Unused 12
+    Bank1,  // $02	8 KiB	1 bank
+            // ...
+}
+
+pub struct Cartridge {
+    raw: Vec<u8>,
+    mapper_type: CartridgeType,
+    rom_size: RomSize,
+    ram_size: RamSize,
+}
 
 impl Cartridge {
-    pub fn test(filename: &str) {
+    pub fn new(filename: &str) -> Self {
         let mut f = File::open(&filename).expect("no file found");
         let metadata = fs::metadata(&filename).expect("unable to read metadata");
         let mut raw = vec![0; metadata.len() as usize];
@@ -20,13 +44,34 @@ impl Cartridge {
         // MBC1 の対応が必要。
 
         println!("{:02X?}", &raw[0x0147..=0x0149]);
+
+        Cartridge {
+            raw,
+            mapper_type: match raw[0x0147] {
+                0x00 => CartridgeType::RomOnly,
+                0x01 => CartridgeType::MBC1,
+                _ => panic!("unsupported cartridge type."),
+            },
+            rom_size: match raw[0x0148] {
+                0x00 => RomSize::Bank2,
+                0x01 => RomSize::Bank4,
+                _ => panic!("unsupported rom size."),
+            },
+            ram_size: match raw[0x0149] {
+                0x00 => RamSize::No,
+                0x01 => RamSize::Unused,
+                0x02 => RamSize::Bank1,
+                _ => panic!("unsupported ram size."),
+            },
+        }
+    }
+
+    pub fn read_byte(addr: u8) -> u8 {
+        // TODO
+        return 0;
+    }
+
+    pub fn write_byte(addr: u8, value: u8) {
+        // TODO
     }
 }
-
-/*
-pub fn new(raw: &Vec<u8>) -> Result<Rom, String> {
-       if &raw[0..4] != NES_TAG {
-           return Err("File is not in iNES file format".to_string());
-       }
-
-*/
