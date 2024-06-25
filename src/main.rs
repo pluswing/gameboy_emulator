@@ -1,6 +1,7 @@
 mod cartridge;
 mod cpu;
 mod instruction;
+mod mapper;
 
 use cartridge::Cartridge;
 use sdl2::event::Event;
@@ -9,7 +10,7 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::EventPump;
 
 fn main() {
-    Cartridge::test("rom/cpu_instruction_test.gb");
+    Cartridge::new("rom/cpu_instruction_test.gb");
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let scale = 3;

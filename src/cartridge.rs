@@ -1,11 +1,6 @@
+use mapper::MBC1;
 use std::fs::{self, File};
 use std::io::Read;
-
-enum CartridgeType {
-    RomOnly, // $00
-    MBC1,    // $01
-             // ...
-}
 
 enum RomSize {
     Bank2, // $00	32 KiB	2 (no banking)
@@ -22,7 +17,7 @@ enum RamSize {
 
 pub struct Cartridge {
     raw: Vec<u8>,
-    mapper_type: CartridgeType,
+    mapper: MBC1,
     rom_size: RomSize,
     ram_size: RamSize,
 }
@@ -47,9 +42,9 @@ impl Cartridge {
 
         Cartridge {
             raw,
-            mapper_type: match raw[0x0147] {
-                0x00 => CartridgeType::RomOnly,
-                0x01 => CartridgeType::MBC1,
+            mapper: match raw[0x0147] {
+                // 0x00 => CartridgeType::RomOnly,
+                0x01 => MBC1::new(),
                 _ => panic!("unsupported cartridge type."),
             },
             rom_size: match raw[0x0148] {
@@ -66,12 +61,11 @@ impl Cartridge {
         }
     }
 
-    pub fn read_byte(addr: u8) -> u8 {
-        // TODO
-        return 0;
+    pub fn read_byte(&mut self, addr: u8) -> u8 {
+        return self.mapper.read_byte(&self.raw, addr);
     }
 
-    pub fn write_byte(addr: u8, value: u8) {
-        // TODO
+    pub fn write_byte(&mut self, addr: u8, value: u8) {
+        return self.mapper.write_byte(&self.raw, addr, value);
     }
 }
