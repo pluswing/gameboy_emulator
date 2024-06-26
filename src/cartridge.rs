@@ -61,11 +61,11 @@ impl Cartridge {
         }
     }
 
-    pub fn read_byte(&mut self, addr: u8) -> u8 {
+    pub fn read_byte(&mut self, addr: u16) -> u8 {
         return self.mapper.read_byte(&self.raw, addr);
     }
 
-    pub fn write_byte(&mut self, addr: u8, value: u8) {
+    pub fn write_byte(&mut self, addr: u16, value: u8) {
         return self.mapper.write_byte(&self.raw, addr, value);
     }
 }

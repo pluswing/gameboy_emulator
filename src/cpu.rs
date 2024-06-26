@@ -1,6 +1,9 @@
 use core::panic;
 
-use crate::instruction::{self, FlagValue};
+use crate::{
+    cartridge::Cartridge,
+    instruction::{self, FlagValue},
+};
 
 pub struct Registers {
     pub a: u8,
@@ -53,19 +56,19 @@ impl std::convert::From<u8> for FlagsRegister {
 impl Registers {
     pub fn new() -> Self {
         Registers {
-            a: 0,
-            b: 0,
-            c: 0,
-            d: 0,
-            e: 0,
+            a: 0x01,
+            b: 0x00,
+            c: 0x13,
+            d: 0x00,
+            e: 0xD8,
             f: FlagsRegister {
-                zero: false,
+                zero: true,
                 subtract: false,
                 half_carry: false,
                 carry: false,
             },
-            h: 0,
-            l: 0,
+            h: 0x01,
+            l: 0x4D,
         }
     }
     pub fn get_af(&self) -> u16 {
@@ -118,14 +121,15 @@ pub struct CPU {
 }
 
 impl CPU {
-    fn new() -> Self {
+    pub fn new(cartridge: Cartridge) -> Self {
         CPU {
             registers: Registers::new(),
-            pc: 0x0000,
-            sp: 0x0000, // FIXME たぶん0xFFFF
-            bus: MemoryBus::new(),
+            pc: 0x0100,
+            sp: 0xFFFE,
+            bus: MemoryBus::new(cartridge),
             is_halted: false,
         }
+        // FIXME BOOT ROMを実行したフラグ的なやつを立てる必要あり。
     }
 
     fn execute(&mut self, instruction: instruction::Instruction) {
@@ -624,7 +628,7 @@ impl CPU {
         };
     }
 
-    fn step(&mut self) {
+    pub fn step(&mut self) {
         let mut instruction_byte = self.bus.read_byte(self.pc);
         let prefixed = instruction_byte == 0xCB;
         if prefixed {
@@ -679,19 +683,22 @@ impl CPU {
 
 pub struct MemoryBus {
     memory: [u8; 0xFFFF],
-    gpu: GPU,
+    cartridge: Cartridge,
+    pub gpu: GPU,
 }
 
 impl MemoryBus {
-    fn new() -> Self {
+    fn new(cartridge: Cartridge) -> Self {
         MemoryBus {
             memory: [0; 0xFFFF],
+            cartridge,
             gpu: GPU::new(),
         }
     }
     pub fn read_byte(&self, address: u16) -> u8 {
         let address = address as usize;
         match address {
+            0x0000..=0x7FFF => self.cartridge.read_byte(address as u16),
             VRAM_BEGIN..=VRAM_END => self.gpu.read_vram(address - VRAM_BEGIN),
             0xFF44 => self.gpu.ly,
             0xFF45 => self.gpu.lyc,
@@ -704,6 +711,7 @@ impl MemoryBus {
     pub fn write_byte(&mut self, address: u16, value: u8) {
         let address = address as usize;
         match address {
+            0x0000..=0x7FFF => self.cartridge.write_byte(address as u16, value),
             VRAM_BEGIN..=VRAM_END => self.gpu.write_vram(address - VRAM_BEGIN, value),
             0xFF44 => {
                 panic!("LY is read only!")
@@ -871,14 +879,14 @@ impl std::convert::From<u8> for LcdStatusRegisters {
 
 struct GPU {
     vram: [u8; VRAM_SIZE],
-    ly: u8,  // 0xFF44
-    lyc: u8, // 0xFF45 (LY compare)
+    pub ly: u8, // 0xFF44
+    lyc: u8,    // 0xFF45 (LY compare)
     control: LcdControlRegisters,
     status: LcdStatusRegisters,
     // TODO 0xFF47が必要。palette
     tile_set: [Tile; 384],
     scanline_counter: u16,
-    frame: [u8; 160 * 3 * 144],
+    pub frame: [u8; 160 * 3 * 144],
 }
 
 impl GPU {
@@ -944,7 +952,7 @@ impl GPU {
             } else if currentline > 153 {
                 // 1フレーム描画完了
                 self.ly = 0;
-            } else if currentline < 144 {
+            } else if currentline <= 144 {
                 self.draw_scan_line(currentline);
             }
         }

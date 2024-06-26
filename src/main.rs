@@ -4,13 +4,13 @@ mod instruction;
 mod mapper;
 
 use cartridge::Cartridge;
+use cpu::CPU;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::EventPump;
 
 fn main() {
-    Cartridge::new("rom/cpu_instruction_test.gb");
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let scale = 3;
@@ -29,14 +29,19 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB24, 160, 144)
         .unwrap();
 
-    let mut screen_state = [0 as u8; 160 * 3 * 144];
+    let cartridge = Cartridge::new("rom/cpu_instruction_test.gb");
+    let mut cpu = CPU::new(cartridge);
+
     loop {
+        cpu.step();
         handle_user_input(&mut event_pump);
-        read_screen_state(&mut screen_state);
-        texture.update(None, &screen_state, 160 * 3).unwrap();
-        canvas.copy(&texture, None, None).unwrap();
-        canvas.present();
-        ::std::thread::sleep(std::time::Duration::new(0, 70_000));
+        if cpu.bus.gpu.ly == 144 {
+            let screen_state = cpu.bus.gpu.frame;
+            texture.update(None, &screen_state, 160 * 3).unwrap();
+            canvas.copy(&texture, None, None).unwrap();
+            canvas.present();
+            ::std::thread::sleep(std::time::Duration::new(0, 70_000));
+        }
     }
 }
 
@@ -51,16 +56,4 @@ fn handle_user_input(event_pump: &mut EventPump) {
             _ => { /* do nothing */ }
         }
     }
-}
-
-fn read_screen_state(frame: &mut [u8; 160 * 3 * 144]) {
-    let (b1, b2, b3) = sdl2::pixels::Color::WHITE.rgb();
-    frame[0] = b1;
-    frame[1] = b2;
-    frame[2] = b3;
-
-    let (b1, b2, b3) = sdl2::pixels::Color::GREEN.rgb();
-    frame[3] = b1;
-    frame[4] = b2;
-    frame[5] = b3;
 }

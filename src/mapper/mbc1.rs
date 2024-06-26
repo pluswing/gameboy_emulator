@@ -7,7 +7,7 @@ impl MBC1 {
         MBC1 { bank: 1 }
     }
 
-    pub fn read_byte(raw: &Vec<u8>, addr: u8) -> u8 {
+    pub fn read_byte(raw: &Vec<u8>, addr: u16) -> u8 {
         match addr {
             // bank0
             0x0000..=0x3FFF => raw[addr],
@@ -23,7 +23,7 @@ impl MBC1 {
         }
     }
 
-    pub fn write_byte(raw: &mut Vec<u8>, addr: u8, value: u8) {
+    pub fn write_byte(raw: &mut Vec<u8>, addr: u16, value: u8) {
         match addr {
             0x0000..=0x1FFF => {
                 // TODO - RAM有効フラグ (W)
