@@ -122,14 +122,16 @@ pub struct CPU {
 
 impl CPU {
     pub fn new(cartridge: Cartridge) -> Self {
-        CPU {
+        let mut cpu = CPU {
             registers: Registers::new(),
             pc: 0x0100,
             sp: 0xFFFE,
             bus: MemoryBus::new(cartridge),
             is_halted: false,
-        }
-        // FIXME BOOT ROMを実行したフラグ的なやつを立てる必要あり。
+        };
+        // FIXME BOOT ROMを実行したフラグ的なやつを立てる。
+        cpu.bus.write_byte(0xFF50, 1);
+        cpu
     }
 
     fn execute(&mut self, instruction: instruction::Instruction) {
@@ -655,11 +657,11 @@ impl CPU {
         // self.doInterrupts();
     }
 
-    pub fn read_next_byte(&self) -> u8 {
+    pub fn read_next_byte(&mut self) -> u8 {
         self.bus.read_byte(self.pc + 1)
     }
 
-    pub fn read_next_word(&self) -> u16 {
+    pub fn read_next_word(&mut self) -> u16 {
         let l = self.bus.read_byte(self.pc + 1) as u16;
         let u = self.bus.read_byte(self.pc + 2) as u16;
         return (u << 8) | l;
@@ -695,7 +697,7 @@ impl MemoryBus {
             gpu: GPU::new(),
         }
     }
-    pub fn read_byte(&self, address: u16) -> u8 {
+    pub fn read_byte(&mut self, address: u16) -> u8 {
         let address = address as usize;
         match address {
             0x0000..=0x7FFF => self.cartridge.read_byte(address as u16),
@@ -704,6 +706,7 @@ impl MemoryBus {
             0xFF45 => self.gpu.lyc,
             0xFF40 => u8::from(self.gpu.control),
             0xFF41 => u8::from(self.gpu.status),
+            0xFF50 => self.memory[address],
             _ => panic!("TODO: support other areas of memory"),
         }
         // self.memory[address]
@@ -719,6 +722,7 @@ impl MemoryBus {
             0xFF45 => self.gpu.lyc = value,
             0xFF40 => self.gpu.control = LcdControlRegisters::from(value),
             0xFF41 => self.gpu.status = LcdStatusRegisters::from(value),
+            0xFF50 => self.memory[address] = value, // FIXME boot rom bank switch
             _ => panic!("TODO: support other areas of memory"),
         }
         // self.memory[address] = value;
@@ -727,7 +731,7 @@ impl MemoryBus {
         self.write_byte(address, (value & 0xFF) as u8);
         self.write_byte(address + 1, (value >> 8) as u8);
     }
-    pub fn read_word(&self, address: u16) -> u16 {
+    pub fn read_word(&mut self, address: u16) -> u16 {
         return self.read_byte(address) as u16 | (self.read_byte(address + 1) as u16) << 8;
     }
 }

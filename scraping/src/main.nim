@@ -181,8 +181,8 @@ proc writeGetValueFunction(f: File, name: string, list: seq) =
     "Indirect_HLD": "{\nlet value = cpu.bus.read_byte(cpu.registers.get_hl()) as u16;\ncpu.registers.set_hl(cpu.registers.get_hl().wrapping_sub(1));\nvalue\n}",
     "Indirect_C": "cpu.bus.read_byte(0xFF00 | cpu.registers.c as u16) as u16,",
     "d16": "cpu.read_next_word(),",
-    "SP_r8": "{\ncpu.sp = cpu.add_e8(cpu.sp, cpu.read_next_byte());\ncpu.sp\n}",
-    "Indirect_a8": "cpu.bus.read_byte(cpu.read_next_byte() as u16) as u16,",
+    "SP_r8": "{\nlet value = cpu.read_next_byte();\ncpu.sp = cpu.add_e8(cpu.sp, value);\ncpu.sp\n}",
+    "Indirect_a8": "{\nlet addr = cpu.read_next_byte() as u16;\ncpu.bus.read_byte(addr) as u16\n}",
   }.toTable
 
   f.writeLine("    pub fn get_value(&self, cpu: &mut cpu::CPU) -> u16 {")
@@ -222,7 +222,7 @@ proc writeSetValueFunction(f: File, name: string, list: seq) =
     "Indirect_C": "{cpu.bus.write_byte(0xFF00 | cpu.registers.c as u16, value as u8); value as u8 as u16}",
     "d16": "panic!(\"can not call!\"),",
     "SP_r8": "panic!(\"can not call!\"),",
-    "Indirect_a8": "{cpu.bus.write_byte(cpu.read_next_byte() as u16, value as u8); value as u8 as u16}",
+    "Indirect_a8": "{\nlet addr = cpu.read_next_byte() as u16;\ncpu.bus.write_byte(addr, value as u8); value as u8 as u16}",
   }.toTable
 
   f.writeLine("    pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {")

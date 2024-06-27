@@ -1399,7 +1399,8 @@ impl LD_Arg_1 {
             LD_Arg_1::Indirect_HL => cpu.bus.read_byte(cpu.registers.get_hl()) as u16,
             LD_Arg_1::Indirect_C => cpu.bus.read_byte(0xFF00 | cpu.registers.c as u16) as u16,
             LD_Arg_1::SP_r8 => {
-                cpu.sp = cpu.add_e8(cpu.sp, cpu.read_next_byte());
+                let value = cpu.read_next_byte();
+                cpu.sp = cpu.add_e8(cpu.sp, value);
                 cpu.sp
             }
             LD_Arg_1::HL => cpu.registers.get_hl(),
@@ -1687,14 +1688,18 @@ pub enum LDH_Arg_0 {
 impl LDH_Arg_0 {
     pub fn get_value(&self, cpu: &mut cpu::CPU) -> u16 {
         match *self {
-            LDH_Arg_0::Indirect_a8 => cpu.bus.read_byte(cpu.read_next_byte() as u16) as u16,
+            LDH_Arg_0::Indirect_a8 => {
+                let addr = cpu.read_next_byte() as u16;
+                cpu.bus.read_byte(addr) as u16
+            }
             LDH_Arg_0::A => cpu.registers.a as u16,
         }
     }
     pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
         match *self {
             LDH_Arg_0::Indirect_a8 => {
-                cpu.bus.write_byte(cpu.read_next_byte() as u16, value as u8);
+                let addr = cpu.read_next_byte() as u16;
+                cpu.bus.write_byte(addr, value as u8);
                 value as u8 as u16
             }
             LDH_Arg_0::A => {
@@ -1715,7 +1720,10 @@ impl LDH_Arg_1 {
     pub fn get_value(&self, cpu: &mut cpu::CPU) -> u16 {
         match *self {
             LDH_Arg_1::A => cpu.registers.a as u16,
-            LDH_Arg_1::Indirect_a8 => cpu.bus.read_byte(cpu.read_next_byte() as u16) as u16,
+            LDH_Arg_1::Indirect_a8 => {
+                let addr = cpu.read_next_byte() as u16;
+                cpu.bus.read_byte(addr) as u16
+            }
         }
     }
     pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
@@ -1725,7 +1733,8 @@ impl LDH_Arg_1 {
                 value as u8 as u16
             }
             LDH_Arg_1::Indirect_a8 => {
-                cpu.bus.write_byte(cpu.read_next_byte() as u16, value as u8);
+                let addr = cpu.read_next_byte() as u16;
+                cpu.bus.write_byte(addr, value as u8);
                 value as u8 as u16
             }
         }
