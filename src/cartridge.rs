@@ -41,24 +41,30 @@ impl Cartridge {
 
         println!("{:02X?}", &raw[0x0147..=0x0149]);
 
+        let mapper = match raw[0x0147] {
+            // 0x00 => CartridgeType::RomOnly,
+            0x01 => MBC1::new(),
+            _ => panic!("unsupported cartridge type."),
+        };
+
+        let rom_size = match raw[0x0148] {
+            0x00 => RomSize::Bank2,
+            0x01 => RomSize::Bank4,
+            _ => panic!("unsupported rom size."),
+        };
+
+        let ram_size = match raw[0x0149] {
+            0x00 => RamSize::No,
+            0x01 => RamSize::Unused,
+            0x02 => RamSize::Bank1,
+            _ => panic!("unsupported ram size."),
+        };
+
         Cartridge {
             raw,
-            mapper: match raw[0x0147] {
-                // 0x00 => CartridgeType::RomOnly,
-                0x01 => MBC1::new(),
-                _ => panic!("unsupported cartridge type."),
-            },
-            rom_size: match raw[0x0148] {
-                0x00 => RomSize::Bank2,
-                0x01 => RomSize::Bank4,
-                _ => panic!("unsupported rom size."),
-            },
-            ram_size: match raw[0x0149] {
-                0x00 => RamSize::No,
-                0x01 => RamSize::Unused,
-                0x02 => RamSize::Bank1,
-                _ => panic!("unsupported ram size."),
-            },
+            mapper,
+            rom_size,
+            ram_size,
         }
     }
 

@@ -1237,7 +1237,10 @@ impl LD_Arg_0 {
             LD_Arg_0::BC => cpu.registers.get_bc(),
             LD_Arg_0::Indirect_BC => cpu.bus.read_byte(cpu.registers.get_bc()) as u16,
             LD_Arg_0::B => cpu.registers.b as u16,
-            LD_Arg_0::Indirect_a16 => cpu.bus.read_word(cpu.read_next_word()),
+            LD_Arg_0::Indirect_a16 => {
+                let addr = cpu.read_next_word();
+                cpu.bus.read_word(addr)
+            }
             LD_Arg_0::A => cpu.registers.a as u16,
             LD_Arg_0::C => cpu.registers.c as u16,
             LD_Arg_0::DE => cpu.registers.get_de(),
@@ -1260,7 +1263,10 @@ impl LD_Arg_0 {
             }
             LD_Arg_0::Indirect_HL => cpu.bus.read_byte(cpu.registers.get_hl()) as u16,
             LD_Arg_0::Indirect_C => cpu.bus.read_byte(0xFF00 | cpu.registers.c as u16) as u16,
-            LD_Arg_0::Indirect_a16_8 => cpu.bus.read_byte(cpu.read_next_word()) as u16,
+            LD_Arg_0::Indirect_a16_8 => {
+                let addr = cpu.read_next_word();
+                cpu.bus.read_byte(addr) as u16
+            }
         }
     }
     pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
@@ -1278,7 +1284,8 @@ impl LD_Arg_0 {
                 value as u8 as u16
             }
             LD_Arg_0::Indirect_a16 => {
-                cpu.bus.write_word(cpu.read_next_word(), value);
+                let addr = cpu.read_next_word();
+                cpu.bus.write_word(addr, value);
                 value
             }
             LD_Arg_0::A => {
@@ -1341,7 +1348,8 @@ impl LD_Arg_0 {
                 value as u8 as u16
             }
             LD_Arg_0::Indirect_a16_8 => {
-                cpu.bus.write_byte(cpu.read_next_word(), value as u8);
+                let addr = cpu.read_next_word();
+                cpu.bus.write_byte(addr, value as u8);
                 value as u8 as u16
             }
         }
@@ -1404,7 +1412,10 @@ impl LD_Arg_1 {
                 cpu.sp
             }
             LD_Arg_1::HL => cpu.registers.get_hl(),
-            LD_Arg_1::Indirect_a16_8 => cpu.bus.read_byte(cpu.read_next_word()) as u16,
+            LD_Arg_1::Indirect_a16_8 => {
+                let addr = cpu.read_next_word();
+                cpu.bus.read_byte(addr) as u16
+            }
         }
     }
     pub fn set_value(&self, cpu: &mut cpu::CPU, value: u16) -> u16 {
@@ -1476,7 +1487,8 @@ impl LD_Arg_1 {
                 value
             }
             LD_Arg_1::Indirect_a16_8 => {
-                cpu.bus.write_byte(cpu.read_next_word(), value as u8);
+                let addr = cpu.read_next_word();
+                cpu.bus.write_byte(addr, value as u8);
                 value as u8 as u16
             }
         }

@@ -2,6 +2,8 @@ mod cartridge;
 mod cpu;
 mod instruction;
 mod mapper;
+mod memory_bus;
+mod ppu;
 
 use cartridge::Cartridge;
 use cpu::CPU;
