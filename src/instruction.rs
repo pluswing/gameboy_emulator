@@ -482,7 +482,7 @@ pub enum RET_Arg_0 {
 impl RET_Arg_0 {
     pub fn condition(&self, cpu: &cpu::CPU) -> bool {
         match *self {
-            RET_Arg_0::NONE => panic!("can not call!"),
+            RET_Arg_0::NONE => true,
             RET_Arg_0::NZ => !cpu.registers.f.zero,
             RET_Arg_0::Z => cpu.registers.f.zero,
             RET_Arg_0::NC => !cpu.registers.f.carry,

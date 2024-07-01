@@ -213,7 +213,7 @@ impl CPU {
     ) {
         if arg0.condition(self) {
             self.push_u16(self.pc.wrapping_add(3));
-            self.pc = self.pc.wrapping_add(self.read_next_word().wrapping_sub(3))
+            self.pc = self.read_next_word().wrapping_sub(3)
         }
         self.update_flags(0, flags);
     }
@@ -233,7 +233,14 @@ impl CPU {
     fn pop(&mut self, arg0: instruction::POP_Arg_0, flags: instruction::Flags) {
         let value = self.pop_u16();
         arg0.set_value(self, value);
-        self.update_flags(value, flags);
+        if arg0 == instruction::POP_Arg_0::AF {
+            self.registers.f.zero = value & 0x0080 != 0;
+            self.registers.f.subtract = value & 0x0040 != 0;
+            self.registers.f.half_carry = value & 0x0020 != 0;
+            self.registers.f.carry = value & 0x0010 != 0;
+        } else {
+            self.update_flags(value, flags);
+        }
     }
     fn ld(
         &mut self,
@@ -408,7 +415,18 @@ impl CPU {
         self.update_flags(add, flags);
     }
     fn rst(&mut self, arg0: instruction::RST_Arg_0, flags: instruction::Flags) {
-        panic!("call RST");
+        let addr = match arg0 {
+            instruction::RST_Arg_0::_00H => 0x0000,
+            instruction::RST_Arg_0::_08H => 0x0008,
+            instruction::RST_Arg_0::_10H => 0x0010,
+            instruction::RST_Arg_0::_18H => 0x0018,
+            instruction::RST_Arg_0::_20H => 0x0020,
+            instruction::RST_Arg_0::_28H => 0x0028,
+            instruction::RST_Arg_0::_30H => 0x0030,
+            instruction::RST_Arg_0::_38H => 0x0038,
+        } as u16;
+        // FIXME instruction::RST_Arg_0::_00H指定時におかしくなる？
+        self.pc = addr;
     }
     fn res(
         &mut self,
@@ -640,7 +658,6 @@ impl CPU {
             instruction_byte = self.bus.read_byte(self.pc + 1);
         }
         if let Some(instruction) = instruction::Instruction::from_byte(instruction_byte, prefixed) {
-            self.execute(instruction);
             let description = format!(
                 "0x{}{:02X}",
                 if prefixed { "CB" } else { "" },
@@ -648,6 +665,16 @@ impl CPU {
             );
             if instruction_byte != 0x00 {
                 println!("{:04X} ==> {}", self.pc, description);
+            }
+            let isRst = match instruction {
+                instruction::Instruction::RST(_, _) => true,
+                _ => false,
+            };
+            self.execute(instruction);
+            if !isRst {
+                self.pc = self
+                    .pc
+                    .wrapping_add(instruction::instruction_bytes(instruction_byte, prefixed));
             }
         } else {
             let description = format!(
@@ -657,9 +684,6 @@ impl CPU {
             );
             panic!("Unknown instruction found for: {}", description)
         };
-        self.pc = self
-            .pc
-            .wrapping_add(instruction::instruction_bytes(instruction_byte, prefixed));
 
         let cycles = instruction::instruction_cycles(instruction_byte, prefixed);
 
