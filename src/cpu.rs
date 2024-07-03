@@ -1,4 +1,5 @@
 use core::panic;
+use std::env::args_os;
 
 use crate::{
     cartridge::Cartridge,
@@ -219,9 +220,7 @@ impl CPU {
     }
     fn ret(&mut self, arg0: instruction::RET_Arg_0, flags: instruction::Flags) {
         if arg0.condition(self) {
-            let pc = self.pop_u16();
-            // 共通処理でPCがbyte数足されるので、それを考慮して引いておく。
-            self.pc = pc - 1
+            self.pc = self.pop_u16();
         }
         self.update_flags(0, flags);
     }
@@ -365,6 +364,7 @@ impl CPU {
         arg1: instruction::JR_Arg_1,
         flags: instruction::Flags,
     ) {
+        panic!("call JR !!");
     }
     fn prefix(&mut self, arg0: instruction::PREFIX_Arg_0, flags: instruction::Flags) {
         panic!("call CB !!");
@@ -539,6 +539,15 @@ impl CPU {
         arg1: instruction::LDH_Arg_1,
         flags: instruction::Flags,
     ) {
+        let addr = 0xFF00 | self.read_next_byte() as u16;
+        match arg0 {
+            instruction::LDH_Arg_0::Indirect_a8 => {
+                self.bus.write_byte(addr, self.registers.a);
+            }
+            instruction::LDH_Arg_0::A => {
+                self.registers.a = self.bus.read_byte(addr);
+            }
+        }
     }
     fn sra(&mut self, arg0: instruction::SRA_Arg_0, flags: instruction::Flags) {
         let value = arg0.get_value(self) as u8;
@@ -582,6 +591,8 @@ impl CPU {
         self.update_flags(self.registers.a as u16, flags);
     }
     fn ei(&mut self, flags: instruction::Flags) {
+        // FIXME　たぶん 0xFFFF
+        // https://gbdev.io/pandocs/Interrupts.html
         self.ime_flag = true;
     }
 
@@ -666,12 +677,13 @@ impl CPU {
             if instruction_byte != 0x00 {
                 println!("{:04X} ==> {}", self.pc, description);
             }
-            let isRst = match instruction {
-                instruction::Instruction::RST(_, _) => true,
-                _ => false,
+            let is_add_pc = match instruction {
+                instruction::Instruction::RST(_, _) => false,
+                instruction::Instruction::RET(_, _) => false,
+                _ => true,
             };
             self.execute(instruction);
-            if !isRst {
+            if is_add_pc {
                 self.pc = self
                     .pc
                     .wrapping_add(instruction::instruction_bytes(instruction_byte, prefixed));

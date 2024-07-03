@@ -4,7 +4,7 @@ use crate::{
 };
 
 pub struct MemoryBus {
-    memory: [u8; 0xFFFF],
+    memory: [u8; 0x10000],
     cartridge: Cartridge,
     pub gpu: GPU,
 }
@@ -12,7 +12,7 @@ pub struct MemoryBus {
 impl MemoryBus {
     pub fn new(cartridge: Cartridge) -> Self {
         MemoryBus {
-            memory: [0; 0xFFFF],
+            memory: [0; 0x10000],
             cartridge,
             gpu: GPU::new(),
         }

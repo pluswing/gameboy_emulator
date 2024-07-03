@@ -43,6 +43,7 @@ fn main() {
             canvas.copy(&texture, None, None).unwrap();
             canvas.present();
             ::std::thread::sleep(std::time::Duration::new(0, 70_000));
+            println!("STATUS: {:02X}", cpu.bus.read_byte(0xFF01));
         }
     }
 }
