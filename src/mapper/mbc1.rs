@@ -25,6 +25,9 @@ impl MBC1 {
     }
 
     pub fn write_byte(&mut self, raw: &mut Vec<u8>, addr: u16, value: u8) {
+        // FIXME for test
+        raw[addr as usize] = value;
+
         match addr {
             0x0000..=0x1FFF => {
                 // TODO - RAM有効フラグ (W)

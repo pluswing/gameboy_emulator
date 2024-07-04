@@ -75,4 +75,13 @@ impl Cartridge {
     pub fn write_byte(&mut self, addr: u16, value: u8) {
         return self.mapper.write_byte(&mut self.raw, addr, value);
     }
+
+    pub fn for_test() -> Self {
+        Cartridge {
+            raw: vec![0; 0x8000 as usize],
+            mapper: MBC1::new(),
+            rom_size: RomSize::Bank2,
+            ram_size: RamSize::No,
+        }
+    }
 }

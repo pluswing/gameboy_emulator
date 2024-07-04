@@ -242,7 +242,7 @@ proc writeConditionFunction(f: File, name: string, list: seq) =
     "C": "cpu.registers.f.carry,",
     "HL": "true,",
     "a16": "true,",
-    "NONE": "panic!(\"can not call!\"),",
+    "NONE": "true,", # see: RET_Arg_0
     "r8": "true,",
   }.toTable
 
@@ -413,7 +413,7 @@ proc main() =
 
   # LD命令のテストコード出力
   for op in all_ops:
-    if op.name == "SCF":
+    if op.name == "JR":
       let prefixed = op in prefixed_ops
       echo "#[test]"
       let arg = op.args.join("_").toLowerAscii

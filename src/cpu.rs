@@ -364,7 +364,10 @@ impl CPU {
         arg1: instruction::JR_Arg_1,
         flags: instruction::Flags,
     ) {
-        panic!("call JR !!");
+        if arg0.condition(self) {
+            self.pc = ((self.pc as i32) + ((self.read_next_byte() as i8) as i32)) as u16;
+        }
+        self.update_flags(0, flags);
     }
     fn prefix(&mut self, arg0: instruction::PREFIX_Arg_0, flags: instruction::Flags) {
         panic!("call CB !!");
@@ -743,10 +746,17 @@ mod test {
         }
     }
 
+    fn newCPU() -> CPU {
+        let mut cpu = CPU::new(Cartridge::for_test());
+        cpu.pc = 0x0000;
+        cpu.registers.f = FlagsRegister::from(0x00);
+        cpu
+    }
+
     #[test]
     fn test_add_a() {
         // A, A
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x87);
         cpu.registers.a = 0x02;
         cpu.step();
@@ -811,7 +821,7 @@ mod test {
         // A, (HL)
         cpu.bus.write_byte(0x0007, 0x86);
         cpu.registers.set_hl(0x1040);
-        cpu.bus.memory[0x1040] = 0x09;
+        cpu.bus.write_byte(0x1040, 0x09);
         cpu.registers.a = 0x02;
         cpu.step();
         assert_eq!(cpu.registers.a, 0x0B);
@@ -821,7 +831,7 @@ mod test {
 
     #[test]
     fn test_add_a_c_zero() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x81); // ADD A, C
         cpu.registers.c = 0x00;
         cpu.registers.a = 0x00;
@@ -833,7 +843,7 @@ mod test {
 
     #[test]
     fn test_add_a_c_carry() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x81); // ADD A, C
         cpu.registers.c = 0xF0;
         cpu.registers.a = 0x20;
@@ -845,7 +855,7 @@ mod test {
 
     #[test]
     fn test_add_a_c_half_carry() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x81); // ADD A, C
         cpu.registers.c = 0x0F;
         cpu.registers.a = 0x01;
@@ -857,7 +867,7 @@ mod test {
 
     #[test]
     fn test_add_a_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xC6); // ADD A, d8
         cpu.bus.write_byte(0x0001, 0x05); // d8
         cpu.registers.a = 0x01;
@@ -869,7 +879,7 @@ mod test {
 
     #[test]
     fn test_add_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x09); // ADD HL, BC
         cpu.registers.set_hl(0x0103);
         cpu.registers.set_bc(0x0204);
@@ -896,7 +906,7 @@ mod test {
 
     #[test]
     fn test_add_hl_sp() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.sp = 0x0003;
         cpu.bus.write_byte(0x0000, 0x39); // ADD HL, SP
         cpu.registers.set_hl(0x0106);
@@ -908,7 +918,7 @@ mod test {
 
     #[test]
     fn test_add_hl_carry() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.sp = 0x0003;
         cpu.bus.write_byte(0x0000, 0x09);
         cpu.registers.set_hl(0xF000);
@@ -921,7 +931,7 @@ mod test {
 
     #[test]
     fn test_add_hl_half_carry() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.sp = 0x0003;
         cpu.bus.write_byte(0x0000, 0x09);
         cpu.registers.set_hl(0x0F00);
@@ -934,7 +944,7 @@ mod test {
 
     #[test]
     fn test_add_sp_r8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xE8); // ADD SP, r8
         cpu.bus.write_byte(0x0001, 0x04); // r8
         cpu.sp = 0x0003;
@@ -946,7 +956,7 @@ mod test {
 
     #[test]
     fn test_add_sp_r8_minus() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xE8); // ADD SP, r8
         cpu.bus.write_byte(0x0001, 0xFF); // r8
         cpu.sp = 0x0003;
@@ -958,7 +968,7 @@ mod test {
 
     #[test]
     fn test_add_sp_r8_carry() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xE8); // ADD SP, r8
         cpu.bus.write_byte(0x0001, 0x10); // r8
         cpu.sp = 0x00F0;
@@ -970,7 +980,7 @@ mod test {
 
     #[test]
     fn test_add_sp_r8_half_carry() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xE8); // ADD SP, r8
         cpu.bus.write_byte(0x0001, 0x01); // r8
         cpu.sp = 0x000F;
@@ -982,7 +992,7 @@ mod test {
 
     #[test]
     fn test_jp_zero() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCA); // JP Z, a16
         cpu.bus.write_byte(0x0001, 0x01);
         cpu.bus.write_byte(0x0002, 0x02);
@@ -993,7 +1003,7 @@ mod test {
 
     #[test]
     fn test_jp_zero_fail() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCA); // JP Z, a16
         cpu.bus.write_byte(0x0001, 0x01);
         cpu.bus.write_byte(0x0002, 0x02);
@@ -1007,7 +1017,7 @@ mod test {
 
     #[test]
     fn test_ld_bc_d16() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x01); // LD BC, d16
         cpu.bus.write_byte(0x0001, 0x04); // args
         cpu.bus.write_byte(0x0002, 0x03); // args
@@ -1019,7 +1029,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_bc_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x02); // LD Indirect_BC, A
         cpu.registers.a = 0x12;
         cpu.registers.set_bc(0x0304);
@@ -1031,7 +1041,7 @@ mod test {
 
     #[test]
     fn test_ld_b_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x06); // LD B, d8
         cpu.bus.write_byte(0x0001, 0x33); // args
         cpu.step();
@@ -1042,7 +1052,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_a16_sp() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x08); // LD Indirect_a16, SP
         cpu.bus.write_byte(0x0001, 0x23); // args
         cpu.bus.write_byte(0x0002, 0x34); // args
@@ -1056,7 +1066,7 @@ mod test {
 
     #[test]
     fn test_ld_a_indirect_bc() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x0A); // LD A, Indirect_BC
         cpu.bus.write_byte(0x0403, 0x23);
         cpu.registers.set_bc(0x0403);
@@ -1068,7 +1078,7 @@ mod test {
 
     #[test]
     fn test_ld_c_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x0E); // LD C, d8
         cpu.bus.write_byte(0x0001, 0x44); // args
         cpu.step();
@@ -1079,7 +1089,7 @@ mod test {
 
     #[test]
     fn test_ld_de_d16() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x11); // LD DE, d16
         cpu.bus.write_byte(0x0001, 0x12); // args
         cpu.bus.write_byte(0x0002, 0x34); // args
@@ -1091,7 +1101,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_de_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x12); // LD Indirect_DE, A
         cpu.registers.a = 0x05;
         cpu.registers.set_de(0x0987);
@@ -1103,7 +1113,7 @@ mod test {
 
     #[test]
     fn test_ld_d_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x16); // LD D, d8
         cpu.bus.write_byte(0x0001, 0x50); // args
         cpu.step();
@@ -1114,7 +1124,7 @@ mod test {
 
     #[test]
     fn test_ld_a_indirect_de() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x1A); // LD A, Indirect_DE
         cpu.registers.set_de(0x3467);
         cpu.bus.write_byte(0x3467, 0x77);
@@ -1126,7 +1136,7 @@ mod test {
 
     #[test]
     fn test_ld_e_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x1E); // LD E, d8
         cpu.bus.write_byte(0x0001, 0x44); // args
         cpu.step();
@@ -1137,7 +1147,7 @@ mod test {
 
     #[test]
     fn test_ld_hl_d16() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x21); // LD HL, d16
         cpu.bus.write_byte(0x0001, 0x45); // args
         cpu.bus.write_byte(0x0002, 0x54); // args
@@ -1149,7 +1159,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_hli_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x22); // LD Indirect_HLI, A
         cpu.registers.a = 0x33;
         cpu.registers.set_hl(0x4455);
@@ -1162,7 +1172,7 @@ mod test {
 
     #[test]
     fn test_ld_h_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x26); // LD H, d8
         cpu.bus.write_byte(0x0001, 0x46); // args
         cpu.step();
@@ -1173,7 +1183,7 @@ mod test {
 
     #[test]
     fn test_ld_a_indirect_hli() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x2A); // LD A, Indirect_HLI
         cpu.registers.set_hl(0x4455);
         cpu.bus.write_byte(0x4455, 0x77);
@@ -1186,7 +1196,7 @@ mod test {
 
     #[test]
     fn test_ld_l_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x2E); // LD L, d8
         cpu.bus.write_byte(0x0001, 0x67); // args
         cpu.step();
@@ -1197,7 +1207,7 @@ mod test {
 
     #[test]
     fn test_ld_sp_d16() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x31); // LD SP, d16
         cpu.bus.write_byte(0x0001, 0x65); // args
         cpu.bus.write_byte(0x0002, 0x32); // args
@@ -1209,7 +1219,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_hld_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x32); // LD Indirect_HLD, A
         cpu.registers.a = 0x33;
         cpu.registers.set_hl(0x4455);
@@ -1222,7 +1232,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_hl_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x36); // LD Indirect_HL, d8
         cpu.bus.write_byte(0x0001, 0x38); // args
         cpu.registers.set_hl(0x4455);
@@ -1234,7 +1244,7 @@ mod test {
 
     #[test]
     fn test_ld_a_indirect_hld() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x3A); // LD A, Indirect_HLD
         cpu.registers.set_hl(0x4455);
         cpu.bus.write_byte(0x4455, 0x77);
@@ -1247,7 +1257,7 @@ mod test {
 
     #[test]
     fn test_ld_a_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x3E); // LD A, d8
         cpu.bus.write_byte(0x0001, 0x90); // args
         cpu.step();
@@ -1258,7 +1268,7 @@ mod test {
 
     #[test]
     fn test_ld_b_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x40); // LD B, B
         cpu.registers.b = 0x12;
         cpu.step();
@@ -1269,7 +1279,7 @@ mod test {
 
     #[test]
     fn test_ld_b_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x41); // LD B, C
         cpu.registers.c = 0x13;
         cpu.step();
@@ -1280,7 +1290,7 @@ mod test {
 
     #[test]
     fn test_ld_b_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x42); // LD B, D
         cpu.registers.d = 0x14;
         cpu.step();
@@ -1291,7 +1301,7 @@ mod test {
 
     #[test]
     fn test_ld_b_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x43); // LD B, E
         cpu.registers.e = 0x15;
         cpu.step();
@@ -1302,7 +1312,7 @@ mod test {
 
     #[test]
     fn test_ld_b_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x44); // LD B, H
         cpu.registers.h = 0x16;
         cpu.step();
@@ -1313,7 +1323,7 @@ mod test {
 
     #[test]
     fn test_ld_b_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x45); // LD B, L
         cpu.registers.l = 0x17;
         cpu.step();
@@ -1324,7 +1334,7 @@ mod test {
 
     #[test]
     fn test_ld_b_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x46); // LD B, Indirect_HL
         cpu.registers.set_hl(0x1040);
         cpu.bus.write_word(0x1040, 0x18);
@@ -1336,7 +1346,7 @@ mod test {
 
     #[test]
     fn test_ld_b_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x47); // LD B, A
         cpu.registers.a = 0x19;
         cpu.step();
@@ -1347,7 +1357,7 @@ mod test {
 
     #[test]
     fn test_ld_c_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x48); // LD C, B
         cpu.registers.b = 0x20;
         cpu.step();
@@ -1358,7 +1368,7 @@ mod test {
 
     #[test]
     fn test_ld_c_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x49); // LD C, C
         cpu.registers.c = 0x21;
         cpu.step();
@@ -1369,7 +1379,7 @@ mod test {
 
     #[test]
     fn test_ld_c_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x4A); // LD C, D
         cpu.registers.d = 0x22;
         cpu.step();
@@ -1380,7 +1390,7 @@ mod test {
 
     #[test]
     fn test_ld_c_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x4B); // LD C, E
         cpu.registers.e = 0x23;
         cpu.step();
@@ -1391,7 +1401,7 @@ mod test {
 
     #[test]
     fn test_ld_c_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x4C); // LD C, H
         cpu.registers.h = 0x24;
         cpu.step();
@@ -1402,7 +1412,7 @@ mod test {
 
     #[test]
     fn test_ld_c_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x4D); // LD C, L
         cpu.registers.l = 0x25;
         cpu.step();
@@ -1413,7 +1423,7 @@ mod test {
 
     #[test]
     fn test_ld_c_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x4E); // LD C, Indirect_HL
         cpu.registers.set_hl(0x1040);
         cpu.bus.write_byte(0x1040, 0x26);
@@ -1425,7 +1435,7 @@ mod test {
 
     #[test]
     fn test_ld_c_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x4F); // LD C, A
         cpu.registers.a = 0x27;
         cpu.step();
@@ -1436,7 +1446,7 @@ mod test {
 
     #[test]
     fn test_ld_d_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x50); // LD D, B
         cpu.registers.b = 0x28;
         cpu.step();
@@ -1447,7 +1457,7 @@ mod test {
 
     #[test]
     fn test_ld_d_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x51); // LD D, C
         cpu.registers.c = 0x29;
         cpu.step();
@@ -1458,7 +1468,7 @@ mod test {
 
     #[test]
     fn test_ld_d_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x52); // LD D, D
         cpu.registers.d = 0x2A;
         cpu.step();
@@ -1469,7 +1479,7 @@ mod test {
 
     #[test]
     fn test_ld_d_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x53); // LD D, E
         cpu.registers.e = 0x2B;
         cpu.step();
@@ -1480,7 +1490,7 @@ mod test {
 
     #[test]
     fn test_ld_d_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x54); // LD D, H
         cpu.registers.h = 0x2C;
         cpu.step();
@@ -1491,7 +1501,7 @@ mod test {
 
     #[test]
     fn test_ld_d_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x55); // LD D, L
         cpu.registers.l = 0x2D;
         cpu.step();
@@ -1502,7 +1512,7 @@ mod test {
 
     #[test]
     fn test_ld_d_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x56); // LD D, Indirect_HL
         cpu.registers.set_hl(0x1040);
         cpu.bus.write_byte(0x1040, 0x2E);
@@ -1514,7 +1524,7 @@ mod test {
 
     #[test]
     fn test_ld_d_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x57); // LD D, A
         cpu.registers.a = 0x2F;
         cpu.step();
@@ -1525,7 +1535,7 @@ mod test {
 
     #[test]
     fn test_ld_e_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x58); // LD E, B
         cpu.registers.b = 0x30;
         cpu.step();
@@ -1536,7 +1546,7 @@ mod test {
 
     #[test]
     fn test_ld_e_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x59); // LD E, C
         cpu.registers.c = 0x31;
         cpu.step();
@@ -1547,7 +1557,7 @@ mod test {
 
     #[test]
     fn test_ld_e_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x5A); // LD E, D
         cpu.registers.d = 0x32;
         cpu.step();
@@ -1558,7 +1568,7 @@ mod test {
 
     #[test]
     fn test_ld_e_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x5B); // LD E, E
         cpu.registers.e = 0x33;
         cpu.step();
@@ -1569,7 +1579,7 @@ mod test {
 
     #[test]
     fn test_ld_e_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x5C); // LD E, H
         cpu.registers.h = 0x34;
         cpu.step();
@@ -1580,7 +1590,7 @@ mod test {
 
     #[test]
     fn test_ld_e_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x5D); // LD E, L
         cpu.registers.l = 0x35;
         cpu.step();
@@ -1591,7 +1601,7 @@ mod test {
 
     #[test]
     fn test_ld_e_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x5E); // LD E, Indirect_HL
         cpu.registers.set_hl(0x1040);
         cpu.bus.write_byte(0x1040, 0x36);
@@ -1603,7 +1613,7 @@ mod test {
 
     #[test]
     fn test_ld_e_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x5F); // LD E, A
         cpu.registers.a = 0x37;
         cpu.step();
@@ -1614,7 +1624,7 @@ mod test {
 
     #[test]
     fn test_ld_h_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x60); // LD H, B
         cpu.registers.b = 0x38;
         cpu.step();
@@ -1625,7 +1635,7 @@ mod test {
 
     #[test]
     fn test_ld_h_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x61); // LD H, C
         cpu.registers.c = 0x39;
         cpu.step();
@@ -1636,7 +1646,7 @@ mod test {
 
     #[test]
     fn test_ld_h_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x62); // LD H, D
         cpu.registers.d = 0x3A;
         cpu.step();
@@ -1647,7 +1657,7 @@ mod test {
 
     #[test]
     fn test_ld_h_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x63); // LD H, E
         cpu.registers.e = 0x3B;
         cpu.step();
@@ -1658,7 +1668,7 @@ mod test {
 
     #[test]
     fn test_ld_h_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x64); // LD H, H
         cpu.registers.h = 0x3C;
         cpu.step();
@@ -1669,7 +1679,7 @@ mod test {
 
     #[test]
     fn test_ld_h_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x65); // LD H, L
         cpu.registers.l = 0x3D;
         cpu.step();
@@ -1680,7 +1690,7 @@ mod test {
 
     #[test]
     fn test_ld_h_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x66); // LD H, Indirect_HL
         cpu.registers.set_hl(0x1040);
         cpu.bus.write_byte(0x1040, 0x3E);
@@ -1692,7 +1702,7 @@ mod test {
 
     #[test]
     fn test_ld_h_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x67); // LD H, A
         cpu.registers.a = 0x3F;
         cpu.step();
@@ -1703,7 +1713,7 @@ mod test {
 
     #[test]
     fn test_ld_l_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x68); // LD L, B
         cpu.registers.b = 0x40;
         cpu.step();
@@ -1714,7 +1724,7 @@ mod test {
 
     #[test]
     fn test_ld_l_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x69); // LD L, C
         cpu.registers.c = 0x41;
         cpu.step();
@@ -1725,7 +1735,7 @@ mod test {
 
     #[test]
     fn test_ld_l_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x6A); // LD L, D
         cpu.registers.d = 0x42;
         cpu.step();
@@ -1736,7 +1746,7 @@ mod test {
 
     #[test]
     fn test_ld_l_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x6B); // LD L, E
         cpu.registers.e = 0x43;
         cpu.step();
@@ -1747,7 +1757,7 @@ mod test {
 
     #[test]
     fn test_ld_l_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x6C); // LD L, H
         cpu.registers.h = 0x44;
         cpu.step();
@@ -1758,7 +1768,7 @@ mod test {
 
     #[test]
     fn test_ld_l_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x6D); // LD L, L
         cpu.registers.l = 0x45;
         cpu.step();
@@ -1769,7 +1779,7 @@ mod test {
 
     #[test]
     fn test_ld_l_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x6E); // LD L, Indirect_HL
         cpu.registers.set_hl(0x1040);
         cpu.bus.write_byte(0x1040, 0x46);
@@ -1781,7 +1791,7 @@ mod test {
 
     #[test]
     fn test_ld_l_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x6F); // LD L, A
         cpu.registers.a = 0x47;
         cpu.step();
@@ -1792,7 +1802,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_hl_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x70); // LD Indirect_HL, B
         cpu.registers.b = 0x48;
         cpu.registers.set_hl(0x1040);
@@ -1804,7 +1814,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_hl_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x71); // LD Indirect_HL, C
         cpu.registers.c = 0x49;
         cpu.registers.set_hl(0x1040);
@@ -1816,7 +1826,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_hl_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x72); // LD Indirect_HL, D
         cpu.registers.d = 0x4A;
         cpu.registers.set_hl(0x1040);
@@ -1828,7 +1838,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_hl_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x73); // LD Indirect_HL, E
         cpu.registers.e = 0x4B;
         cpu.registers.set_hl(0x1040);
@@ -1840,7 +1850,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_hl_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x74); // LD Indirect_HL, H
         cpu.registers.set_hl(0x1040);
         cpu.step();
@@ -1851,7 +1861,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_hl_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x75); // LD Indirect_HL, L
         cpu.registers.set_hl(0x104D);
         cpu.step();
@@ -1862,7 +1872,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_hl_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x77); // LD Indirect_HL, A
         cpu.registers.a = 0x4F;
         cpu.registers.set_hl(0x1040);
@@ -1874,7 +1884,7 @@ mod test {
 
     #[test]
     fn test_ld_a_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x78); // LD A, B
         cpu.registers.b = 0x50;
         cpu.step();
@@ -1885,7 +1895,7 @@ mod test {
 
     #[test]
     fn test_ld_a_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x79); // LD A, C
         cpu.registers.c = 0x51;
         cpu.step();
@@ -1896,7 +1906,7 @@ mod test {
 
     #[test]
     fn test_ld_a_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x7A); // LD A, D
         cpu.registers.d = 0x52;
         cpu.step();
@@ -1907,7 +1917,7 @@ mod test {
 
     #[test]
     fn test_ld_a_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x7B); // LD A, E
         cpu.registers.e = 0x53;
         cpu.step();
@@ -1918,7 +1928,7 @@ mod test {
 
     #[test]
     fn test_ld_a_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x7C); // LD A, H
         cpu.registers.h = 0x54;
         cpu.step();
@@ -1929,7 +1939,7 @@ mod test {
 
     #[test]
     fn test_ld_a_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x7D); // LD A, L
         cpu.registers.l = 0x55;
         cpu.step();
@@ -1940,7 +1950,7 @@ mod test {
 
     #[test]
     fn test_ld_a_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x7E); // LD A, Indirect_HL
         cpu.registers.set_hl(0x1040);
         cpu.bus.write_byte(0x1040, 0x56);
@@ -1952,7 +1962,7 @@ mod test {
 
     #[test]
     fn test_ld_a_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x7F); // LD A, A
         cpu.registers.a = 0x57;
         cpu.step();
@@ -1963,7 +1973,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_c_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xE2); // LD Indirect_C, A
         cpu.registers.c = 0x58;
         cpu.registers.a = 0x59;
@@ -1975,7 +1985,7 @@ mod test {
 
     #[test]
     fn test_ld_indirect_a16_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xEA); // LD Indirect_a16, A
         cpu.bus.write_byte(0x0001, 0x34); // args
         cpu.bus.write_byte(0x0002, 0x66); // args
@@ -1991,7 +2001,7 @@ mod test {
 
     #[test]
     fn test_ld_a_indirect_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xF2); // LD A, Indirect_C
         cpu.registers.c = 0x5B;
         cpu.bus.write_byte(0xFF5B, 0x5C);
@@ -2003,7 +2013,7 @@ mod test {
 
     #[test]
     fn test_ld_hl_sp_r8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xF8); // LD HL, SP_r8
         cpu.bus.write_byte(0x0001, 0x67); // args
         cpu.sp = 0x1040;
@@ -2016,7 +2026,7 @@ mod test {
 
     #[test]
     fn test_ld_sp_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xF9); // LD SP, HL
         cpu.registers.set_hl(0x1040);
         cpu.step();
@@ -2027,7 +2037,7 @@ mod test {
 
     #[test]
     fn test_ld_a_indirect_a16() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xFA); // LD A, Indirect_a16
         cpu.bus.write_byte(0x0001, 0x34); // args
         cpu.bus.write_byte(0x0002, 0x55); // args
@@ -2041,7 +2051,7 @@ mod test {
 
     #[test]
     fn test_ld_hl_sp_r8_minus() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xF8); // LD HL, SP_r8
         cpu.bus.write_byte(0x0001, 0xFF); // args
         cpu.sp = 0x1040;
@@ -2054,7 +2064,7 @@ mod test {
 
     #[test]
     fn test_adc_a_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x88); // ADC A, B
         cpu.registers.a = 0x10;
         cpu.registers.b = 0x20;
@@ -2066,7 +2076,7 @@ mod test {
 
     #[test]
     fn test_adc_a_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x89); // ADC A, C
         cpu.registers.a = 0x10;
         cpu.registers.c = 0x03;
@@ -2078,7 +2088,7 @@ mod test {
 
     #[test]
     fn test_adc_a_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x8A); // ADC A, D
         cpu.registers.a = 0x10;
         cpu.registers.d = 0x03;
@@ -2091,7 +2101,7 @@ mod test {
 
     #[test]
     fn test_adc_a_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x8B); // ADC A, E
         cpu.registers.a = 0xFF;
         cpu.registers.e = 0x00;
@@ -2104,7 +2114,7 @@ mod test {
 
     #[test]
     fn test_adc_a_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x8C); // ADC A, H
         cpu.registers.a = 0xFF;
         cpu.registers.h = 0x01;
@@ -2116,7 +2126,7 @@ mod test {
 
     #[test]
     fn test_adc_a_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x8D); // ADC A, L
         cpu.registers.a = 0x10;
         cpu.registers.l = 0x06;
@@ -2128,7 +2138,7 @@ mod test {
 
     #[test]
     fn test_adc_a_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x8E); // ADC A, Indirect_HL
         cpu.registers.a = 0x30;
         cpu.registers.set_hl(0x5432);
@@ -2141,7 +2151,7 @@ mod test {
 
     #[test]
     fn test_adc_a_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x8F); // ADC A, A
         cpu.registers.a = 0x10;
         cpu.step();
@@ -2152,7 +2162,7 @@ mod test {
 
     #[test]
     fn test_adc_a_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCE); // ADC A, d8
         cpu.bus.write_byte(0x0001, 0x07); // args
         cpu.registers.a = 0x12;
@@ -2164,7 +2174,7 @@ mod test {
 
     #[test]
     fn test_and_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xA7); // AND A
         cpu.registers.a = 0xF1;
         cpu.step();
@@ -2175,7 +2185,7 @@ mod test {
 
     #[test]
     fn test_and_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xA0); // AND B
         cpu.registers.a = 0x07; // 0b0111
         cpu.registers.b = 0x0A; // 0b1010
@@ -2187,7 +2197,7 @@ mod test {
 
     #[test]
     fn test_and_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xA1); // AND C
         cpu.registers.a = 0x00;
         cpu.registers.c = 0x00;
@@ -2199,7 +2209,7 @@ mod test {
 
     #[test]
     fn test_and_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xA2); // AND D
         cpu.registers.a = 0x01;
         cpu.registers.d = 0x01;
@@ -2211,7 +2221,7 @@ mod test {
 
     #[test]
     fn test_and_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xA3); // AND E
         cpu.registers.a = 0x10;
         cpu.registers.e = 0x1F;
@@ -2223,7 +2233,7 @@ mod test {
 
     #[test]
     fn test_and_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xA4); // AND H
         cpu.registers.a = 0x10;
         cpu.registers.h = 0x1F;
@@ -2235,7 +2245,7 @@ mod test {
 
     #[test]
     fn test_and_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xA5); // AND L
         cpu.registers.a = 0x10;
         cpu.registers.l = 0x1F;
@@ -2247,7 +2257,7 @@ mod test {
 
     #[test]
     fn test_and_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xA6); // AND Indirect_HL
         cpu.registers.a = 0x10;
         cpu.registers.set_hl(0x0032);
@@ -2260,7 +2270,7 @@ mod test {
 
     #[test]
     fn test_and_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xE6); // AND d8
         cpu.bus.write_byte(0x0001, 0x3F); // args
         cpu.registers.a = 0x10;
@@ -2272,7 +2282,7 @@ mod test {
 
     #[test]
     fn test_cp_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xB8); // CP B
         cpu.registers.a = 0x10;
         cpu.registers.b = 0x01;
@@ -2283,7 +2293,7 @@ mod test {
 
     #[test]
     fn test_cp_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xB9); // CP C
         cpu.registers.a = 0x15;
         cpu.registers.c = 0x06;
@@ -2294,7 +2304,7 @@ mod test {
 
     #[test]
     fn test_cp_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xBA); // CP D
         cpu.registers.a = 0x10;
         cpu.registers.d = 0x11;
@@ -2305,7 +2315,7 @@ mod test {
 
     #[test]
     fn test_cp_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xBB); // CP E
         cpu.registers.a = 0x01;
         cpu.registers.e = 0x00;
@@ -2316,7 +2326,7 @@ mod test {
 
     #[test]
     fn test_cp_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xBC); // CP H
         cpu.registers.a = 0x01;
         cpu.registers.h = 0x00;
@@ -2327,7 +2337,7 @@ mod test {
 
     #[test]
     fn test_cp_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xBD); // CP L
         cpu.registers.a = 0x01;
         cpu.registers.l = 0x00;
@@ -2338,7 +2348,7 @@ mod test {
 
     #[test]
     fn test_cp_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xBE); // CP Indirect_HL
         cpu.registers.a = 0x05;
         cpu.registers.set_hl(0x1234);
@@ -2350,7 +2360,7 @@ mod test {
 
     #[test]
     fn test_cp_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xBF); // CP A
         cpu.registers.a = 0x10;
         cpu.step();
@@ -2360,7 +2370,7 @@ mod test {
 
     #[test]
     fn test_cp_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xFE); // CP d8
         cpu.bus.write_byte(0x0001, 0x06); // args
         cpu.registers.a = 0x09;
@@ -2371,7 +2381,7 @@ mod test {
 
     #[test]
     fn test_dec_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x05); // DEC B
         cpu.registers.b = 0x02;
         cpu.step();
@@ -2382,7 +2392,7 @@ mod test {
 
     #[test]
     fn test_dec_bc() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x0B); // DEC BC
         cpu.registers.set_bc(0x0003);
         cpu.step();
@@ -2393,7 +2403,7 @@ mod test {
 
     #[test]
     fn test_dec_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x0D); // DEC C
         cpu.registers.c = 0x01;
         cpu.step();
@@ -2404,7 +2414,7 @@ mod test {
 
     #[test]
     fn test_dec_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x15); // DEC D
         cpu.registers.d = 0x00;
         cpu.step();
@@ -2415,7 +2425,7 @@ mod test {
 
     #[test]
     fn test_dec_de() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x1B); // DEC DE
         cpu.registers.set_de(0x0001);
         cpu.step();
@@ -2426,7 +2436,7 @@ mod test {
 
     #[test]
     fn test_dec_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x1D); // DEC E
         cpu.registers.e = 0x11;
         cpu.step();
@@ -2437,7 +2447,7 @@ mod test {
 
     #[test]
     fn test_dec_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x25); // DEC H
         cpu.registers.h = 0x03;
         cpu.step();
@@ -2448,7 +2458,7 @@ mod test {
 
     #[test]
     fn test_dec_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x2B); // DEC HL
         cpu.registers.set_hl(0x0000);
         cpu.step();
@@ -2459,7 +2469,7 @@ mod test {
 
     #[test]
     fn test_dec_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x2D); // DEC L
         cpu.registers.l = 0x03;
         cpu.step();
@@ -2470,7 +2480,7 @@ mod test {
 
     #[test]
     fn test_dec_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x35); // DEC Indirect_HL
         cpu.registers.set_hl(0x1234);
         cpu.bus.write_byte(0x1234, 0x02);
@@ -2482,7 +2492,7 @@ mod test {
 
     #[test]
     fn test_dec_indirect_hl_zero() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x35); // DEC Indirect_HL
         cpu.registers.set_hl(0x1234);
         cpu.bus.write_byte(0x1234, 0x01);
@@ -2494,7 +2504,7 @@ mod test {
 
     #[test]
     fn test_dec_sp() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x3B); // DEC SP
         cpu.sp = 0x02;
         cpu.step();
@@ -2505,7 +2515,7 @@ mod test {
 
     #[test]
     fn test_dec_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x3D); // DEC A
         cpu.registers.a = 0x03;
         cpu.step();
@@ -2516,7 +2526,7 @@ mod test {
 
     #[test]
     fn test_inc_bc() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x03); // INC BC
         cpu.registers.set_bc(0x0001);
         cpu.step();
@@ -2527,7 +2537,7 @@ mod test {
 
     #[test]
     fn test_inc_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x04); // INC B
         cpu.registers.b = 0x01;
         cpu.step();
@@ -2538,7 +2548,7 @@ mod test {
 
     #[test]
     fn test_inc_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x0C); // INC C
         cpu.registers.c = 0xFF;
         cpu.step();
@@ -2549,7 +2559,7 @@ mod test {
 
     #[test]
     fn test_inc_de() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x13); // INC DE
         cpu.registers.set_de(0x0101);
         cpu.step();
@@ -2560,7 +2570,7 @@ mod test {
 
     #[test]
     fn test_inc_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x14); // INC D
         cpu.registers.d = 0x0F;
         cpu.step();
@@ -2571,7 +2581,7 @@ mod test {
 
     #[test]
     fn test_inc_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x1C); // INC E
         cpu.registers.e = 0x01;
         cpu.step();
@@ -2582,7 +2592,7 @@ mod test {
 
     #[test]
     fn test_inc_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x23); // INC HL
         cpu.registers.set_hl(0x0101);
         cpu.step();
@@ -2593,7 +2603,7 @@ mod test {
 
     #[test]
     fn test_inc_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x24); // INC H
         cpu.registers.h = 0x01;
         cpu.step();
@@ -2604,7 +2614,7 @@ mod test {
 
     #[test]
     fn test_inc_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x2C); // INC L
         cpu.registers.l = 0x01;
         cpu.step();
@@ -2615,7 +2625,7 @@ mod test {
 
     #[test]
     fn test_inc_sp() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x33); // INC SP
         cpu.sp = 0x0001;
         cpu.step();
@@ -2626,7 +2636,7 @@ mod test {
 
     #[test]
     fn test_inc_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x34); // INC Indirect_HL
         cpu.registers.set_hl(0x3456);
         cpu.bus.write_byte(0x3456, 0x03);
@@ -2638,7 +2648,7 @@ mod test {
 
     #[test]
     fn test_inc_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x3C); // INC A
         cpu.registers.a = 0x01;
         cpu.step();
@@ -2649,7 +2659,7 @@ mod test {
 
     #[test]
     fn test_or_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xB0); // OR B
         cpu.registers.a = 0x06;
         cpu.registers.b = 0x03;
@@ -2661,7 +2671,7 @@ mod test {
 
     #[test]
     fn test_or_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xB1); // OR C
         cpu.registers.a = 0x04;
         cpu.registers.c = 0x03;
@@ -2673,7 +2683,7 @@ mod test {
 
     #[test]
     fn test_or_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xB2); // OR D
         cpu.registers.a = 0x00;
         cpu.registers.d = 0x00;
@@ -2685,7 +2695,7 @@ mod test {
 
     #[test]
     fn test_or_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xB3); // OR E
         cpu.registers.a = 0x00;
         cpu.registers.e = 0x01;
@@ -2697,7 +2707,7 @@ mod test {
 
     #[test]
     fn test_or_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xB4); // OR H
         cpu.registers.a = 0x03;
         cpu.registers.h = 0x00;
@@ -2709,7 +2719,7 @@ mod test {
 
     #[test]
     fn test_or_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xB5); // OR L
         cpu.registers.a = 0x02;
         cpu.registers.l = 0x01;
@@ -2721,7 +2731,7 @@ mod test {
 
     #[test]
     fn test_or_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xB6); // OR Indirect_HL
         cpu.registers.a = 0x02;
         cpu.registers.set_hl(0x1234);
@@ -2734,7 +2744,7 @@ mod test {
 
     #[test]
     fn test_or_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xB7); // OR A
         cpu.registers.a = 0x01;
         cpu.step();
@@ -2745,7 +2755,7 @@ mod test {
 
     #[test]
     fn test_or_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xF6); // OR d8
         cpu.bus.write_byte(0x0001, 0x06); // args
         cpu.registers.a = 0x01;
@@ -2757,7 +2767,7 @@ mod test {
 
     #[test]
     fn test_sbc_a_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x98); // SBC A, B
         cpu.registers.a = 0x10;
         cpu.registers.b = 0x01;
@@ -2769,7 +2779,7 @@ mod test {
 
     #[test]
     fn test_sbc_a_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x99); // SBC A, C
         cpu.registers.a = 0x10;
         cpu.registers.c = 0x01;
@@ -2782,7 +2792,7 @@ mod test {
 
     #[test]
     fn test_sbc_a_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x9A); // SBC A, D
         cpu.registers.a = 0x0F;
         cpu.registers.d = 0x02;
@@ -2794,7 +2804,7 @@ mod test {
 
     #[test]
     fn test_sbc_a_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x9B); // SBC A, E
         cpu.registers.a = 0x0F;
         cpu.registers.e = 0x02;
@@ -2807,7 +2817,7 @@ mod test {
 
     #[test]
     fn test_sbc_a_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x9C); // SBC A, H
         cpu.registers.a = 0x0F;
         cpu.registers.h = 0x0F;
@@ -2819,7 +2829,7 @@ mod test {
 
     #[test]
     fn test_sbc_a_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x9D); // SBC A, L
         cpu.registers.a = 0x0F;
         cpu.registers.l = 0x10;
@@ -2832,7 +2842,7 @@ mod test {
 
     #[test]
     fn test_sbc_a_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x9E); // SBC A, Indirect_HL
         cpu.registers.a = 0x0F;
         cpu.registers.set_hl(0x1234);
@@ -2845,7 +2855,7 @@ mod test {
 
     #[test]
     fn test_sbc_a_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x9F); // SBC A, A
         cpu.registers.a = 0x0F;
         cpu.step();
@@ -2856,7 +2866,7 @@ mod test {
 
     #[test]
     fn test_sbc_a_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xDE); // SBC A, d8
         cpu.bus.write_byte(0x0001, 0x10); // args
         cpu.registers.a = 0x10;
@@ -2868,7 +2878,7 @@ mod test {
 
     #[test]
     fn test_sub_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x90); // SUB B
         cpu.registers.a = 0x03;
         cpu.registers.b = 0x01;
@@ -2880,7 +2890,7 @@ mod test {
 
     #[test]
     fn test_sub_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x91); // SUB C
         cpu.registers.a = 0x03;
         cpu.registers.c = 0x03;
@@ -2892,7 +2902,7 @@ mod test {
 
     #[test]
     fn test_sub_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x92); // SUB D
         cpu.registers.a = 0x03;
         cpu.registers.d = 0x04;
@@ -2904,7 +2914,7 @@ mod test {
 
     #[test]
     fn test_sub_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x93); // SUB E
         cpu.registers.a = 0x10;
         cpu.registers.e = 0x20;
@@ -2916,7 +2926,7 @@ mod test {
 
     #[test]
     fn test_sub_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x94); // SUB H
         cpu.registers.a = 0x10;
         cpu.registers.h = 0x10;
@@ -2928,7 +2938,7 @@ mod test {
 
     #[test]
     fn test_sub_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x95); // SUB L
         cpu.registers.a = 0x00;
         cpu.registers.l = 0x00;
@@ -2940,7 +2950,7 @@ mod test {
 
     #[test]
     fn test_sub_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x96); // SUB Indirect_HL
         cpu.registers.a = 0x10;
         cpu.registers.set_hl(0x1234);
@@ -2953,7 +2963,7 @@ mod test {
 
     #[test]
     fn test_sub_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x97); // SUB A
         cpu.registers.a = 0x06;
         cpu.step();
@@ -2964,7 +2974,7 @@ mod test {
 
     #[test]
     fn test_sub_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xD6); // SUB d8
         cpu.bus.write_byte(0x0001, 0x02); // args
         cpu.registers.a = 0x04;
@@ -2976,7 +2986,7 @@ mod test {
 
     #[test]
     fn test_xor_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xA8); // XOR B
         cpu.registers.a = 0x0F;
         cpu.registers.b = 0x05;
@@ -2988,7 +2998,7 @@ mod test {
 
     #[test]
     fn test_xor_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xA9); // XOR C
         cpu.registers.a = 0x0F;
         cpu.registers.c = 0x0F;
@@ -3000,7 +3010,7 @@ mod test {
 
     #[test]
     fn test_xor_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xAA); // XOR D
         cpu.registers.a = 0x05;
         cpu.registers.d = 0x0F;
@@ -3012,7 +3022,7 @@ mod test {
 
     #[test]
     fn test_xor_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xAB); // XOR E
         cpu.registers.a = 0x0E;
         cpu.registers.e = 0x0F;
@@ -3024,7 +3034,7 @@ mod test {
 
     #[test]
     fn test_xor_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xAC); // XOR H
         cpu.registers.a = 0x08;
         cpu.registers.h = 0x0F;
@@ -3036,7 +3046,7 @@ mod test {
 
     #[test]
     fn test_xor_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xAD); // XOR L
         cpu.registers.a = 0x0F;
         cpu.registers.l = 0x08;
@@ -3048,7 +3058,7 @@ mod test {
 
     #[test]
     fn test_xor_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xAE); // XOR Indirect_HL
         cpu.registers.a = 0x0F;
         cpu.registers.set_hl(0x1234);
@@ -3061,7 +3071,7 @@ mod test {
 
     #[test]
     fn test_xor_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xAF); // XOR A
         cpu.registers.a = 0x05;
         cpu.step();
@@ -3072,7 +3082,7 @@ mod test {
 
     #[test]
     fn test_xor_d8() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xEE); // XOR d8
         cpu.bus.write_byte(0x0001, 0x07); // args
         cpu.registers.a = 0x0F;
@@ -3084,7 +3094,7 @@ mod test {
 
     #[test]
     fn test_bit__0_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x46); // BIT _0, Indirect_HL
         cpu.registers.set_hl(0x1234);
@@ -3096,7 +3106,7 @@ mod test {
 
     #[test]
     fn test_bit__0_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x47); // BIT _0, A
         cpu.registers.a = 0x01;
@@ -3107,7 +3117,7 @@ mod test {
 
     #[test]
     fn test_bit__1_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x4E); // BIT _1, Indirect_HL
         cpu.registers.set_hl(0x1234);
@@ -3119,7 +3129,7 @@ mod test {
 
     #[test]
     fn test_bit__1_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x4F); // BIT _1, A
         cpu.registers.a = 0x05;
@@ -3130,7 +3140,7 @@ mod test {
 
     #[test]
     fn test_bit__2_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x56); // BIT _2, Indirect_HL
         cpu.registers.set_hl(0x1234);
@@ -3142,7 +3152,7 @@ mod test {
 
     #[test]
     fn test_bit__2_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x57); // BIT _2, A
         cpu.registers.a = 0x04;
@@ -3153,7 +3163,7 @@ mod test {
 
     #[test]
     fn test_bit__3_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x5E); // BIT _3, Indirect_HL
         cpu.registers.set_hl(0x1234);
@@ -3165,7 +3175,7 @@ mod test {
 
     #[test]
     fn test_bit__3_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x5F); // BIT _3, A
         cpu.registers.a = 0x07;
@@ -3176,7 +3186,7 @@ mod test {
 
     #[test]
     fn test_bit__4_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x66); // BIT _4, Indirect_HL
         cpu.registers.set_hl(0x1234);
@@ -3188,7 +3198,7 @@ mod test {
 
     #[test]
     fn test_bit__4_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x67); // BIT _4, A
         cpu.registers.a = 0xEF;
@@ -3199,7 +3209,7 @@ mod test {
 
     #[test]
     fn test_bit__5_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x6E); // BIT _5, Indirect_HL
         cpu.registers.set_hl(0x1234);
@@ -3211,7 +3221,7 @@ mod test {
 
     #[test]
     fn test_bit__5_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x6F); // BIT _5, A
         cpu.registers.a = 0x20;
@@ -3222,7 +3232,7 @@ mod test {
 
     #[test]
     fn test_bit__6_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x76); // BIT _6, Indirect_HL
         cpu.registers.set_hl(0x1234);
@@ -3234,7 +3244,7 @@ mod test {
 
     #[test]
     fn test_bit__6_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x77); // BIT _6, A
         cpu.registers.a = 0x40;
@@ -3245,7 +3255,7 @@ mod test {
 
     #[test]
     fn test_bit__7_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x7E); // BIT _7, Indirect_HL
         cpu.registers.set_hl(0x1234);
@@ -3257,7 +3267,7 @@ mod test {
 
     #[test]
     fn test_bit__7_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x7F); // BIT _7, A
         cpu.registers.a = 0x7F;
@@ -3268,7 +3278,7 @@ mod test {
 
     #[test]
     fn test_res__0_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x80); // RES _0, B
         cpu.registers.b = 0xFF;
@@ -3280,7 +3290,7 @@ mod test {
 
     #[test]
     fn test_res__1_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x88); // RES _1, B
         cpu.registers.b = 0xFF;
@@ -3292,7 +3302,7 @@ mod test {
 
     #[test]
     fn test_res__2_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x90); // RES _2, B
         cpu.registers.b = 0xFF;
@@ -3304,7 +3314,7 @@ mod test {
 
     #[test]
     fn test_res__3_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x98); // RES _3, B
         cpu.registers.b = 0xFF;
@@ -3316,7 +3326,7 @@ mod test {
 
     #[test]
     fn test_res__4_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0xA0); // RES _4, B
         cpu.registers.b = 0xFF;
@@ -3328,7 +3338,7 @@ mod test {
 
     #[test]
     fn test_res__5_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0xA8); // RES _5, B
         cpu.registers.b = 0xFF;
@@ -3340,7 +3350,7 @@ mod test {
 
     #[test]
     fn test_res__6_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0xB0); // RES _6, B
         cpu.registers.b = 0xFF;
@@ -3352,7 +3362,7 @@ mod test {
 
     #[test]
     fn test_res__7_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0xB8); // RES _7, B
         cpu.registers.b = 0xFF;
@@ -3364,7 +3374,7 @@ mod test {
 
     #[test]
     fn test_set__0_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0xC0); // SET _0, B
         cpu.registers.b = 0x00;
@@ -3376,7 +3386,7 @@ mod test {
 
     #[test]
     fn test_set__1_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0xC8); // SET _1, B
         cpu.registers.b = 0x00;
@@ -3388,7 +3398,7 @@ mod test {
 
     #[test]
     fn test_set__2_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0xD0); // SET _2, B
         cpu.registers.b = 0x00;
@@ -3400,7 +3410,7 @@ mod test {
 
     #[test]
     fn test_set__3_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0xD8); // SET _3, B
         cpu.registers.b = 0x00;
@@ -3412,7 +3422,7 @@ mod test {
 
     #[test]
     fn test_set__4_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0xE0); // SET _4, B
         cpu.registers.b = 0x00;
@@ -3424,7 +3434,7 @@ mod test {
 
     #[test]
     fn test_set__5_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0xE8); // SET _5, B
         cpu.registers.b = 0x00;
@@ -3436,7 +3446,7 @@ mod test {
 
     #[test]
     fn test_set__6_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0xF0); // SET _6, B
         cpu.registers.b = 0x00;
@@ -3448,7 +3458,7 @@ mod test {
 
     #[test]
     fn test_set__7_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0xF8); // SET _7, B
         cpu.registers.b = 0x00;
@@ -3460,7 +3470,7 @@ mod test {
 
     #[test]
     fn test_swap_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x30); // SWAP B
         cpu.registers.b = 0x1F;
@@ -3472,7 +3482,7 @@ mod test {
 
     #[test]
     fn test_swap_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x31); // SWAP C
         cpu.registers.c = 0x2F;
@@ -3484,7 +3494,7 @@ mod test {
 
     #[test]
     fn test_swap_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x32); // SWAP D
         cpu.registers.d = 0x00;
@@ -3496,7 +3506,7 @@ mod test {
 
     #[test]
     fn test_swap_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x33); // SWAP E
         cpu.registers.e = 0x87;
@@ -3508,7 +3518,7 @@ mod test {
 
     #[test]
     fn test_swap_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x34); // SWAP H
         cpu.registers.h = 0x0F;
@@ -3520,7 +3530,7 @@ mod test {
 
     #[test]
     fn test_swap_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x35); // SWAP L
         cpu.registers.l = 0x12;
@@ -3532,7 +3542,7 @@ mod test {
 
     #[test]
     fn test_swap_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x36); // SWAP Indirect_HL
         cpu.registers.set_hl(0x1234);
@@ -3545,7 +3555,7 @@ mod test {
 
     #[test]
     fn test_swap_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x37); // SWAP A
         cpu.registers.a = 0x58;
@@ -3557,7 +3567,7 @@ mod test {
 
     #[test]
     fn test_rl_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x10); // RL B
         cpu.registers.b = 0x80;
@@ -3569,7 +3579,7 @@ mod test {
 
     #[test]
     fn test_rl_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x11); // RL C
         cpu.registers.c = 0x80;
@@ -3582,7 +3592,7 @@ mod test {
 
     #[test]
     fn test_rl_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x12); // RL D
         cpu.registers.d = 0x07;
@@ -3594,7 +3604,7 @@ mod test {
 
     #[test]
     fn test_rl_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x13); // RL E
         cpu.registers.e = 0x08;
@@ -3606,7 +3616,7 @@ mod test {
 
     #[test]
     fn test_rl_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x14); // RL H
         cpu.registers.h = 0xFF;
@@ -3618,7 +3628,7 @@ mod test {
 
     #[test]
     fn test_rl_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x15); // RL L
         cpu.registers.l = 0x00;
@@ -3631,7 +3641,7 @@ mod test {
 
     #[test]
     fn test_rl_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x16); // RL Indirect_HL
         cpu.registers.set_hl(0x1234);
@@ -3644,7 +3654,7 @@ mod test {
 
     #[test]
     fn test_rl_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x17); // RL A
         cpu.registers.a = 0x80;
@@ -3657,7 +3667,7 @@ mod test {
 
     #[test]
     fn test_rla() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x17); // RLA
         cpu.registers.a = 0x80;
         cpu.registers.f.carry = true;
@@ -3669,7 +3679,7 @@ mod test {
 
     #[test]
     fn test_rlc_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x00); // RLC B
         cpu.registers.b = 0x80;
@@ -3681,7 +3691,7 @@ mod test {
 
     #[test]
     fn test_rlc_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x01); // RLC C
         cpu.registers.c = 0x40;
@@ -3693,7 +3703,7 @@ mod test {
 
     #[test]
     fn test_rlc_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x02); // RLC D
         cpu.registers.d = 0x08;
@@ -3705,7 +3715,7 @@ mod test {
 
     #[test]
     fn test_rlc_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x03); // RLC E
         cpu.registers.e = 0x04;
@@ -3717,7 +3727,7 @@ mod test {
 
     #[test]
     fn test_rlc_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x04); // RLC H
         cpu.registers.h = 0x02;
@@ -3729,7 +3739,7 @@ mod test {
 
     #[test]
     fn test_rlc_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x05); // RLC L
         cpu.registers.l = 0x01;
@@ -3741,7 +3751,7 @@ mod test {
 
     #[test]
     fn test_rlc_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x06); // RLC Indirect_HL
         cpu.registers.set_hl(0x1234);
@@ -3754,7 +3764,7 @@ mod test {
 
     #[test]
     fn test_rlc_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x07); // RLC A
         cpu.registers.a = 0x00;
@@ -3766,7 +3776,7 @@ mod test {
 
     #[test]
     fn test_rlca() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x07); // RLCA
         cpu.registers.a = 0x80;
         cpu.step();
@@ -3777,7 +3787,7 @@ mod test {
 
     #[test]
     fn test_rr_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x18); // RR B
         cpu.registers.b = 0x01;
@@ -3789,7 +3799,7 @@ mod test {
 
     #[test]
     fn test_rr_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x19); // RR C
         cpu.registers.c = 0x02;
@@ -3801,7 +3811,7 @@ mod test {
 
     #[test]
     fn test_rr_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x1A); // RR D
         cpu.registers.d = 0x04;
@@ -3813,7 +3823,7 @@ mod test {
 
     #[test]
     fn test_rr_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x1B); // RR E
         cpu.registers.e = 0x08;
@@ -3825,7 +3835,7 @@ mod test {
 
     #[test]
     fn test_rr_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x1C); // RR H
         cpu.registers.h = 0x10;
@@ -3837,7 +3847,7 @@ mod test {
 
     #[test]
     fn test_rr_l() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x1D); // RR L
         cpu.registers.l = 0x20;
@@ -3849,7 +3859,7 @@ mod test {
 
     #[test]
     fn test_rr_indirect_hl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x1E); // RR Indirect_HL
         cpu.registers.set_hl(0x1234);
@@ -3862,7 +3872,7 @@ mod test {
 
     #[test]
     fn test_rr_a() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x1F); // RR A
         cpu.registers.a = 0x80;
@@ -3875,7 +3885,7 @@ mod test {
 
     #[test]
     fn test_rra() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x1F); // RRA
         cpu.registers.a = 0x80;
         cpu.registers.f.carry = true;
@@ -3887,7 +3897,7 @@ mod test {
 
     #[test]
     fn test_rrc_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x08); // RRC B
         cpu.registers.b = 0x01;
@@ -3899,7 +3909,7 @@ mod test {
 
     #[test]
     fn test_rrc_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x09); // RRC C
         cpu.registers.c = 0x02;
@@ -3911,7 +3921,7 @@ mod test {
 
     #[test]
     fn test_rrc_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x0A); // RRC D
         cpu.registers.d = 0x00;
@@ -3923,7 +3933,7 @@ mod test {
 
     #[test]
     fn test_rrca() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x0F); // RRCA
         cpu.registers.a = 0x01;
         cpu.step();
@@ -3934,7 +3944,7 @@ mod test {
 
     #[test]
     fn test_sla_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x20); // SLA B
         cpu.registers.b = 0x80;
@@ -3946,7 +3956,7 @@ mod test {
 
     #[test]
     fn test_sla_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x21); // SLA C
         cpu.registers.c = 0x00;
@@ -3958,7 +3968,7 @@ mod test {
 
     #[test]
     fn test_sla_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x22); // SLA D
         cpu.registers.d = 0x01;
@@ -3970,7 +3980,7 @@ mod test {
 
     #[test]
     fn test_srl_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x38); // SRL B
         cpu.registers.b = 0x01;
@@ -3982,7 +3992,7 @@ mod test {
 
     #[test]
     fn test_srl_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x39); // SRL C
         cpu.registers.c = 0x00;
@@ -3994,7 +4004,7 @@ mod test {
 
     #[test]
     fn test_srl_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x3A); // SRL D
         cpu.registers.d = 0x04;
@@ -4006,7 +4016,7 @@ mod test {
 
     #[test]
     fn test_sra_b() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x28); // SRA B
         cpu.registers.b = 0x80;
@@ -4018,7 +4028,7 @@ mod test {
 
     #[test]
     fn test_sra_c() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x29); // SRA C
         cpu.registers.c = 0x40;
@@ -4030,7 +4040,7 @@ mod test {
 
     #[test]
     fn test_sra_d() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x2A); // SRA D
         cpu.registers.d = 0x00;
@@ -4042,7 +4052,7 @@ mod test {
 
     #[test]
     fn test_sra_e() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x2B); // SRA E
         cpu.registers.e = 0x01;
@@ -4054,7 +4064,7 @@ mod test {
 
     #[test]
     fn test_sra_h() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0xCB);
         cpu.bus.write_byte(0x0001, 0x2C); // SRA H
         cpu.registers.h = 0x82;
@@ -4066,7 +4076,7 @@ mod test {
 
     #[test]
     fn test_ccf_1() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x3F); // CCF
         cpu.registers.f.carry = true;
         cpu.step();
@@ -4076,7 +4086,7 @@ mod test {
 
     #[test]
     fn test_ccf_0() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x3F); // CCF
         cpu.registers.f.carry = false;
         cpu.step();
@@ -4086,7 +4096,7 @@ mod test {
 
     #[test]
     fn test_cpl() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x2F); // CPL
         cpu.registers.a = 0x53;
         cpu.step();
@@ -4097,10 +4107,167 @@ mod test {
 
     #[test]
     fn test_scf() {
-        let mut cpu = CPU::new();
+        let mut cpu = newCPU();
         cpu.bus.write_byte(0x0000, 0x37); // SCF
         cpu.step();
         assert_eq!(cpu.pc, 0x0001);
         assert_eq!(cpu.registers.f, F(false, false, false, true));
+    }
+
+    #[test]
+    fn test_rst__00h() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0xC7); // RST _00H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_rst__08h() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0xCF); // RST _08H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_rst__10h() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0xD7); // RST _10H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_rst__18h() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0xDF); // RST _18H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_rst__20h() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0xE7); // RST _20H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_rst__28h() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0xEF); // RST _28H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_rst__30h() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0xF7); // RST _30H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_rst__38h() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0xFF); // RST _38H
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0001);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ldh_indirect_a8_a() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0xE0); // LDH Indirect_a8, A
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_ldh_a_indirect_a8() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0xF0); // LDH A, Indirect_a8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_jr_r8() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0x18); // JR r8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_jr_nz_r8() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0x20); // JR NZ, r8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_jr_z_r8() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0x28); // JR Z, r8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_jr_nc_r8() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0x30); // JR NC, r8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
+    }
+
+    #[test]
+    fn test_jr_c_r8() {
+        let mut cpu = newCPU();
+        cpu.bus.write_byte(0x0000, 0x38); // JR C, r8
+        cpu.bus.write_byte(0x0001, 0x00); // args
+        cpu.step();
+        // FIXME
+        assert_eq!(cpu.pc, 0x0002);
+        assert_eq!(cpu.registers.f, F(false, false, false, false));
     }
 }
