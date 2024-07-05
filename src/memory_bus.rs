@@ -42,6 +42,12 @@ impl MemoryBus {
             0xFF40 => self.gpu.control = LcdControlRegisters::from(value),
             0xFF41 => self.gpu.status = LcdStatusRegisters::from(value),
             0xFF50 => self.memory[address] = value, // FIXME boot rom bank switch
+            0xFF01 => {
+                // 本当はシリアル通信.
+                // テストROMがここに出力をするので、hook
+                let res = [value, 0x00].iter().map(|&s| s as char).collect::<String>();
+                print!("{}", res);
+            }
             _ => self.memory[address] = value,
         }
     }

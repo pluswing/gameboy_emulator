@@ -42,8 +42,7 @@ fn main() {
             texture.update(None, &screen_state, 160 * 3).unwrap();
             canvas.copy(&texture, None, None).unwrap();
             canvas.present();
-            ::std::thread::sleep(std::time::Duration::new(0, 70_000));
-            println!("STATUS: {:02X}", cpu.bus.read_byte(0xFF01));
+            // ::std::thread::sleep(std::time::Duration::new(0, 70_000));
         }
     }
 }

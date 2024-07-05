@@ -220,7 +220,9 @@ impl CPU {
     }
     fn ret(&mut self, arg0: instruction::RET_Arg_0, flags: instruction::Flags) {
         if arg0.condition(self) {
-            self.pc = self.pop_u16();
+            let pc = self.pop_u16();
+            // 共通処理でPCがbyte数足されるので、それを考慮して引いておく。
+            self.pc = pc.wrapping_sub(1)
         }
         self.update_flags(0, flags);
     }
@@ -428,8 +430,8 @@ impl CPU {
             instruction::RST_Arg_0::_30H => 0x0030,
             instruction::RST_Arg_0::_38H => 0x0038,
         } as u16;
-        // FIXME instruction::RST_Arg_0::_00H指定時におかしくなる？
-        self.pc = addr;
+        self.push_u16(self.pc.wrapping_add(1));
+        self.pc = addr.wrapping_sub(1);
     }
     fn res(
         &mut self,
@@ -672,25 +674,18 @@ impl CPU {
             instruction_byte = self.bus.read_byte(self.pc + 1);
         }
         if let Some(instruction) = instruction::Instruction::from_byte(instruction_byte, prefixed) {
-            let description = format!(
-                "0x{}{:02X}",
-                if prefixed { "CB" } else { "" },
-                instruction_byte
-            );
-            if instruction_byte != 0x00 {
-                println!("{:04X} ==> {}", self.pc, description);
-            }
-            let is_add_pc = match instruction {
-                instruction::Instruction::RST(_, _) => false,
-                instruction::Instruction::RET(_, _) => false,
-                _ => true,
-            };
+            // let description = format!(
+            //     "0x{}{:02X}",
+            //     if prefixed { "CB" } else { "" },
+            //     instruction_byte
+            // );
+            // if instruction_byte != 0x00 {
+            //     println!("{:04X} ==> {}", self.pc, description);
+            // }
             self.execute(instruction);
-            if is_add_pc {
-                self.pc = self
-                    .pc
-                    .wrapping_add(instruction::instruction_bytes(instruction_byte, prefixed));
-            }
+            self.pc = self
+                .pc
+                .wrapping_add(instruction::instruction_bytes(instruction_byte, prefixed));
         } else {
             let description = format!(
                 "0x{}{:02X}",
