@@ -295,7 +295,27 @@ impl CPU {
         self.update_flags(sub, flags);
     }
     fn daa(&mut self, flags: instruction::Flags) {
-        panic!("call DAA");
+        if self.registers.f.subtract {
+            // after an addition, adjust if (half-)carry occurred or if result is out of bounds
+            if self.registers.f.carry || self.registers.a > 0x99 {
+                self.registers.a = self.registers.a.wrapping_add(0x60);
+                self.registers.f.carry = true;
+            }
+            if self.registers.f.half_carry || (self.registers.a & 0x0F) > 0x09 {
+                self.registers.a = self.registers.a.wrapping_add(0x06);
+            }
+        } else {
+            // after a subtraction, only adjust if (half-)carry occurred
+            if self.registers.f.carry {
+                self.registers.a = self.registers.a.wrapping_sub(0x06);
+            }
+            if self.registers.f.half_carry {
+                self.registers.a = self.registers.a.wrapping_sub(0x06);
+            }
+        }
+        // these flags are always updated
+        self.registers.f.zero = self.registers.a == 0; // the usual z flag
+        self.registers.f.half_carry = false; // h flag is always cleared
     }
     fn sbc(
         &mut self,

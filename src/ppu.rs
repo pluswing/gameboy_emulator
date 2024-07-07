@@ -241,14 +241,14 @@ impl GPU {
             let sy = (i / 32) * 8;
             for tx in 0..8 {
                 for ty in 0..8 {
-                    let value = tile[tx][ty];
+                    let value = tile[ty][tx];
                     let color = tile_pixel_value_to_color(value);
                     let x = sx + tx;
                     let y = sy + ty;
-                    if x > 160 || y > 144 {
+                    if x >= 160 || y >= 144 {
                         continue;
                     }
-                    let o = (y * 160 + x) as usize;
+                    let o = ((y * 160 + x) * 3) as usize;
                     self.frame[o] = color[0];
                     self.frame[o + 1] = color[1];
                     self.frame[o + 2] = color[2];
