@@ -295,7 +295,7 @@ impl CPU {
         self.update_flags(sub, flags);
     }
     fn daa(&mut self, flags: instruction::Flags) {
-        if self.registers.f.subtract {
+        if !self.registers.f.subtract {
             // after an addition, adjust if (half-)carry occurred or if result is out of bounds
             if self.registers.f.carry || self.registers.a > 0x99 {
                 self.registers.a = self.registers.a.wrapping_add(0x60);
@@ -307,7 +307,7 @@ impl CPU {
         } else {
             // after a subtraction, only adjust if (half-)carry occurred
             if self.registers.f.carry {
-                self.registers.a = self.registers.a.wrapping_sub(0x06);
+                self.registers.a = self.registers.a.wrapping_sub(0x60);
             }
             if self.registers.f.half_carry {
                 self.registers.a = self.registers.a.wrapping_sub(0x06);

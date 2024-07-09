@@ -18,10 +18,10 @@ fn empty_tile() -> Tile {
 fn tile_pixel_value_to_color(value: TilePixelValue) -> [u8; 3] {
     // TODO 0xFF47を見る必要あり。
     match value {
-        TilePixelValue::Zero => [0, 0, 0],
-        TilePixelValue::One => [85, 85, 85],
-        TilePixelValue::Two => [170, 170, 170],
-        TilePixelValue::Three => [255, 255, 255],
+        TilePixelValue::Zero => [255, 255, 255],
+        TilePixelValue::One => [170, 170, 170],
+        TilePixelValue::Two => [85, 85, 85],
+        TilePixelValue::Three => [0, 0, 0],
     }
 }
 

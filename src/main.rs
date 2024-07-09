@@ -31,7 +31,7 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB24, 160, 144)
         .unwrap();
 
-    let cartridge = Cartridge::new("rom/cpu_instruction_test.gb");
+    let cartridge = Cartridge::new("rom/gb-test-roms/cpu_instrs/individual/04-op r,imm.gb");
     let mut cpu = CPU::new(cartridge);
 
     loop {
