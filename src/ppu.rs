@@ -143,7 +143,7 @@ impl std::convert::From<u8> for LcdStatusRegisters {
     }
 }
 
-pub struct GPU {
+pub struct PPU {
     vram: [u8; VRAM_SIZE],
     pub ly: u8,  // 0xFF44
     pub lyc: u8, // 0xFF45 (LY compare)
@@ -153,11 +153,12 @@ pub struct GPU {
     tile_set: [Tile; 384],
     scanline_counter: u16,
     pub frame: [u8; 160 * 3 * 144],
+    pub frame_updated: bool,
 }
 
-impl GPU {
+impl PPU {
     pub fn new() -> Self {
-        GPU {
+        PPU {
             vram: [0; VRAM_SIZE],
             ly: 0,
             lyc: 0,
@@ -166,6 +167,7 @@ impl GPU {
             tile_set: [empty_tile(); 384],
             scanline_counter: 0,
             frame: [0 as u8; 160 * 3 * 144],
+            frame_updated: false,
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
@@ -215,6 +217,7 @@ impl GPU {
                 // VBLANKに突入。
                 //   VBRANK割り込み発生させる
                 self.draw_all(); // for test
+                self.frame_updated = true;
             } else if currentline > 153 {
                 // 1フレーム描画完了
                 self.ly = 0;

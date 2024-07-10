@@ -181,7 +181,7 @@ proc writeGetValueFunction(f: File, name: string, list: seq) =
     "Indirect_HLD": "{\nlet value = cpu.bus.read_byte(cpu.registers.get_hl()) as u16;\ncpu.registers.set_hl(cpu.registers.get_hl().wrapping_sub(1));\nvalue\n}",
     "Indirect_C": "cpu.bus.read_byte(0xFF00 | cpu.registers.c as u16) as u16,",
     "d16": "cpu.read_next_word(),",
-    "SP_r8": "{\nlet value = cpu.read_next_byte();\ncpu.sp = cpu.add_e8(cpu.sp, value);\ncpu.sp\n}",
+    "SP_r8": "{\nlet value = cpu.read_next_byte();\ncpu.add_e8(cpu.sp, value)\n}",
     "Indirect_a8": "{\nlet addr = cpu.read_next_byte() as u16;\ncpu.bus.read_byte(addr) as u16\n}",
   }.toTable
 

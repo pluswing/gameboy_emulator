@@ -41,12 +41,12 @@ http://www.codeslinger.co.uk/pages/projects/gameboy.html
 ## test results
 01-special.gb               passed
 02-interrupts.gb            EI #2
-03-op sp,hl.gb              F8 F8
+03-op sp,hl.gb              passed
 04-op r,imm.gb              passed
-05-op rp.gb
-06-ld r,r.gb
-07-jr,jp,call,ret,rst.gb
-08-misc instrs.gb
-09-op r,r.gb
-10-bit ops.gb
-11-op a,(hl).gb
+05-op rp.gb                 passed
+06-ld r,r.gb                passed
+07-jr,jp,call,ret,rst.gb    passed
+08-misc instrs.gb           passed
+09-op r,r.gb                passed
+10-bit ops.gb               passed
+11-op a,(hl).gb             passed

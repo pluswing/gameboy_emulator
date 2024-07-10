@@ -31,14 +31,15 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB24, 160, 144)
         .unwrap();
 
-    let cartridge = Cartridge::new("rom/gb-test-roms/cpu_instrs/individual/04-op r,imm.gb");
+    let cartridge = Cartridge::new("rom/gb-test-roms/cpu_instrs/individual/02-interrupts.gb");
     let mut cpu = CPU::new(cartridge);
 
     loop {
         cpu.step();
         handle_user_input(&mut event_pump);
-        if cpu.bus.gpu.ly == 144 {
-            let screen_state = cpu.bus.gpu.frame;
+        if cpu.bus.ppu.frame_updated {
+            cpu.bus.ppu.frame_updated = false;
+            let screen_state = cpu.bus.ppu.frame;
             texture.update(None, &screen_state, 160 * 3).unwrap();
             canvas.copy(&texture, None, None).unwrap();
             canvas.present();

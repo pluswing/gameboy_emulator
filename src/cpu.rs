@@ -3,7 +3,7 @@ use std::env::args_os;
 
 use crate::{
     cartridge::Cartridge,
-    instruction::{self, FlagValue},
+    instruction::{self, FlagValue, Flags},
     memory_bus::MemoryBus,
 };
 
@@ -352,7 +352,21 @@ impl CPU {
         self.update_flags(self.registers.a as u16, flags);
     }
     fn reti(&mut self, flags: instruction::Flags) {
-        panic!("call RETI");
+        self.ei(Flags {
+            zero: FlagValue::NO_CHANGE,
+            subtract: FlagValue::NO_CHANGE,
+            half_carry: FlagValue::NO_CHANGE,
+            carry: FlagValue::NO_CHANGE,
+        });
+        self.ret(
+            instruction::RET_Arg_0::NONE,
+            Flags {
+                zero: FlagValue::NO_CHANGE,
+                subtract: FlagValue::NO_CHANGE,
+                half_carry: FlagValue::NO_CHANGE,
+                carry: FlagValue::NO_CHANGE,
+            },
+        );
     }
     fn nop(&mut self, flags: instruction::Flags) {
         // なにもしない
@@ -718,7 +732,7 @@ impl CPU {
         let cycles = instruction::instruction_cycles(instruction_byte, prefixed);
 
         // self.updateTimers(cyles);
-        self.bus.gpu.update(cycles);
+        self.bus.ppu.update(cycles);
         // self.doInterrupts();
     }
 

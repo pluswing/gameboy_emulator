@@ -1408,8 +1408,7 @@ impl LD_Arg_1 {
             LD_Arg_1::Indirect_C => cpu.bus.read_byte(0xFF00 | cpu.registers.c as u16) as u16,
             LD_Arg_1::SP_r8 => {
                 let value = cpu.read_next_byte();
-                cpu.sp = cpu.add_e8(cpu.sp, value);
-                cpu.sp
+                cpu.add_e8(cpu.sp, value)
             }
             LD_Arg_1::HL => cpu.registers.get_hl(),
             LD_Arg_1::Indirect_a16_8 => {
