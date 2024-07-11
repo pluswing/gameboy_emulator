@@ -120,7 +120,7 @@ pub struct CPU {
     pub sp: u16,
     pub bus: MemoryBus,
     pub is_halted: bool,
-    pub ime_flag: bool, // TODO レジスタ（メモリ）にある？
+    pub ime_flag: bool,
 }
 
 impl CPU {
@@ -733,7 +733,7 @@ impl CPU {
 
         // self.updateTimers(cyles);
         self.bus.ppu.update(cycles);
-        // self.doInterrupts();
+        self.do_interrupts();
     }
 
     pub fn read_next_byte(&mut self) -> u8 {
@@ -759,6 +759,25 @@ impl CPU {
         let msb = self.bus.read_byte(self.sp) as u16;
         self.sp = self.sp.wrapping_add(1);
         (msb << 8) | lsb
+    }
+
+    fn do_interrupts(&mut self) {
+        /*if (m_InteruptMaster == true)
+        {
+          BYTE req = ReadMemory(0xFF0F) ;
+          BYTE enabled = ReadMemory(0xFFFF) ;
+          if (req > 0)
+          {
+            for (int i = 0 ; i < 5; i++)
+            {
+              if (TestBit(req,i) == true)
+              {
+                if (TestBit(enabled,i))
+                  ServiceInterupt(i) ;
+              }
+            }
+          }
+          */
     }
 }
 
