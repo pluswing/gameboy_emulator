@@ -762,22 +762,41 @@ impl CPU {
     }
 
     fn do_interrupts(&mut self) {
-        /*if (m_InteruptMaster == true)
-        {
-          BYTE req = ReadMemory(0xFF0F) ;
-          BYTE enabled = ReadMemory(0xFFFF) ;
-          if (req > 0)
-          {
-            for (int i = 0 ; i < 5; i++)
-            {
-              if (TestBit(req,i) == true)
-              {
-                if (TestBit(enabled,i))
-                  ServiceInterupt(i) ;
-              }
+        if !self.ime_flag {
+            return;
+        }
+
+        let request = self.bus.read_byte(0xFF0F);
+        let enabled = self.bus.read_byte(0xFFFF);
+
+        if request == 0 {
+            return;
+        }
+
+        for i in 0..=4 {
+            let mask = (0x01 << i) as u8;
+            if (request & mask) != 0 && (enabled & mask) != 0 {
+                self.service_interupt(i as u8)
             }
-          }
-          */
+        }
+    }
+
+    fn service_interupt(&mut self, interupt: u8) {
+        self.ime_flag = false;
+        let request = self.bus.read_byte(0xFF0F);
+        let mask = (0x01 << interupt) as u8;
+        self.bus.write_byte(0xFF0F, request & !mask);
+
+        self.push_u16(self.pc);
+
+        self.pc = match interupt {
+            0 => 0x0040,
+            1 => 0x0048,
+            2 => 0x0050,
+            3 => 0x0058,
+            4 => 0x0060,
+            _ => panic!("should not reach."),
+        }
     }
 }
 
