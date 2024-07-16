@@ -121,6 +121,8 @@ pub struct CPU {
     pub bus: MemoryBus,
     pub is_halted: bool,
     pub ime_flag: bool,
+    timer_counter: u32,
+    div_counter: u32,
 }
 
 impl CPU {
@@ -132,6 +134,8 @@ impl CPU {
             bus: MemoryBus::new(cartridge),
             is_halted: false,
             ime_flag: true,
+            timer_counter: 0,
+            div_counter: 0,
         };
         // FIXME BOOT ROMを実行したフラグ的なやつを立てる。
         cpu.bus.write_byte(0xFF50, 1);
@@ -731,7 +735,7 @@ impl CPU {
 
         let cycles = instruction::instruction_cycles(instruction_byte, prefixed);
 
-        // self.updateTimers(cyles);
+        self.update_timers(cycles);
         self.bus.ppu.update(cycles);
         self.do_interrupts();
     }
@@ -766,16 +770,17 @@ impl CPU {
             return;
         }
 
-        let request = self.bus.read_byte(0xFF0F);
-        let enabled = self.bus.read_byte(0xFFFF);
+        let request = self.bus.read_byte(0xFF0F) & self.bus.read_byte(0xFFFF);
 
         if request == 0 {
             return;
         }
 
+        self.is_halted = false;
+
         for i in 0..=4 {
             let mask = (0x01 << i) as u8;
-            if (request & mask) != 0 && (enabled & mask) != 0 {
+            if (request & mask) != 0 {
                 self.service_interupt(i as u8)
             }
         }
@@ -798,6 +803,38 @@ impl CPU {
             _ => panic!("should not reach."),
         }
     }
+
+    fn update_timers(&mut self, cycles: u16) {
+        self.do_div_register(cycles);
+
+        let tmc = self.bus.read_byte(0xFF07);
+        let enabled = tmc & 0x04 != 0;
+        let clock_select = tmc & 0x03;
+        let clock = match clock_select {
+            0x00 => 4096,
+            0x01 => 262144,
+            0x10 => 65536,
+            0x11 => 16384,
+            _ => panic!("should not reach"),
+        };
+
+        if enabled {
+            self.timer_counter += cycles as u32;
+            if self.timer_counter >= clock {
+                self.timer_counter -= clock;
+            }
+            let tima = self.bus.read_byte(0xFF05);
+            if tima == 255 {
+                let tma = self.bus.read_byte(0xFF06);
+                self.bus.write_byte(0xFF05, tma);
+                // request inrerupt (2)
+            } else {
+                self.bus.write_byte(0xFF05, tima + 1);
+            }
+        }
+    }
+
+    fn do_div_register(&mut self, cycles: u16) {}
 }
 
 #[cfg(test)]

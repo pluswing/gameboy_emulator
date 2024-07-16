@@ -40,7 +40,7 @@ http://www.codeslinger.co.uk/pages/projects/gameboy.html
 
 ## test results
 01-special.gb               passed
-02-interrupts.gb            EI #2
+02-interrupts.gb            Timer doesn't work
 03-op sp,hl.gb              passed
 04-op r,imm.gb              passed
 05-op rp.gb                 passed
