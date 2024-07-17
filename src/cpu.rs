@@ -121,8 +121,8 @@ pub struct CPU {
     pub bus: MemoryBus,
     pub is_halted: bool,
     pub ime_flag: bool,
-    timer_counter: u32,
-    div_counter: u32,
+    timer_counter: u16,
+    div_counter: u16,
 }
 
 impl CPU {
@@ -766,10 +766,6 @@ impl CPU {
     }
 
     fn do_interrupts(&mut self) {
-        if !self.ime_flag {
-            return;
-        }
-
         let request = self.bus.read_byte(0xFF0F) & self.bus.read_byte(0xFFFF);
 
         if request == 0 {
@@ -777,6 +773,10 @@ impl CPU {
         }
 
         self.is_halted = false;
+
+        if !self.ime_flag {
+            return;
+        }
 
         for i in 0..=4 {
             let mask = (0x01 << i) as u8;
@@ -804,6 +804,12 @@ impl CPU {
         }
     }
 
+    fn request_interupt(&mut self, id: u16) {
+        let req = self.bus.read_byte(0xFF0F);
+        let req = req & 0x01 << id;
+        self.bus.write_byte(0xFF0F, req);
+    }
+
     fn update_timers(&mut self, cycles: u16) {
         self.do_div_register(cycles);
 
@@ -811,15 +817,15 @@ impl CPU {
         let enabled = tmc & 0x04 != 0;
         let clock_select = tmc & 0x03;
         let clock = match clock_select {
-            0x00 => 4096,
-            0x01 => 262144,
-            0x10 => 65536,
-            0x11 => 16384,
+            0x00 => 4194304 / 4096,
+            0x01 => 4194304 / 262144,
+            0x10 => 4194304 / 65536,
+            0x11 => 4194304 / 16384,
             _ => panic!("should not reach"),
-        };
+        } as u16;
 
         if enabled {
-            self.timer_counter += cycles as u32;
+            self.timer_counter += cycles;
             if self.timer_counter >= clock {
                 self.timer_counter -= clock;
             }
@@ -827,14 +833,22 @@ impl CPU {
             if tima == 255 {
                 let tma = self.bus.read_byte(0xFF06);
                 self.bus.write_byte(0xFF05, tma);
-                // request inrerupt (2)
+                self.request_interupt(2);
             } else {
                 self.bus.write_byte(0xFF05, tima + 1);
             }
         }
     }
 
-    fn do_div_register(&mut self, cycles: u16) {}
+    fn do_div_register(&mut self, cycles: u16) {
+        self.div_counter += cycles;
+        if self.div_counter >= 255 {
+            self.div_counter -= 255;
+            // 0xFF04にwrite_byteすると、必ず0になる仕様なので、
+            // 直接書き込む。
+            self.bus.memory[0xFF04] = self.bus.memory[0xFF04].wrapping_add(1);
+        }
+    }
 }
 
 #[cfg(test)]
