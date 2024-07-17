@@ -200,7 +200,7 @@ impl PPU {
         }
     }
 
-    pub fn update(&mut self, cycles: u16) {
+    pub fn update(&mut self, cycles: u16) -> bool {
         // SetLCDStatus( ) ;
 
         // if (!IsLCDEnabled()) {
@@ -218,6 +218,7 @@ impl PPU {
                 //   VBRANK割り込み発生させる
                 self.draw_all(); // for test
                 self.frame_updated = true;
+                return true;
             } else if currentline > 153 {
                 // 1フレーム描画完了
                 self.ly = 0;
@@ -225,6 +226,7 @@ impl PPU {
                 self.draw_scan_line(currentline);
             }
         }
+        return false;
     }
 
     fn draw_scan_line(&mut self, line: u8) {

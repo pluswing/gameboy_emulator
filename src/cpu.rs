@@ -542,7 +542,7 @@ impl CPU {
         self.registers.f.carry = carry;
     }
     fn stop(&mut self, arg0: instruction::STOP_Arg_0, flags: instruction::Flags) {
-        panic!("call STOP");
+        // FIXME キーボード入力の割り込みが入るまでなにもしない？
     }
     fn ccf(&mut self, flags: instruction::Flags) {
         self.registers.f.carry = !self.registers.f.carry;
@@ -736,7 +736,7 @@ impl CPU {
         let cycles = instruction::instruction_cycles(instruction_byte, prefixed);
 
         self.update_timers(cycles);
-        self.bus.ppu.update(cycles);
+        self.update_graphics(cycles);
         self.do_interrupts();
     }
 
@@ -806,8 +806,14 @@ impl CPU {
 
     fn request_interupt(&mut self, id: u16) {
         let req = self.bus.read_byte(0xFF0F);
-        let req = req & 0x01 << id;
+        let req = req | (0x01 << id);
         self.bus.write_byte(0xFF0F, req);
+    }
+
+    fn update_graphics(&mut self, cycles: u16) {
+        if self.bus.ppu.update(cycles) {
+            self.request_interupt(0); // VBLANK割り込み
+        }
     }
 
     fn update_timers(&mut self, cycles: u16) {
@@ -824,19 +830,22 @@ impl CPU {
             _ => panic!("should not reach"),
         } as u16;
 
-        if enabled {
-            self.timer_counter += cycles;
-            if self.timer_counter >= clock {
-                self.timer_counter -= clock;
-            }
-            let tima = self.bus.read_byte(0xFF05);
-            if tima == 255 {
-                let tma = self.bus.read_byte(0xFF06);
-                self.bus.write_byte(0xFF05, tma);
-                self.request_interupt(2);
-            } else {
-                self.bus.write_byte(0xFF05, tima + 1);
-            }
+        if !enabled {
+            return;
+        }
+        self.timer_counter += cycles;
+        if self.timer_counter < clock {
+            return;
+        }
+        self.timer_counter -= clock;
+
+        let tima = self.bus.read_byte(0xFF05);
+        if tima == 255 {
+            let tma = self.bus.read_byte(0xFF06);
+            self.bus.write_byte(0xFF05, tma);
+            self.request_interupt(2);
+        } else {
+            self.bus.write_byte(0xFF05, tima + 1);
         }
     }
 
