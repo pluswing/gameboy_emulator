@@ -123,6 +123,7 @@ pub struct CPU {
     pub ime_flag: bool,
     timer_counter: u16,
     div_counter: u16,
+    clock_select: u8,
 }
 
 impl CPU {
@@ -136,6 +137,7 @@ impl CPU {
             ime_flag: true,
             timer_counter: 0,
             div_counter: 0,
+            clock_select: 0,
         };
         // FIXME BOOT ROMを実行したフラグ的なやつを立てる。
         cpu.bus.write_byte(0xFF50, 1);
@@ -143,9 +145,6 @@ impl CPU {
     }
 
     fn execute(&mut self, instruction: instruction::Instruction) {
-        if self.is_halted {
-            return;
-        }
         match instruction {
             instruction::Instruction::DEC(arg0, flags) => self.dec(arg0, flags),
             instruction::Instruction::JP(arg0, arg1, flags) => self.jp(arg0, arg1, flags),
@@ -634,8 +633,6 @@ impl CPU {
         self.update_flags(self.registers.a as u16, flags);
     }
     fn ei(&mut self, flags: instruction::Flags) {
-        // FIXME　たぶん 0xFFFF
-        // https://gbdev.io/pandocs/Interrupts.html
         self.ime_flag = true;
     }
 
@@ -706,6 +703,13 @@ impl CPU {
     }
 
     pub fn step(&mut self) {
+        if self.is_halted {
+            self.update_timers(1);
+            self.update_graphics(1);
+            self.do_interupts();
+            return;
+        }
+
         let mut instruction_byte = self.bus.read_byte(self.pc);
         let prefixed = instruction_byte == 0xCB;
         if prefixed {
@@ -734,10 +738,9 @@ impl CPU {
         };
 
         let cycles = instruction::instruction_cycles(instruction_byte, prefixed);
-
         self.update_timers(cycles);
         self.update_graphics(cycles);
-        self.do_interrupts();
+        self.do_interupts();
     }
 
     pub fn read_next_byte(&mut self) -> u8 {
@@ -765,7 +768,7 @@ impl CPU {
         (msb << 8) | lsb
     }
 
-    fn do_interrupts(&mut self) {
+    fn do_interupts(&mut self) {
         let request = self.bus.read_byte(0xFF0F) & self.bus.read_byte(0xFFFF);
 
         if request == 0 {
@@ -829,6 +832,11 @@ impl CPU {
             0x11 => 4194304 / 16384,
             _ => panic!("should not reach"),
         } as u16;
+
+        if self.clock_select != clock_select {
+            self.timer_counter = 0;
+            self.clock_select = clock_select;
+        }
 
         if !enabled {
             return;

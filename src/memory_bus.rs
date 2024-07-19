@@ -48,16 +48,6 @@ impl MemoryBus {
                 let res = [value, 0x00].iter().map(|&s| s as char).collect::<String>();
                 print!("{}", res);
             }
-            // タイマー周り
-            0xFF07 => {
-                // TMC
-                let current = self.memory[0xFF07] & 0x03;
-                let new = value & 0x03;
-                if current != new {
-                    // FIXME: self.timer_counter = 0;
-                }
-                self.memory[address] = value;
-            }
             0xFF04 => {
                 // DIV
                 self.memory[address] = 0;
