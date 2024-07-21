@@ -26,6 +26,7 @@ impl MemoryBus {
             0xFF45 => self.ppu.lyc,
             0xFF40 => u8::from(self.ppu.control),
             0xFF41 => u8::from(self.ppu.status),
+            0xFE00..=0xFE9F => self.ppu.read_oam(address),
             0xFF50 => self.memory[address],
             _ => self.memory[address],
         }
@@ -41,6 +42,7 @@ impl MemoryBus {
             0xFF45 => self.ppu.lyc = value,
             0xFF40 => self.ppu.control = LcdControlRegisters::from(value),
             0xFF41 => self.ppu.status = LcdStatusRegisters::from(value),
+            0xFE00..=0xFE9F => self.ppu.write_oam(address, value),
             0xFF50 => self.memory[address] = value, // FIXME boot rom bank switch
             0xFF01 => {
                 // 本当はシリアル通信.

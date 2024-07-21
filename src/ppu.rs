@@ -143,12 +143,33 @@ impl std::convert::From<u8> for LcdStatusRegisters {
     }
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+struct Sprite {
+    y: u8,
+    x: u8,
+    tile_index: u8,
+    attributes: u8,
+}
+
+impl Sprite {
+    fn new(y: u8, x: u8, tile_index: u8, attributes: u8) -> Self {
+        Sprite {
+            y,
+            x,
+            tile_index,
+            attributes,
+        }
+    }
+}
+
 pub struct PPU {
     vram: [u8; VRAM_SIZE],
     pub ly: u8,  // 0xFF44
     pub lyc: u8, // 0xFF45 (LY compare)
     pub control: LcdControlRegisters,
     pub status: LcdStatusRegisters,
+    oam: [u8; 0xA0],
+    pub sprites: [Sprite; 40],
     // TODO 0xFF47が必要。palette
     tile_set: [Tile; 384],
     scanline_counter: u16,
@@ -160,6 +181,8 @@ impl PPU {
     pub fn new() -> Self {
         PPU {
             vram: [0; VRAM_SIZE],
+            oam: [0; 0xA0],
+            sprites: [Sprite::new(0, 0, 0, 0); 40],
             ly: 0,
             lyc: 0,
             control: LcdControlRegisters::new(),
@@ -198,6 +221,23 @@ impl PPU {
             };
             self.tile_set[tile_index][row_index][pixel_index] = value;
         }
+    }
+
+    pub fn write_oam(&mut self, address: usize, value: u8) {
+        self.oam[address - 0xFE00] = value;
+
+        for n in 0..40 {
+            let i = n * 4;
+            let y = self.oam[i];
+            let x = self.oam[i + 1];
+            let tile_index = self.oam[i + 2];
+            let attributes = self.oam[i + 3];
+            self.sprites[n] = Sprite::new(y, x, tile_index, attributes);
+        }
+    }
+
+    pub fn read_oam(&mut self, address: usize) -> u8 {
+        self.oam[address - 0xFE00]
     }
 
     pub fn update(&mut self, cycles: u16) -> bool {

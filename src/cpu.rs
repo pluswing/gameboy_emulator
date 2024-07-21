@@ -706,7 +706,7 @@ impl CPU {
         if self.is_halted {
             self.update_timers(1);
             self.update_graphics(1);
-            self.do_interupts();
+            self.do_interrupts();
             return;
         }
 
@@ -740,7 +740,7 @@ impl CPU {
         let cycles = instruction::instruction_cycles(instruction_byte, prefixed);
         self.update_timers(cycles);
         self.update_graphics(cycles);
-        self.do_interupts();
+        self.do_interrupts();
     }
 
     pub fn read_next_byte(&mut self) -> u8 {
@@ -768,7 +768,7 @@ impl CPU {
         (msb << 8) | lsb
     }
 
-    fn do_interupts(&mut self) {
+    fn do_interrupts(&mut self) {
         let request = self.bus.read_byte(0xFF0F) & self.bus.read_byte(0xFFFF);
 
         if request == 0 {
@@ -784,20 +784,20 @@ impl CPU {
         for i in 0..=4 {
             let mask = (0x01 << i) as u8;
             if (request & mask) != 0 {
-                self.service_interupt(i as u8)
+                self.service_interrupt(i as u8)
             }
         }
     }
 
-    fn service_interupt(&mut self, interupt: u8) {
+    fn service_interrupt(&mut self, interrupt: u8) {
         self.ime_flag = false;
         let request = self.bus.read_byte(0xFF0F);
-        let mask = (0x01 << interupt) as u8;
+        let mask = (0x01 << interrupt) as u8;
         self.bus.write_byte(0xFF0F, request & !mask);
 
         self.push_u16(self.pc);
 
-        self.pc = match interupt {
+        self.pc = match interrupt {
             0 => 0x0040,
             1 => 0x0048,
             2 => 0x0050,
@@ -807,7 +807,7 @@ impl CPU {
         }
     }
 
-    fn request_interupt(&mut self, id: u16) {
+    fn request_interrupt(&mut self, id: u16) {
         let req = self.bus.read_byte(0xFF0F);
         let req = req | (0x01 << id);
         self.bus.write_byte(0xFF0F, req);
@@ -815,7 +815,7 @@ impl CPU {
 
     fn update_graphics(&mut self, cycles: u16) {
         if self.bus.ppu.update(cycles) {
-            self.request_interupt(0); // VBLANK割り込み
+            self.request_interrupt(0); // VBLANK割り込み
         }
     }
 
@@ -851,7 +851,7 @@ impl CPU {
         if tima == 255 {
             let tma = self.bus.read_byte(0xFF06);
             self.bus.write_byte(0xFF05, tma);
-            self.request_interupt(2);
+            self.request_interrupt(2);
         } else {
             self.bus.write_byte(0xFF05, tima + 1);
         }
