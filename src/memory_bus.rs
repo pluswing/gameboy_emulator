@@ -43,6 +43,7 @@ impl MemoryBus {
             0xFF40 => self.ppu.control = LcdControlRegisters::from(value),
             0xFF41 => self.ppu.status = LcdStatusRegisters::from(value),
             0xFE00..=0xFE9F => self.ppu.write_oam(address, value),
+            0xFF46 => self.do_dma_transfer(value),
             0xFF50 => self.memory[address] = value, // FIXME boot rom bank switch
             0xFF01 => {
                 // 本当はシリアル通信.
@@ -63,5 +64,14 @@ impl MemoryBus {
     }
     pub fn read_word(&mut self, address: u16) -> u16 {
         return self.read_byte(address) as u16 | (self.read_byte(address + 1) as u16) << 8;
+    }
+
+    pub fn do_dma_transfer(&mut self, value: u8) {
+        let address = (value as u16) << 8;
+        for i in 0x00..=0x9F {
+            let value = self.read_byte(address + i);
+            self.write_byte(0xFE00 + i, value);
+        }
+        // TODO 160サイクルかかる
     }
 }

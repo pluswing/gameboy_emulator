@@ -36,6 +36,7 @@ http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
 https://gekkio.fi/files/gb-docs/gbctr.pdf
 https://github.com/akatsuki105/gb-docs-ja/tree/main
 http://www.codeslinger.co.uk/pages/projects/gameboy.html
+https://hackmd.io/@anqou/HJcvRrwy9
 
 
 ## test results

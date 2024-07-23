@@ -232,7 +232,10 @@ impl PPU {
             let x = self.oam[i + 1];
             let tile_index = self.oam[i + 2];
             let attributes = self.oam[i + 3];
-            self.sprites[n] = Sprite::new(y, x, tile_index, attributes);
+            self.sprites[n].y = y;
+            self.sprites[n].x = x;
+            self.sprites[n].tile_index = tile_index;
+            self.sprites[n].attributes = attributes;
         }
     }
 
