@@ -169,7 +169,7 @@ pub struct PPU {
     pub control: LcdControlRegisters,
     pub status: LcdStatusRegisters,
     oam: [u8; 0xA0],
-    pub sprites: [Sprite; 40],
+    sprites: [Sprite; 40],
     // TODO 0xFF47が必要。palette
     tile_set: [Tile; 384],
     scanline_counter: u16,
@@ -279,6 +279,8 @@ impl PPU {
 
     fn draw_all(&mut self) {
         // self.frame を全書き換えする
+
+        // draw background
         // $9800-$9BFF のデータを見て、どのタイルがどこに配置されるかを計算する
         for addr in 0x9800..=0x9BFF {
             let addr = addr as usize - VRAM_BEGIN;
@@ -293,6 +295,34 @@ impl PPU {
                     let color = tile_pixel_value_to_color(value);
                     let x = sx + tx;
                     let y = sy + ty;
+                    if x >= 160 || y >= 144 {
+                        continue;
+                    }
+                    let o = ((y * 160 + x) * 3) as usize;
+                    self.frame[o] = color[0];
+                    self.frame[o + 1] = color[1];
+                    self.frame[o + 2] = color[2];
+                }
+            }
+        }
+
+        // draw sprites
+        for sprite in self.sprites {
+            let sx = sprite.x as usize;
+            let sy = sprite.y as usize;
+            let tile = self.tile_set[sprite.tile_index as usize];
+            let attribute = sprite.attributes;
+            let priority = (attribute & 0x80) != 0;
+            let y_flip = (attribute & 0x40) != 0;
+            let x_flip = (attribute & 0x20) != 0;
+            let palette = (attribute & 0x10) >> 4;
+
+            for tx in 0..8 {
+                for ty in 0..8 {
+                    let value = tile[ty][tx];
+                    let color = tile_pixel_value_to_color(value);
+                    let x = sx + tx + 8;
+                    let y = sy + ty + 16;
                     if x >= 160 || y >= 144 {
                         continue;
                     }

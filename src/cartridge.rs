@@ -2,6 +2,7 @@ use std::fs::{self, File};
 use std::io::Read;
 
 use crate::mapper::mbc1::MBC1;
+use crate::mapper::nombc::NoMBC;
 use crate::mapper::Mapper;
 
 enum RomSize {
@@ -43,8 +44,8 @@ impl Cartridge {
         println!("{:02X?}", &raw[0x0147..=0x0149]);
 
         let mapper = match raw[0x0147] {
-            0x00 => Mapper::NoMBC,
-            0x01 => Mapper::MBC1,
+            0x00 => Mapper::NoMBC(NoMBC::new()),
+            0x01 => Mapper::MBC1(MBC1::new()),
             _ => panic!("unsupported cartridge type."),
         };
 
@@ -80,7 +81,7 @@ impl Cartridge {
     pub fn for_test() -> Self {
         Cartridge {
             raw: vec![0; 0x8000 as usize],
-            mapper: Mapper::NoMBC,
+            mapper: Mapper::NoMBC(NoMBC::new()),
             rom_size: RomSize::Bank2,
             ram_size: RamSize::No,
         }
