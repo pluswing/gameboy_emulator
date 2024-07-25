@@ -162,12 +162,25 @@ impl Sprite {
     }
 }
 
+pub enum PPUInterrupt {
+    NONE,
+    VBALNK,
+    LYC,
+}
+
 pub struct PPU {
     vram: [u8; VRAM_SIZE],
     pub ly: u8,  // 0xFF44
     pub lyc: u8, // 0xFF45 (LY compare)
     pub control: LcdControlRegisters,
     pub status: LcdStatusRegisters,
+    pub scy: u8,  // $FF42
+    pub scx: u8,  // $FF43
+    pub bgp: u8,  // $FF47
+    pub obp0: u8, // $FF48
+    pub obp1: u8, // $FF49
+    pub wy: u8,   // $FF4A
+    pub wx: u8,   // $FF4B
     oam: [u8; 0xA0],
     sprites: [Sprite; 40],
     // TODO 0xFF47が必要。palette
@@ -187,6 +200,13 @@ impl PPU {
             lyc: 0,
             control: LcdControlRegisters::new(),
             status: LcdStatusRegisters::new(),
+            scy: 0,
+            scx: 0,
+            bgp: 0,
+            obp0: 0,
+            obp1: 0,
+            wy: 0,
+            wx: 0,
             tile_set: [empty_tile(); 384],
             scanline_counter: 0,
             frame: [0 as u8; 160 * 3 * 144],
@@ -243,7 +263,7 @@ impl PPU {
         self.oam[address - 0xFE00]
     }
 
-    pub fn update(&mut self, cycles: u16) -> bool {
+    pub fn update(&mut self, cycles: u16) -> PPUInterrupt {
         // SetLCDStatus( ) ;
 
         // if (!IsLCDEnabled()) {
@@ -261,15 +281,17 @@ impl PPU {
                 //   VBRANK割り込み発生させる
                 self.draw_all(); // for test
                 self.frame_updated = true;
-                return true;
+                return PPUInterrupt::VBALNK;
             } else if currentline > 153 {
                 // 1フレーム描画完了
                 self.ly = 0;
             } else if currentline <= 144 {
                 self.draw_scan_line(currentline);
+            } else if self.ly == self.lyc {
+                return PPUInterrupt::LYC; // FIXME VBLANKと同時発生できない
             }
         }
-        return false;
+        return PPUInterrupt::NONE;
     }
 
     fn draw_scan_line(&mut self, line: u8) {
@@ -308,8 +330,8 @@ impl PPU {
 
         // draw sprites
         for sprite in self.sprites {
-            let sx = sprite.x as usize;
-            let sy = sprite.y as usize;
+            let sx = sprite.x as i32;
+            let sy = sprite.y as i32;
             let tile = self.tile_set[sprite.tile_index as usize];
             let attribute = sprite.attributes;
             let priority = (attribute & 0x80) != 0;
@@ -321,9 +343,9 @@ impl PPU {
                 for ty in 0..8 {
                     let value = tile[ty][tx];
                     let color = tile_pixel_value_to_color(value);
-                    let x = sx + tx + 8;
-                    let y = sy + ty + 16;
-                    if x >= 160 || y >= 144 {
+                    let x = sx + (tx as i32) - 8;
+                    let y = sy + (ty as i32) - 16;
+                    if x < 0 || x >= 160 || y < 0 || y >= 144 {
                         continue;
                     }
                     let o = ((y * 160 + x) * 3) as usize;

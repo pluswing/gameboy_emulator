@@ -5,6 +5,7 @@ use crate::{
     cartridge::Cartridge,
     instruction::{self, FlagValue, Flags},
     memory_bus::MemoryBus,
+    ppu::PPUInterrupt,
 };
 
 pub struct Registers {
@@ -814,8 +815,10 @@ impl CPU {
     }
 
     fn update_graphics(&mut self, cycles: u16) {
-        if self.bus.ppu.update(cycles) {
-            self.request_interrupt(0); // VBLANK割り込み
+        match self.bus.ppu.update(cycles) {
+            PPUInterrupt::NONE => {}
+            PPUInterrupt::VBALNK => self.request_interrupt(0),
+            PPUInterrupt::LYC => self.request_interrupt(1),
         }
     }
 
