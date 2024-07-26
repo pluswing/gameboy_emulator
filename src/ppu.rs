@@ -176,6 +176,7 @@ pub struct PPU {
     pub status: LcdStatusRegisters,
     pub scy: u8,  // $FF42
     pub scx: u8,  // $FF43
+    pub dma: u8,  // $FF46
     pub bgp: u8,  // $FF47
     pub obp0: u8, // $FF48
     pub obp1: u8, // $FF49
@@ -202,6 +203,7 @@ impl PPU {
             status: LcdStatusRegisters::new(),
             scy: 0,
             scx: 0,
+            dma: 0,
             bgp: 0,
             obp0: 0,
             obp1: 0,
@@ -264,12 +266,12 @@ impl PPU {
     }
 
     pub fn update(&mut self, cycles: u16) -> PPUInterrupt {
-        // SetLCDStatus( ) ;
-
-        // if (!IsLCDEnabled()) {
-        //   return
-        //  }
         self.scanline_counter += cycles;
+        self.set_lcd_status();
+
+        if !self.control.enabled {
+            return PPUInterrupt::NONE;
+        }
 
         if self.scanline_counter >= 456 {
             // 1ライン描画した
@@ -292,6 +294,10 @@ impl PPU {
             }
         }
         return PPUInterrupt::NONE;
+    }
+
+    fn set_lcd_status(&mut self) {
+        // TODO
     }
 
     fn draw_scan_line(&mut self, line: u8) {
