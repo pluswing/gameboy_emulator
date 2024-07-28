@@ -15,8 +15,7 @@ fn empty_tile() -> Tile {
     [[TilePixelValue::Zero; 8]; 8]
 }
 
-fn tile_pixel_value_to_color(value: TilePixelValue) -> [u8; 3] {
-    // TODO 0xFF47を見る必要あり。
+fn tile_pixel_value_to_color(value: TilePixelValue, palette: u8) -> [u8; 3] {
     match value {
         TilePixelValue::Zero => [255, 255, 255],
         TilePixelValue::One => [170, 170, 170],
@@ -165,7 +164,7 @@ impl Sprite {
 pub enum PPUInterrupt {
     NONE,
     VBALNK,
-    LYC,
+    LCD,
 }
 
 pub struct PPU {
@@ -267,7 +266,8 @@ impl PPU {
 
     pub fn update(&mut self, cycles: u16) -> PPUInterrupt {
         self.scanline_counter += cycles;
-        self.set_lcd_status();
+        // FIXME VBLANKと同時発生時におかしくなるかも。
+        let interrupt = self.set_lcd_status();
 
         if !self.control.enabled {
             return PPUInterrupt::NONE;
@@ -289,15 +289,62 @@ impl PPU {
                 self.ly = 0;
             } else if currentline <= 144 {
                 self.draw_scan_line(currentline);
-            } else if self.ly == self.lyc {
-                return PPUInterrupt::LYC; // FIXME VBLANKと同時発生できない
             }
         }
-        return PPUInterrupt::NONE;
+        return interrupt;
     }
 
-    fn set_lcd_status(&mut self) {
-        // TODO
+    fn set_lcd_status(&mut self) -> PPUInterrupt {
+        if !self.control.enabled {
+            self.scanline_counter = 0;
+            self.ly = 0;
+            self.status.ppu_mode = 1;
+            return PPUInterrupt::NONE;
+        }
+
+        let currentline = self.ly;
+        let currentmode = self.status.ppu_mode;
+
+        let mut mode = 0;
+        let mut reqInt = false;
+
+        if currentline >= 144 {
+            mode = 1;
+            self.status.ppu_mode = 1;
+            reqInt = self.status.mode1_int_select;
+        } else {
+            let mode2bounds = 80;
+            let mode3bounds = 80 + 172;
+
+            if self.scanline_counter < mode2bounds {
+                mode = 2;
+                self.status.ppu_mode = 2;
+                reqInt = self.status.mode2_int_select;
+            } else if self.scanline_counter < mode3bounds {
+                mode = 3;
+                self.status.ppu_mode = 3;
+            } else {
+                mode = 0;
+                self.status.ppu_mode = 0;
+                reqInt = self.status.mode0_int_select;
+            }
+        }
+
+        let mut interrupt = PPUInterrupt::NONE;
+
+        if reqInt && (mode != currentmode) {
+            interrupt = PPUInterrupt::LCD;
+        }
+
+        if self.ly == self.lyc {
+            self.status.lyc_eq_ly = true;
+            if self.status.lyc_int_select {
+                interrupt = PPUInterrupt::LCD;
+            }
+        } else {
+            self.status.lyc_eq_ly = false;
+        }
+        return interrupt;
     }
 
     fn draw_scan_line(&mut self, line: u8) {
@@ -320,7 +367,7 @@ impl PPU {
             for tx in 0..8 {
                 for ty in 0..8 {
                     let value = tile[ty][tx];
-                    let color = tile_pixel_value_to_color(value);
+                    let color = tile_pixel_value_to_color(value, self.bgp);
                     let x = sx + tx;
                     let y = sy + ty;
                     if x >= 160 || y >= 144 {

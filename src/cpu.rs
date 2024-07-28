@@ -818,7 +818,7 @@ impl CPU {
         match self.bus.ppu.update(cycles) {
             PPUInterrupt::NONE => {}
             PPUInterrupt::VBALNK => self.request_interrupt(0),
-            PPUInterrupt::LYC => self.request_interrupt(1),
+            PPUInterrupt::LCD => self.request_interrupt(1),
         }
     }
 

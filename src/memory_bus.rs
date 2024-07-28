@@ -77,6 +77,10 @@ impl MemoryBus {
         self.write_byte(address + 1, (value >> 8) as u8);
     }
 
+    pub fn read_word(&mut self, address: u16) -> u16 {
+        return self.read_byte(address) as u16 | (self.read_byte(address + 1) as u16) << 8;
+    }
+
     pub fn do_dma_transfer(&mut self, value: u8) {
         self.ppu.dma = value;
         let address = (value as u16) << 8;
