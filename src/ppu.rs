@@ -16,11 +16,22 @@ fn empty_tile() -> Tile {
 }
 
 fn tile_pixel_value_to_color(value: TilePixelValue, palette: u8) -> [u8; 3] {
+    let value = match value {
+        TilePixelValue::Zero => (palette & 0x03) >> 0,
+        TilePixelValue::One => (palette & 0x0C) >> 2,
+        TilePixelValue::Two => (palette & 0x30) >> 4,
+        TilePixelValue::Three => (palette & 0xC0) >> 6,
+    };
+    get_color(value)
+}
+
+fn get_color(value: u8) -> [u8; 3] {
     match value {
-        TilePixelValue::Zero => [255, 255, 255],
-        TilePixelValue::One => [170, 170, 170],
-        TilePixelValue::Two => [85, 85, 85],
-        TilePixelValue::Three => [0, 0, 0],
+        0b00 => [255, 255, 255],
+        0b01 => [170, 170, 170],
+        0b10 => [85, 85, 85],
+        0b11 => [0, 0, 0],
+        _ => panic!("should not reach"),
     }
 }
 
@@ -370,6 +381,19 @@ impl PPU {
                     let color = tile_pixel_value_to_color(value, self.bgp);
                     let x = sx + tx;
                     let y = sy + ty;
+
+                    // scx, scyの値を元に、LCD上の位置を特定する。
+                    // FIXME はみ出た部分の描画処理
+                    if x < self.scx as usize {
+                        continue;
+                    }
+                    let x = x - self.scx as usize;
+
+                    if y < self.scy as usize {
+                        continue;
+                    }
+                    let y = y - self.scy as usize;
+
                     if x >= 160 || y >= 144 {
                         continue;
                     }
@@ -395,7 +419,12 @@ impl PPU {
             for tx in 0..8 {
                 for ty in 0..8 {
                     let value = tile[ty][tx];
-                    let color = tile_pixel_value_to_color(value);
+                    let color = tile_pixel_value_to_color(
+                        value,
+                        if palette == 0 { self.obp0 } else { self.obp1 },
+                    );
+                    let tx = if x_flip { 7 - tx } else { tx };
+                    let ty = if y_flip { 7 - ty } else { ty };
                     let x = sx + (tx as i32) - 8;
                     let y = sy + (ty as i32) - 16;
                     if x < 0 || x >= 160 || y < 0 || y >= 144 {
