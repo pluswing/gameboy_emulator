@@ -2,6 +2,10 @@ pub const VRAM_BEGIN: usize = 0x8000;
 pub const VRAM_END: usize = 0x9FFF;
 pub const VRAM_SIZE: usize = VRAM_END - VRAM_BEGIN + 1;
 
+const LCD_WIDTH: usize = 160;
+const LCD_HEIGHT: usize = 144;
+const BACKGROUND_SIZE: usize = 255;
+
 #[derive(Copy, Clone, Debug)]
 enum TilePixelValue {
     Zero,
@@ -383,27 +387,33 @@ impl PPU {
                     let y = sy + ty;
 
                     // scx, scyの値を元に、LCD上の位置を特定する。
-                    // FIXME はみ出た部分の描画処理
-                    if x < self.scx as usize {
-                        continue;
-                    }
-                    let x = x - self.scx as usize;
+                    // FIXME X位置がたぶん２タイル分ずれている。
+                    let x = if x < self.scx as usize {
+                        x + BACKGROUND_SIZE
+                    } else {
+                        x
+                    } - self.scx as usize;
 
-                    if y < self.scy as usize {
-                        continue;
-                    }
-                    let y = y - self.scy as usize;
+                    let y = if y < self.scy as usize {
+                        y + BACKGROUND_SIZE
+                    } else {
+                        y
+                    } - self.scy as usize;
 
-                    if x >= 160 || y >= 144 {
+                    if x >= LCD_WIDTH || y >= LCD_HEIGHT {
                         continue;
                     }
-                    let o = ((y * 160 + x) * 3) as usize;
+                    let o = ((y * LCD_WIDTH + x) * 3) as usize;
                     self.frame[o] = color[0];
                     self.frame[o + 1] = color[1];
                     self.frame[o + 2] = color[2];
                 }
             }
         }
+
+        // TODO ウインドウの描画
+        // ウインドウの表示開始位置は、 WX、 WY レジスタでそれぞれ指定します。
+        // 画面上の左上の位置は、 WX -7, WY で表されます (7 ピクセル分ずれます)。
 
         // draw sprites
         for sprite in self.sprites {
