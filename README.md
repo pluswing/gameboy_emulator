@@ -51,3 +51,9 @@ https://hackmd.io/@anqou/HJcvRrwy9
 09-op r,r.gb                passed
 10-bit ops.gb               passed
 11-op a,(hl).gb             passed
+
+## cartridge types
+Dragon Quest Monsters - Terry no Wonderland (Japan) (SGB Enhanced) (GB Compatible).gbc: [03, 06, 02]
+Kaeru no Tame ni Kane wa Naru (Japan).gb: [03, 04, 02]
+Super Mario Land 2 - 6-tsu no Kinka (Japan) (Rev 2).gb: [03, 04, 02]
+Zelda no Densetsu - Yume o Miru Shima (Japan): 03

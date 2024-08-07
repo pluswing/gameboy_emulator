@@ -289,6 +289,13 @@ impl PPU {
         }
 
         if self.scanline_counter >= 456 {
+            println!(
+                "LY: {}, SCX: {}, SCY: {}, CONTROL: {:?}",
+                self.ly + 1,
+                self.scx,
+                self.scy,
+                self.control
+            );
             // 1ライン描画した
             self.scanline_counter -= 456;
             self.ly += 1;
@@ -388,6 +395,7 @@ impl PPU {
 
                     // scx, scyの値を元に、LCD上の位置を特定する。
                     // FIXME X位置がたぶん２タイル分ずれている。
+                    //  => draw_scan_line()で1ラインずつ描画しないとダメ。
                     let x = if x < self.scx as usize {
                         x + BACKGROUND_SIZE
                     } else {
@@ -411,9 +419,50 @@ impl PPU {
             }
         }
 
-        // TODO ウインドウの描画
+        // ウインドウの描画
         // ウインドウの表示開始位置は、 WX、 WY レジスタでそれぞれ指定します。
         // 画面上の左上の位置は、 WX -7, WY で表されます (7 ピクセル分ずれます)。
+        if self.control.window_enabled && self.wx <= 166 && self.wy <= 143 {
+            let wx: i16 = self.wx as i16 - 7;
+            let wy = self.wy;
+            for addr in 0x9800..=0x9BFF {
+                let addr = addr as usize - VRAM_BEGIN;
+                let index = self.vram[addr] as usize;
+                let tile = self.tile_set[index];
+                let i = addr - 0x1800;
+                let sx = (i % 32) * 8;
+                let sy = (i / 32) * 8;
+                for tx in 0..8 {
+                    for ty in 0..8 {
+                        let value = tile[ty][tx];
+                        let color = tile_pixel_value_to_color(value, self.bgp);
+                        let x = sx + tx;
+                        let y = sy + ty;
+
+                        if x < wx as usize {
+                            continue;
+                        }
+                        if x as i16 - wx < 0 {
+                            continue;
+                        }
+                        let x = x - wx as usize;
+
+                        if y < wy as usize {
+                            continue;
+                        }
+                        let y = y - wy as usize;
+
+                        if x >= LCD_WIDTH || y >= LCD_HEIGHT {
+                            continue;
+                        }
+                        let o = ((y * LCD_WIDTH + x) * 3) as usize;
+                        self.frame[o] = color[0];
+                        self.frame[o + 1] = color[1];
+                        self.frame[o + 2] = color[2];
+                    }
+                }
+            }
+        }
 
         // draw sprites
         for sprite in self.sprites {
