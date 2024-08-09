@@ -289,13 +289,13 @@ impl PPU {
         }
 
         if self.scanline_counter >= 456 {
-            println!(
-                "LY: {}, SCX: {}, SCY: {}, CONTROL: {:?}",
-                self.ly + 1,
-                self.scx,
-                self.scy,
-                self.control
-            );
+            // println!(
+            //     "LY: {}, SCX: {}, SCY: {}, CONTROL: {:?}",
+            //     self.ly + 1,
+            //     self.scx,
+            //     self.scy,
+            //     self.control
+            // );
             // 1ライン描画した
             self.scanline_counter -= 456;
             self.ly += 1;

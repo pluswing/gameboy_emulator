@@ -56,4 +56,7 @@ https://hackmd.io/@anqou/HJcvRrwy9
 Dragon Quest Monsters - Terry no Wonderland (Japan) (SGB Enhanced) (GB Compatible).gbc: [03, 06, 02]
 Kaeru no Tame ni Kane wa Naru (Japan).gb: [03, 04, 02]
 Super Mario Land 2 - 6-tsu no Kinka (Japan) (Rev 2).gb: [03, 04, 02]
-Zelda no Densetsu - Yume o Miru Shima (Japan): 03
+Pocket Monsters - Midori (Japan) (Rev 1) (SGB Enhanced).gb: [03, 04, 03]
+Super Mario Land (World).gb: [01, 01, 00]
+Yu-Gi-Oh! Duel Monsters (Japan) (SGB Enhanced).gb: [03, 05, 02]
+Zelda no Densetsu - Yume o Miru Shima (Japan): [03, 04, 02]

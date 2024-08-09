@@ -36,8 +36,8 @@ fn main() {
 
     loop {
         cpu.step();
-        handle_user_input(&mut event_pump);
         if cpu.bus.ppu.frame_updated {
+            handle_user_input(&mut event_pump);
             cpu.bus.ppu.frame_updated = false;
             let screen_state = cpu.bus.ppu.frame;
             texture.update(None, &screen_state, 160 * 3).unwrap();

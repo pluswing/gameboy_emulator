@@ -718,9 +718,10 @@ impl CPU {
         }
         if let Some(instruction) = instruction::Instruction::from_byte(instruction_byte, prefixed) {
             // let description = format!(
-            //     "0x{}{:02X}",
+            //     "0x{}{:02X}(0x{:02X})",
             //     if prefixed { "CB" } else { "" },
-            //     instruction_byte
+            //     instruction_byte,
+            //     self.read_next_byte(),
             // );
             // if instruction_byte != 0x00 {
             //     println!("{:04X} ==> {}", self.pc, description);
