@@ -36,6 +36,7 @@ impl MemoryBus {
             0xFF4B => self.ppu.wx,
             0xFE00..=0xFE9F => self.ppu.read_oam(address),
             0xFF50 => self.memory[address],
+            0xFF00 => 0x0F, // FIXME joypad
             _ => self.memory[address],
         }
     }
@@ -48,7 +49,7 @@ impl MemoryBus {
             0xFF41 => self.ppu.status = LcdStatusRegisters::from(value),
             0xFF42 => self.ppu.scy = value,
             0xFF43 => self.ppu.scx = value,
-            0xFF44 => panic!("LY is read only!"),
+            0xFF44 => {} // FIXME ドラクエモンスターズで書いてる // panic!("LY is read only!"),
             0xFF45 => self.ppu.lyc = value,
             0xFF46 => self.do_dma_transfer(value),
             0xFF47 => self.ppu.bgp = value,

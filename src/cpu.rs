@@ -830,10 +830,10 @@ impl CPU {
         let enabled = tmc & 0x04 != 0;
         let clock_select = tmc & 0x03;
         let clock = match clock_select {
-            0x00 => 4194304 / 4096,
-            0x01 => 4194304 / 262144,
-            0x10 => 4194304 / 65536,
-            0x11 => 4194304 / 16384,
+            0b00 => 4194304 / 4096,
+            0b01 => 4194304 / 262144,
+            0b10 => 4194304 / 65536,
+            0b11 => 4194304 / 16384,
             _ => panic!("should not reach"),
         } as u16;
 

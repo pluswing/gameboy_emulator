@@ -8,14 +8,19 @@ use crate::mapper::Mapper;
 enum RomSize {
     Bank2, // $00	32 KiB	2 (no banking)
     Bank4, // $01	64 KiB	4
-           // ...
+    Bank8,
+    Bank16,
+    Bank32,
+    Bank64,
+    Bank128,
 }
 
 enum RamSize {
     No,     // $00	0	No RAM
     Unused, // $01	–	Unused 12
     Bank1,  // $02	8 KiB	1 bank
-            // ...
+    Bank4,
+    Bank16,
 }
 
 pub struct Cartridge {
@@ -46,12 +51,19 @@ impl Cartridge {
         let mapper = match raw[0x0147] {
             0x00 => Mapper::NoMBC(NoMBC::new()),
             0x01 => Mapper::MBC1(MBC1::new()),
+            0x02 => Mapper::MBC1(MBC1::new()), // FIXME: + RAM
+            0x03 => Mapper::MBC1(MBC1::new()), // FIXME: + RAM + BATTERY
             _ => panic!("unsupported cartridge type."),
         };
 
         let rom_size = match raw[0x0148] {
             0x00 => RomSize::Bank2,
             0x01 => RomSize::Bank4,
+            0x02 => RomSize::Bank8,
+            0x03 => RomSize::Bank16,
+            0x04 => RomSize::Bank32,
+            0x05 => RomSize::Bank64,
+            0x06 => RomSize::Bank128,
             _ => panic!("unsupported rom size."),
         };
 
@@ -59,6 +71,8 @@ impl Cartridge {
             0x00 => RamSize::No,
             0x01 => RamSize::Unused,
             0x02 => RamSize::Bank1,
+            0x03 => RamSize::Bank4,
+            0x04 => RamSize::Bank16,
             _ => panic!("unsupported ram size."),
         };
 
