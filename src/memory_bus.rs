@@ -63,8 +63,8 @@ impl MemoryBus {
             0xFF01 => {
                 // 本当はシリアル通信.
                 // テストROMがここに出力をするので、hook
-                let res = [value, 0x00].iter().map(|&s| s as char).collect::<String>();
-                print!("{}", res);
+                // let res = [value, 0x00].iter().map(|&s| s as char).collect::<String>();
+                // print!("{}", res);
             }
             0xFF04 => {
                 // DIV
