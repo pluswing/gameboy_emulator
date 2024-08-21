@@ -31,7 +31,7 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB24, 160, 144)
         .unwrap();
 
-    let cartridge = Cartridge::new("rom/dmg-acid2.gb");
+    let cartridge = Cartridge::new("rom/GB/ROM/DQ_MONSTERS/31/Dragon Quest Monsters - Terry no Wonderland (Japan) (SGB Enhanced) (GB Compatible).gbc");
     let mut cpu = CPU::new(cartridge);
 
     loop {

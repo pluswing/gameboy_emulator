@@ -9,17 +9,17 @@ pub enum Mapper {
 }
 
 impl Mapper {
-    pub fn read_byte(&mut self, raw: &Vec<u8>, addr: u16) -> u8 {
+    pub fn read_byte(&mut self, rom: &Vec<u8>, ram: &Vec<u8>, addr: u16) -> u8 {
         match self {
-            Mapper::NoMBC(mapper) => mapper.read_byte(raw, addr),
-            Mapper::MBC1(mapper) => mapper.read_byte(raw, addr),
+            Mapper::NoMBC(mapper) => mapper.read_byte(rom, ram, addr),
+            Mapper::MBC1(mapper) => mapper.read_byte(rom, ram, addr),
         }
     }
 
-    pub fn write_byte(&mut self, raw: &mut Vec<u8>, addr: u16, value: u8) {
+    pub fn write_byte(&mut self, rom: &mut Vec<u8>, ram: &mut Vec<u8>, addr: u16, value: u8) {
         match self {
-            Mapper::NoMBC(mapper) => mapper.write_byte(raw, addr, value),
-            Mapper::MBC1(mapper) => mapper.write_byte(raw, addr, value),
+            Mapper::NoMBC(mapper) => mapper.write_byte(rom, ram, addr, value),
+            Mapper::MBC1(mapper) => mapper.write_byte(rom, ram, addr, value),
         }
     }
 }

@@ -21,7 +21,8 @@ impl MemoryBus {
         let address = address as usize;
         match address {
             0x0000..=0x7FFF => self.cartridge.read_byte(address as u16),
-            VRAM_BEGIN..=VRAM_END => self.ppu.read_vram(address - VRAM_BEGIN),
+            0x8000..=0x9FFF => self.ppu.read_vram(address - VRAM_BEGIN),
+            0xA000..=0xBFFF => self.cartridge.read_byte(address as u16),
             0xFF40 => u8::from(self.ppu.control),
             0xFF41 => u8::from(self.ppu.status),
             0xFF42 => self.ppu.scy,
@@ -44,7 +45,8 @@ impl MemoryBus {
         let address = address as usize;
         match address {
             0x0000..=0x7FFF => self.cartridge.write_byte(address as u16, value),
-            VRAM_BEGIN..=VRAM_END => self.ppu.write_vram(address - VRAM_BEGIN, value),
+            0x8000..=0x9FFF => self.ppu.write_vram(address - VRAM_BEGIN, value),
+            0xA000..=0xBFFF => self.cartridge.write_byte(address as u16, value),
             0xFF40 => self.ppu.control = LcdControlRegisters::from(value),
             0xFF41 => self.ppu.status = LcdStatusRegisters::from(value),
             0xFF42 => self.ppu.scy = value,
