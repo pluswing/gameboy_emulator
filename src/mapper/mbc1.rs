@@ -55,7 +55,7 @@ impl MBC1 {
             0x0000..=0x3FFF => rom[addr as usize],
             // bank1
             0x4000..=0x7FFF => {
-                if !self.is_big_rom(rom) && !self.is_big_ram(ram) {
+                if !self.is_big_rom(rom) && self.is_big_ram(ram) {
                     // カートリッジのROMが1MiB未満で、RAMが8KiBより大きい場合、
                     // secondary_bankの影響を受けない
                     rom[self.bank1_addr(addr)]

@@ -54,15 +54,16 @@ pub struct LcdControlRegisters {
 
 impl LcdControlRegisters {
     pub fn new() -> Self {
+        // 0x91
         LcdControlRegisters {
-            enabled: false,
+            enabled: true,
             window_tile_map: false,
             window_enabled: false,
-            tiles: false,
+            tiles: true,
             bg_tile_map: false,
             obj_size: false,
             obj_enabled: false,
-            bg_window_enabled: false,
+            bg_window_enabled: true,
         }
     }
 }
@@ -379,9 +380,28 @@ impl PPU {
 
         // draw background
         // $9800-$9BFF のデータを見て、どのタイルがどこに配置されるかを計算する
-        for addr in 0x9800..=0x9BFF {
+        // 0: 0x9800..9BFF
+        // 1: 0x9C00..9FFF
+        let range = if self.control.bg_tile_map {
+            0x9C00..=0x9FFF
+        } else {
+            0x9800..=0x9BFF
+        };
+        for addr in range {
             let addr = addr as usize - VRAM_BEGIN;
             let index = self.vram[addr] as usize;
+            // 背景/ウインドウタイルデータ選択
+            // 0: 0x8800..97FF
+            // 1: 0x8000..8FFF
+            let index = if self.control.tiles {
+                index
+            } else {
+                if index < 128 {
+                    index + 256
+                } else {
+                    index
+                }
+            };
             let tile = self.tile_set[index];
             let i = addr - 0x1800;
             let sx = (i % 32) * 8;
