@@ -6,7 +6,7 @@ const LCD_WIDTH: usize = 160;
 const LCD_HEIGHT: usize = 144;
 const BACKGROUND_SIZE: usize = 255;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 enum TilePixelValue {
     Zero,
     One,
@@ -445,9 +445,23 @@ impl PPU {
         if self.control.window_enabled && self.wx <= 166 && self.wy <= 143 {
             let wx: i16 = self.wx as i16 - 7;
             let wy = self.wy;
-            for addr in 0x9800..=0x9BFF {
+            let range = if self.control.window_tile_map {
+                0x9C00..=0x9FFF
+            } else {
+                0x9800..=0x9BFF
+            };
+            for addr in range {
                 let addr = addr as usize - VRAM_BEGIN;
                 let index = self.vram[addr] as usize;
+                let index = if self.control.tiles {
+                    index
+                } else {
+                    if index < 128 {
+                        index + 256
+                    } else {
+                        index
+                    }
+                };
                 let tile = self.tile_set[index];
                 let i = addr - 0x1800;
                 let sx = (i % 32) * 8;
@@ -498,6 +512,9 @@ impl PPU {
             for tx in 0..8 {
                 for ty in 0..8 {
                     let value = tile[ty][tx];
+                    if value == TilePixelValue::Zero {
+                        continue;
+                    }
                     let color = tile_pixel_value_to_color(
                         value,
                         if palette == 0 { self.obp0 } else { self.obp1 },
