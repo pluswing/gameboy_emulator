@@ -377,6 +377,7 @@ impl PPU {
 
     fn draw_all(&mut self) {
         // self.frame を全書き換えする
+        self.frame = [255 as u8; 160 * 3 * 144];
 
         // draw background
         // $9800-$9BFF のデータを見て、どのタイルがどこに配置されるかを計算する

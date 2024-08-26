@@ -1,5 +1,6 @@
 use crate::{
     cartridge::Cartridge,
+    joypad::Joypad,
     ppu::{LcdControlRegisters, LcdStatusRegisters, PPU, VRAM_BEGIN, VRAM_END},
 };
 
@@ -7,6 +8,7 @@ pub struct MemoryBus {
     pub memory: [u8; 0x10000],
     cartridge: Cartridge,
     pub ppu: PPU,
+    pub joypad: Joypad,
 }
 
 impl MemoryBus {
@@ -15,6 +17,7 @@ impl MemoryBus {
             memory: [0; 0x10000],
             cartridge,
             ppu: PPU::new(),
+            joypad: Joypad::new(),
         }
     }
     pub fn read_byte(&mut self, address: u16) -> u8 {
@@ -37,7 +40,7 @@ impl MemoryBus {
             0xFF4B => self.ppu.wx,
             0xFE00..=0xFE9F => self.ppu.read_oam(address),
             0xFF50 => self.memory[address],
-            0xFF00 => 0x0F, // FIXME joypad
+            0xFF00 => self.joypad.read(),
             _ => self.memory[address],
         }
     }
@@ -72,6 +75,7 @@ impl MemoryBus {
                 // DIV
                 self.memory[address] = 0;
             }
+            0xFF00 => self.joypad.write(value),
             _ => self.memory[address] = value,
         }
     }

@@ -1,6 +1,7 @@
 mod cartridge;
 mod cpu;
 mod instruction;
+mod joypad;
 mod mapper;
 mod memory_bus;
 mod ppu;
@@ -31,7 +32,9 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB24, 160, 144)
         .unwrap();
 
-    let cartridge = Cartridge::new("rom/GB/ROM/DQ_MONSTERS/31/Dragon Quest Monsters - Terry no Wonderland (Japan) (SGB Enhanced) (GB Compatible).gbc");
+    let cartridge = Cartridge::new(
+        "rom/GB/ROM/POKEMON GREEN/-1/Pocket Monsters - Midori (Japan) (Rev 1) (SGB Enhanced).gb",
+    );
     let mut cpu = CPU::new(cartridge);
 
     loop {
