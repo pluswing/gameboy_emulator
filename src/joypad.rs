@@ -34,30 +34,32 @@ impl Joypad {
         self.select_action = (value & 0x20) == 0;
     }
 
-    pub fn read(&self) {
-        let mut value = 0x3F
-            + if self.select_direction { -0x10 } else { 0x00 }
-            + if self.select_action { -0x20 } else { 0x00 };
+    pub fn read(&self) -> u8 {
+        let mut value = 0x00
+            | if self.select_direction { 0x00 } else { 0x10 }
+            | if self.select_action { 0x00 } else { 0x20 };
 
         // TODO これはあったほうが良い？
         if self.select_direction && self.select_action {
-            continue;
+            return value;
         }
 
         if self.select_direction {
             value = value
-                + if self.right { -0x01 } else { 0x00 }
-                + if self.left { -0x02 } else { 0x00 }
-                + if self.up { -0x04 } else { 0x00 }
-                + if self.down { -0x08 } else { 0x00 }
+                | if self.right { 0x00 } else { 0x01 }
+                | if self.left { 0x00 } else { 0x02 }
+                | if self.up { 0x00 } else { 0x04 }
+                | if self.down { 0x00 } else { 0x08 }
         }
 
         if self.select_action {
             value = value
-                + if self.a { -0x01 } else { 0x00 }
-                + if self.b { -0x02 } else { 0x00 }
-                + if self.select { -0x04 } else { 0x00 }
-                + if self.start { -0x08 } else { 0x00 }
+                | if self.a { 0x00 } else { 0x01 }
+                | if self.b { 0x00 } else { 0x02 }
+                | if self.select { 0x00 } else { 0x04 }
+                | if self.start { 0x00 } else { 0x08 }
         }
+
+        value
     }
 }

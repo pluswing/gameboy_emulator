@@ -445,7 +445,7 @@ impl PPU {
         // 画面上の左上の位置は、 WX -7, WY で表されます (7 ピクセル分ずれます)。
         if self.control.window_enabled && self.wx <= 166 && self.wy <= 143 {
             let wx: i16 = self.wx as i16 - 7;
-            let wy = self.wy;
+            let wy = self.wy - 16; // FIXME 6つの金貨だとこれが正しいっぽい。
             let range = if self.control.window_tile_map {
                 0x9C00..=0x9FFF
             } else {

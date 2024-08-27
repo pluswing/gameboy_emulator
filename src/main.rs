@@ -8,6 +8,7 @@ mod ppu;
 
 use cartridge::Cartridge;
 use cpu::CPU;
+use joypad::Joypad;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
@@ -32,15 +33,22 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB24, 160, 144)
         .unwrap();
 
-    let cartridge = Cartridge::new(
-        "rom/GB/ROM/POKEMON GREEN/-1/Pocket Monsters - Midori (Japan) (Rev 1) (SGB Enhanced).gb",
-    );
+    let dq = "rom/GB/ROM/DQ_MONSTERS/31/Dragon Quest Monsters - Terry no Wonderland (Japan) (SGB Enhanced) (GB Compatible).gbc";
+    let kaeru = "rom/GB/ROM/KAERUNOTAMENI/35/Kaeru no Tame ni Kane wa Naru (Japan).gb";
+    let kinka = "rom/GB/ROM/MARIOLAND2/34/Super Mario Land 2 - 6-tsu no Kinka (Japan) (Rev 2).gb";
+    let pokemon =
+        "rom/GB/ROM/POKEMON GREEN/-1/Pocket Monsters - Midori (Japan) (Rev 1) (SGB Enhanced).gb";
+    let mario = "rom/GB/ROM/SUPER MARIOLAND/32/Super Mario Land (World).gb";
+    let yugioh = "rom/GB/ROM/YUGIOU/30/Yu-Gi-Oh! Duel Monsters (Japan) (SGB Enhanced).gb";
+    let zelda = "rom/GB/ROM/ZELDA/33/Zelda no Densetsu - Yume o Miru Shima (Japan).gb";
+
+    let cartridge = Cartridge::new(kinka);
     let mut cpu = CPU::new(cartridge);
 
     loop {
         cpu.step();
         if cpu.bus.ppu.frame_updated {
-            handle_user_input(&mut event_pump);
+            handle_user_input(&mut event_pump, &mut cpu.bus.joypad);
             cpu.bus.ppu.frame_updated = false;
             let screen_state = cpu.bus.ppu.frame;
             texture.update(None, &screen_state, 160 * 3).unwrap();
@@ -51,7 +59,7 @@ fn main() {
     }
 }
 
-fn handle_user_input(event_pump: &mut EventPump) {
+fn handle_user_input(event_pump: &mut EventPump, joypad: &mut Joypad) {
     for event in event_pump.poll_iter() {
         match event {
             Event::Quit { .. }
@@ -59,6 +67,80 @@ fn handle_user_input(event_pump: &mut EventPump) {
                 keycode: Some(Keycode::Escape),
                 ..
             } => std::process::exit(0),
+
+            // joypad
+            Event::KeyDown {
+                keycode: Some(Keycode::A),
+                ..
+            } => joypad.a = true,
+            Event::KeyUp {
+                keycode: Some(Keycode::A),
+                ..
+            } => joypad.a = false,
+
+            Event::KeyDown {
+                keycode: Some(Keycode::S),
+                ..
+            } => joypad.b = true,
+            Event::KeyUp {
+                keycode: Some(Keycode::S),
+                ..
+            } => joypad.b = false,
+
+            Event::KeyDown {
+                keycode: Some(Keycode::Return),
+                ..
+            } => joypad.start = true,
+            Event::KeyUp {
+                keycode: Some(Keycode::Return),
+                ..
+            } => joypad.start = false,
+
+            Event::KeyDown {
+                keycode: Some(Keycode::Space),
+                ..
+            } => joypad.select = true,
+            Event::KeyUp {
+                keycode: Some(Keycode::Space),
+                ..
+            } => joypad.select = false,
+
+            Event::KeyDown {
+                keycode: Some(Keycode::Up),
+                ..
+            } => joypad.up = true,
+            Event::KeyUp {
+                keycode: Some(Keycode::Up),
+                ..
+            } => joypad.up = false,
+
+            Event::KeyDown {
+                keycode: Some(Keycode::Down),
+                ..
+            } => joypad.down = true,
+            Event::KeyUp {
+                keycode: Some(Keycode::Down),
+                ..
+            } => joypad.down = false,
+
+            Event::KeyDown {
+                keycode: Some(Keycode::Left),
+                ..
+            } => joypad.left = true,
+            Event::KeyUp {
+                keycode: Some(Keycode::Left),
+                ..
+            } => joypad.left = false,
+
+            Event::KeyDown {
+                keycode: Some(Keycode::Right),
+                ..
+            } => joypad.right = true,
+            Event::KeyUp {
+                keycode: Some(Keycode::Right),
+                ..
+            } => joypad.right = false,
+
             _ => { /* do nothing */ }
         }
     }
