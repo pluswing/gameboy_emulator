@@ -742,6 +742,7 @@ impl CPU {
         let cycles = instruction::instruction_cycles(instruction_byte, prefixed);
         self.update_timers(cycles);
         self.update_graphics(cycles);
+        self.update_audio();
         self.do_interrupts();
     }
 
@@ -821,6 +822,13 @@ impl CPU {
             PPUInterrupt::VBALNK => self.request_interrupt(0),
             PPUInterrupt::LCD => self.request_interrupt(1),
         }
+    }
+
+    fn update_audio(&mut self) {
+        let div = self.bus.memory[0xFF04];
+        let n = div & 0x10;
+        // nが0になったタイミングで処理開始
+        // self.apu.update();
     }
 
     fn update_timers(&mut self, cycles: u16) {
