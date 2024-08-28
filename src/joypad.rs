@@ -39,10 +39,9 @@ impl Joypad {
             | if self.select_direction { 0x00 } else { 0x10 }
             | if self.select_action { 0x00 } else { 0x20 };
 
-        if (self.select_direction && self.select_action)
-            | (!self.select_direction && !self.select_action)
-        {
-            return value | 0x0F;
+        // TODO これはあったほうが良い？
+        if self.select_direction && self.select_action {
+            return value;
         }
 
         if self.select_direction {
