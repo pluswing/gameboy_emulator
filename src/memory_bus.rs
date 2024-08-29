@@ -1,4 +1,7 @@
+use sdl2::audio::AudioQueue;
+
 use crate::{
+    apu::APU,
     cartridge::Cartridge,
     joypad::Joypad,
     ppu::{LcdControlRegisters, LcdStatusRegisters, PPU, VRAM_BEGIN, VRAM_END},
@@ -9,15 +12,17 @@ pub struct MemoryBus {
     cartridge: Cartridge,
     pub ppu: PPU,
     pub joypad: Joypad,
+    pub apu: APU,
 }
 
 impl MemoryBus {
-    pub fn new(cartridge: Cartridge) -> Self {
+    pub fn new(cartridge: Cartridge, device: AudioQueue<f32>) -> Self {
         MemoryBus {
             memory: [0; 0x10000],
             cartridge,
             ppu: PPU::new(),
             joypad: Joypad::new(),
+            apu: APU::new(device),
         }
     }
     pub fn read_byte(&mut self, address: u16) -> u8 {

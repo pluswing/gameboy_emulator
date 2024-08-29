@@ -1,6 +1,8 @@
 use core::panic;
 use std::env::args_os;
 
+use sdl2::audio::AudioQueue;
+
 use crate::{
     cartridge::Cartridge,
     instruction::{self, FlagValue, Flags},
@@ -128,12 +130,12 @@ pub struct CPU {
 }
 
 impl CPU {
-    pub fn new(cartridge: Cartridge) -> Self {
+    pub fn new(cartridge: Cartridge, device: AudioQueue<f32>) -> Self {
         let mut cpu = CPU {
             registers: Registers::new(),
             pc: 0x0100,
             sp: 0xFFFE,
-            bus: MemoryBus::new(cartridge),
+            bus: MemoryBus::new(cartridge, device),
             is_halted: false,
             ime_flag: true,
             timer_counter: 0,
@@ -825,10 +827,7 @@ impl CPU {
     }
 
     fn update_audio(&mut self) {
-        let div = self.bus.memory[0xFF04];
-        let n = div & 0x10;
-        // nが0になったタイミングで処理開始
-        // self.apu.update();
+        self.bus.apu.update(self.bus.memory[0xFF04]);
     }
 
     fn update_timers(&mut self, cycles: u16) {

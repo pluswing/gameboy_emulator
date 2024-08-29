@@ -1,3 +1,4 @@
+mod apu;
 mod cartridge;
 mod cpu;
 mod instruction;
@@ -9,6 +10,7 @@ mod ppu;
 use cartridge::Cartridge;
 use cpu::CPU;
 use joypad::Joypad;
+use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
@@ -33,6 +35,21 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB24, 160, 144)
         .unwrap();
 
+    // init audio
+    let audio_subsystem = sdl_context.audio().unwrap();
+
+    let desired_spec = AudioSpecDesired {
+        freq: Some(44100),
+        channels: Some(2),
+        samples: None, // default sample size
+    };
+
+    let device: AudioQueue<f32> = audio_subsystem
+        .open_queue::<f32, _>(None, &desired_spec)
+        .unwrap();
+    // device.queue_audio(&wave)?;
+    device.resume();
+
     let dq = "rom/GB/ROM/DQ_MONSTERS/31/Dragon Quest Monsters - Terry no Wonderland (Japan) (SGB Enhanced) (GB Compatible).gbc";
     let kaeru = "rom/GB/ROM/KAERUNOTAMENI/35/Kaeru no Tame ni Kane wa Naru (Japan).gb";
     let kinka = "rom/GB/ROM/MARIOLAND2/34/Super Mario Land 2 - 6-tsu no Kinka (Japan) (Rev 2).gb";
@@ -43,7 +60,7 @@ fn main() {
     let zelda = "rom/GB/ROM/ZELDA/33/Zelda no Densetsu - Yume o Miru Shima (Japan).gb";
 
     let cartridge = Cartridge::new(pokemon);
-    let mut cpu = CPU::new(cartridge);
+    let mut cpu = CPU::new(cartridge, device);
 
     loop {
         cpu.step();
