@@ -408,7 +408,12 @@ impl PPU {
                 }
             };
             let tile = self.tile_set[index];
-            let i = addr - 0x1800;
+            let i = addr
+                - if self.control.bg_tile_map {
+                    0x1C00
+                } else {
+                    0x1800
+                };
             let sx = (i % 32) * 8;
             let sy = (i / 32) * 8;
             for tx in 0..8 {
@@ -468,7 +473,12 @@ impl PPU {
                     }
                 };
                 let tile = self.tile_set[index];
-                let i = addr - 0x1800;
+                let i = addr
+                    - if self.control.window_tile_map {
+                        0x1C00
+                    } else {
+                        0x1800
+                    };
                 let sx = (i % 32) * 8;
                 let sy = (i / 32) * 8;
                 for tx in 0..8 {

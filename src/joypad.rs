@@ -35,7 +35,7 @@ impl Joypad {
     }
 
     pub fn read(&self) -> u8 {
-        let mut value = 0x00
+        let mut value = 0xC0
             | if self.select_direction { 0x00 } else { 0x10 }
             | if self.select_action { 0x00 } else { 0x20 };
 
