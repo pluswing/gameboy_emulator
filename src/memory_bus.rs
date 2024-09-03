@@ -81,6 +81,20 @@ impl MemoryBus {
                 self.memory[address] = 0;
             }
             0xFF00 => self.joypad.write(value),
+
+            // APU
+            // 0xFF26 => NR52 // self.apu.master.write(value)
+            // 0xFF25 => NR51
+            // 0xFF24 => NR50
+            // CH1
+            // 0xFF10 => NR10
+            // 0xFF11 => NR11
+            // 0xFF12 => NR12
+            // 0xFF13 => NR13
+            // 0xFF14 => NR14
+            // self.apu.ch1.write(value)
+            // CH2
+            // ...
             _ => self.memory[address] = value,
         }
     }
