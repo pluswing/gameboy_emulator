@@ -81,17 +81,17 @@ impl Global {
             ch2_power: false,
             ch3_power: false,
             ch4_power: false,
-            ch1_right: false,
-            ch1_left: false,
-            ch2_right: false,
-            ch2_left: false,
-            ch3_right: false,
-            ch3_left: false,
-            ch4_right: false,
             ch4_left: false,
+            ch3_left: false,
+            ch2_left: false,
+            ch1_left: false,
+            ch4_right: false,
+            ch3_right: false,
+            ch2_right: false,
+            ch1_right: false,
             vin_left: false,
-            vin_right: false,
             left_volume: 0,
+            vin_right: false,
             right_volume: 0,
         }
     }
@@ -106,10 +106,49 @@ impl Global {
                 self.ch1_power = value & 0x01 != 0;
             }
             0xFF25 => {
-                // TODO
+                self.ch4_left = value & 0x80 != 0;
+                self.ch3_left = value & 0x40 != 0;
+                self.ch2_left = value & 0x20 != 0;
+                self.ch1_left = value & 0x10 != 0;
+                self.ch4_right = value & 0x08 != 0;
+                self.ch3_right = value & 0x04 != 0;
+                self.ch2_right = value & 0x02 != 0;
+                self.ch1_right = value & 0x01 != 0;
             }
             0xFF24 => {
-                // TODO
+                self.vin_left = value & 0x80 != 0;
+                self.left_volume = (value & 0x70) >> 4;
+                self.vin_right = value & 0x08 != 0;
+                self.right_volume = value & 0x07;
+            }
+            _ => panic!("should not reach"),
+        }
+    }
+
+    pub fn read(&self, address: u16) -> u8 {
+        match address {
+            0xFF26 => {
+                (if self.power { 1 } else { 0 }) << 7
+                    | (if self.ch4_power { 1 } else { 0 }) << 3
+                    | (if self.ch3_power { 1 } else { 0 }) << 2
+                    | (if self.ch2_power { 1 } else { 0 }) << 1
+                    | (if self.ch1_power { 1 } else { 0 }) << 0
+            }
+            0xFF25 => {
+                (if self.ch4_left { 1 } else { 0 }) << 7
+                    | (if self.ch3_left { 1 } else { 0 }) << 6
+                    | (if self.ch2_left { 1 } else { 0 }) << 5
+                    | (if self.ch1_left { 1 } else { 0 }) << 4
+                    | (if self.ch4_right { 1 } else { 0 }) << 3
+                    | (if self.ch3_right { 1 } else { 0 }) << 2
+                    | (if self.ch2_right { 1 } else { 0 }) << 1
+                    | (if self.ch1_right { 1 } else { 0 }) << 0
+            }
+            0xFF24 => {
+                (if self.vin_left { 1 } else { 0 }) << 7
+                    | self.left_volume << 4
+                    | (if self.vin_right { 1 } else { 0 }) << 3
+                    | self.right_volume
             }
             _ => panic!("should not reach"),
         }
@@ -159,16 +198,47 @@ impl Ch1 {
                 self.individual_step = value & 0x07;
             }
             0xFF11 => {
-                // TODO
+                self.duty = (value & 0xC0) >> 6;
+                self.initial_length = value & 0x3F;
             }
             0xFF12 => {
-                // TODO
+                self.initial_volume = (value & 0xF0) >> 4;
+                self.env_dir = (value & 0x08) != 0;
+                self.sweep_pace = value & 0x07;
             }
             0xFF13 => {
-                // TODO
+                self.period = (self.period & 0xFF00) | value as u16;
             }
             0xFF14 => {
-                // TODO
+                self.trigger = (value & 0x80) != 0;
+                self.length_enable = (value & 0x40) != 0;
+                self.period = (self.period & 0x00FF) | ((value as u16) << 8);
+            }
+            _ => panic!("should not reach"),
+        }
+    }
+
+    pub fn read(&self, address: u16) -> u8 {
+        match address {
+            0xFF10 => {
+                self.pace << 4 | (if self.direction { 1 } else { 0 }) << 3 | self.individual_step
+            }
+            0xFF11 => {
+                // self.duty = (value & 0xC0) >> 6;
+                // self.initial_length = value & 0x3F;
+            }
+            0xFF12 => {
+                // self.initial_volume = (value & 0xF0) >> 4;
+                // self.env_dir = (value & 0x08) != 0;
+                // self.sweep_pace = value & 0x07;
+            }
+            0xFF13 => {
+                // self.period = (self.period & 0xFF00) | value as u16;
+            }
+            0xFF14 => {
+                // self.trigger = (value & 0x80) != 0;
+                // self.length_enable = (value & 0x40) != 0;
+                // self.period = (self.period & 0x00FF) | ((value as u16) << 8);
             }
             _ => panic!("should not reach"),
         }
