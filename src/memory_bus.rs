@@ -83,16 +83,9 @@ impl MemoryBus {
             0xFF00 => self.joypad.write(value),
 
             // APU
-            // 0xFF26 => NR52 // self.apu.master.write(value)
-            // 0xFF25 => NR51
-            // 0xFF24 => NR50
+            0xFF26 | 0xFF25 | 0xFF24 => self.apu.global.write(address as u16, value),
             // CH1
-            // 0xFF10 => NR10
-            // 0xFF11 => NR11
-            // 0xFF12 => NR12
-            // 0xFF13 => NR13
-            // 0xFF14 => NR14
-            // self.apu.ch1.write(value)
+            0xFF10 | 0xFF11 | 0xFF12 | 0xFF13 | 0xFF14 => self.apu.ch1.write(address as u16, value),
             // CH2
             // ...
             _ => self.memory[address] = value,
