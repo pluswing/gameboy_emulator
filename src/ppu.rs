@@ -204,6 +204,8 @@ pub struct PPU {
     scanline_counter: u16,
     pub frame: [u8; 160 * 3 * 144],
     pub frame_updated: bool,
+    pub bg1: [u8; 256 * 3 * 256],
+    pub bg2: [u8; 256 * 3 * 256],
 }
 
 impl PPU {
@@ -228,6 +230,8 @@ impl PPU {
             scanline_counter: 0,
             frame: [0 as u8; 160 * 3 * 144],
             frame_updated: false,
+            bg1: [0 as u8; 256 * 3 * 256],
+            bg2: [0 as u8; 256 * 3 * 256],
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
@@ -380,6 +384,9 @@ impl PPU {
     }
 
     fn draw_all(&mut self) {
+        self.draw_bg(true);
+        self.draw_bg(false);
+
         // self.frame を全書き換えする
         self.frame = [255 as u8; 160 * 3 * 144];
 
@@ -545,6 +552,44 @@ impl PPU {
                     self.frame[o] = color[0];
                     self.frame[o + 1] = color[1];
                     self.frame[o + 2] = color[2];
+                }
+            }
+        }
+    }
+
+    fn draw_bg(&mut self, bg1: bool) {
+        let frame = if bg1 { &mut self.bg1 } else { &mut self.bg2 };
+        let range = if bg1 {
+            0x9800..=0x9BFF
+        } else {
+            0x9C00..=0x9FFF
+        };
+        for addr in range {
+            let addr = addr as usize - VRAM_BEGIN;
+            let index = self.vram[addr] as usize;
+            let index = if self.control.tiles {
+                index
+            } else {
+                if index < 128 {
+                    index + 256
+                } else {
+                    index
+                }
+            };
+            let tile = self.tile_set[index];
+            let i = addr - if bg1 { 0x1800 } else { 0x1C00 };
+            let sx = (i % 32) * 8;
+            let sy = (i / 32) * 8;
+            for tx in 0..8 {
+                for ty in 0..8 {
+                    let value = tile[ty][tx];
+                    let color = tile_pixel_value_to_color(value, self.bgp);
+                    let x = sx + tx;
+                    let y = sy + ty;
+                    let o = ((y * 256 + x) * 3) as usize;
+                    frame[o] = color[0];
+                    frame[o + 1] = color[1];
+                    frame[o + 2] = color[2];
                 }
             }
         }

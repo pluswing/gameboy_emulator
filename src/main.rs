@@ -14,6 +14,7 @@ use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
+use sdl2::video::Window;
 use sdl2::EventPump;
 
 fn main() {
@@ -33,6 +34,31 @@ fn main() {
     let creator = canvas.texture_creator();
     let mut texture = creator
         .create_texture_target(PixelFormatEnum::RGB24, 160, 144)
+        .unwrap();
+
+    let scale = 1;
+    let bg1_window = video_subsystem
+        .window("BG1", 256 * scale as u32, 256 * scale as u32)
+        .position_centered()
+        .build()
+        .unwrap();
+    let mut bg1_canvas = bg1_window.into_canvas().present_vsync().build().unwrap();
+    bg1_canvas.set_scale(scale as f32, scale as f32).unwrap();
+    let bg1_creator = bg1_canvas.texture_creator();
+    let mut bg1_texture = bg1_creator
+        .create_texture_target(PixelFormatEnum::RGB24, 256, 256)
+        .unwrap();
+
+    let bg2_window = video_subsystem
+        .window("BG2", 256 * scale as u32, 256 * scale as u32)
+        .position_centered()
+        .build()
+        .unwrap();
+    let mut bg2_canvas = bg2_window.into_canvas().present_vsync().build().unwrap();
+    bg2_canvas.set_scale(scale as f32, scale as f32).unwrap();
+    let bg2_creator = bg2_canvas.texture_creator();
+    let mut bg2_texture = bg2_creator
+        .create_texture_target(PixelFormatEnum::RGB24, 256, 256)
         .unwrap();
 
     // init audio
@@ -71,6 +97,14 @@ fn main() {
             texture.update(None, &screen_state, 160 * 3).unwrap();
             canvas.copy(&texture, None, None).unwrap();
             canvas.present();
+
+            bg1_texture.update(None, &cpu.bus.ppu.bg1, 256 * 3).unwrap();
+            bg1_canvas.copy(&bg1_texture, None, None).unwrap();
+            bg1_canvas.present();
+
+            bg2_texture.update(None, &cpu.bus.ppu.bg2, 256 * 3).unwrap();
+            bg2_canvas.copy(&bg2_texture, None, None).unwrap();
+            bg2_canvas.present();
             // ::std::thread::sleep(std::time::Duration::new(0, 70_000));
         }
     }
