@@ -37,7 +37,8 @@ https://gekkio.fi/files/gb-docs/gbctr.pdf
 https://github.com/akatsuki105/gb-docs-ja/tree/main
 http://www.codeslinger.co.uk/pages/projects/gameboy.html
 https://hackmd.io/@anqou/HJcvRrwy9
-
+https://dic.nicovideo.jp/a/gb%E9%9F%B3%E6%BA%90
+https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Register_Reading
 
 ## test results
 01-special.gb               passed

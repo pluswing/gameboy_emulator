@@ -48,6 +48,8 @@ impl MemoryBus {
             0xFF00 => self.joypad.read(),
             // APU
             0xFF26 | 0xFF25 | 0xFF24 => self.apu.global.read(address as u16),
+            // CH1
+            0xFF10 | 0xFF11 | 0xFF12 | 0xFF13 | 0xFF14 => self.apu.ch1.read(address as u16),
             _ => self.memory[address],
         }
     }
