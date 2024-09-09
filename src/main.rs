@@ -61,6 +61,9 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB24, 256, 256)
         .unwrap();
 
+    bg1_canvas.window_mut().hide();
+    bg2_canvas.window_mut().hide();
+
     // init audio
     let audio_subsystem = sdl_context.audio().unwrap();
 
@@ -73,7 +76,27 @@ fn main() {
     let device: AudioQueue<f32> = audio_subsystem
         .open_queue::<f32, _>(None, &desired_spec)
         .unwrap();
-    // device.queue_audio(&wave)?;
+    //
+
+    // let target_bytes = device.spec().freq * device.spec().channels as i32 * 2; // 秒
+    // let period_left = device.spec().freq / 256;
+    // let period_right = device.spec().freq / 512;
+    // let mut wave = Vec::new();
+    // for x in 0..target_bytes / 2 {
+    //     wave.push(if (x / period_left) % 2 == 0 {
+    //         0.02
+    //     } else {
+    //         -0.02
+    //     });
+    //     wave.push(if (x / period_right) % 2 == 0 {
+    //         0.02
+    //     } else {
+    //         -0.02
+    //     });
+    // }
+    // device.queue_audio(&wave).unwrap();
+    // println!("TB: {}, SIZE: {}", target_bytes, device.size() / 4);
+
     device.resume();
 
     let dq = "rom/GB/ROM/DQ_MONSTERS/31/Dragon Quest Monsters - Terry no Wonderland (Japan) (SGB Enhanced) (GB Compatible).gbc";
