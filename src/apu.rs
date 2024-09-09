@@ -99,19 +99,43 @@ impl Global {
         self.nr52 & 0x01 != 0
     }
 
-    // self.ch4_left = value & 0x80 != 0;
-    // self.ch3_left = value & 0x40 != 0;
-    // self.ch2_left = value & 0x20 != 0;
-    // self.ch1_left = value & 0x10 != 0;
-    // self.ch4_right = value & 0x08 != 0;
-    // self.ch3_right = value & 0x04 != 0;
-    // self.ch2_right = value & 0x02 != 0;
-    // self.ch1_right = value & 0x01 != 0;
+    pub fn ch4_left(&self) -> bool {
+        self.nr51 & 0x80 != 0
+    }
+    pub fn ch3_left(&self) -> bool {
+        self.nr51 & 0x40 != 0
+    }
+    pub fn ch2_left(&self) -> bool {
+        self.nr51 & 0x20 != 0
+    }
+    pub fn ch1_left(&self) -> bool {
+        self.nr51 & 0x10 != 0
+    }
+    pub fn ch4_right(&self) -> bool {
+        self.nr51 & 0x08 != 0
+    }
+    pub fn ch3_right(&self) -> bool {
+        self.nr51 & 0x04 != 0
+    }
+    pub fn ch2_right(&self) -> bool {
+        self.nr51 & 0x02 != 0
+    }
+    pub fn ch1_right(&self) -> bool {
+        self.nr51 & 0x01 != 0
+    }
 
-    // self.vin_left = value & 0x80 != 0;
-    // self.left_volume = (value & 0x70) >> 4;
-    // self.vin_right = value & 0x08 != 0;
-    // self.right_volume = value & 0x07;
+    pub fn vin_left(&self) -> bool {
+        self.nr50 & 0x80 != 0
+    }
+    pub fn left_volume(&self) -> u8 {
+        (self.nr50 & 0x70) >> 4
+    }
+    pub fn vin_right(&self) -> bool {
+        self.nr50 & 0x08 != 0
+    }
+    pub fn right_volume(&self) -> u8 {
+        self.nr50 & 0x07
+    }
 
     pub fn read(&mut self, address: u16) -> u8 {
         match address {
@@ -163,22 +187,42 @@ impl Ch1 {
         }
     }
 
-    // self.pace = (value & 0x70) >> 4;
-    // self.direction = value & 0x08 != 0;
-    // self.individual_step = value & 0x07;
+    pub fn pace(&self) -> u8 {
+        (self.nr10 & 0x70) >> 4
+    }
+    pub fn direction(&self) -> bool {
+        self.nr10 & 0x08 != 0
+    }
+    pub fn individual_step(&self) -> u8 {
+        self.nr10 & 0x07
+    }
 
-    // self.duty = (value & 0xC0) >> 6;
-    // self.initial_length = value & 0x3F;
+    pub fn duty(&self) -> u8 {
+        (self.nr11 & 0xC0) >> 6
+    }
+    pub fn initial_length(&self) -> u8 {
+        self.nr11 & 0x3F
+    }
 
-    // self.initial_volume = (value & 0xF0) >> 4;
-    // self.env_dir = (value & 0x08) != 0;
-    // self.sweep_pace = value & 0x07;
+    pub fn initial_volume(&self) -> u8 {
+        (self.nr12 & 0xF0) >> 4
+    }
+    pub fn env_dir(&self) -> bool {
+        self.nr12 & 0x08 != 0
+    }
+    pub fn sweep_pace(&self) -> u8 {
+        self.nr12 & 0x07
+    }
 
-    // self.period = (self.period & 0xFF00) | value as u16;
-
-    // self.trigger = (value & 0x80) != 0;
-    // self.length_enable = (value & 0x40) != 0;
-    // self.period = (self.period & 0x00FF) | ((value as u16) << 8);
+    pub fn trigger(&self) -> bool {
+        self.nr14 & 0x80 != 0
+    }
+    pub fn length_enable(&self) -> bool {
+        self.nr14 & 0x40 != 0
+    }
+    pub fn period(&self) -> u16 {
+        ((self.nr14 & 0x07) as u16) << 8 | self.nr13 as u16
+    }
 
     pub fn read(&self, address: u16) -> u8 {
         match address {
