@@ -1,5 +1,7 @@
 use sdl2::audio::AudioQueue;
 
+const MASTER_VOLUME: f32 = 0.02;
+
 pub struct APU {
     prev_div: u8,
     counter: u8,
@@ -45,7 +47,34 @@ impl APU {
             // TODO エンベロープ スイープ
         }
 
-        // device.queue_audio(&wave)?;
+        let freq = self.device.spec().freq;
+        let must_add = freq / 512; // 絶対に作らないといけないサイズ
+        let max_buffer_size = freq / 60 * 6; // 6フレーム
+        let min_buffer_size = freq / 60 * 3; // 3フレーム
+        let curret_buffer_size = self.device.size() as i32 / 4 / 2; // f32=4byte, 2 channle
+
+        if curret_buffer_size > max_buffer_size {
+            return;
+        }
+
+        let add_size = if curret_buffer_size < min_buffer_size {
+            curret_buffer_size - min_buffer_size
+        } else {
+            must_add
+        };
+
+        let mut wave = Vec::with_capacity(add_size as usize);
+        for _ in 0..add_size {
+            let ch1 = self.ch1.next(freq) * MASTER_VOLUME;
+
+            // left
+            wave.push(ch1);
+
+            // right
+            wave.push(ch1);
+        }
+
+        self.device.queue_audio(&wave).unwrap();
     }
 }
 
@@ -164,6 +193,8 @@ pub struct Ch1 {
     nr13: u8,
     // 0xFF14
     nr14: u8,
+
+    phase: f32,
 }
 
 impl Ch1 {
@@ -174,6 +205,7 @@ impl Ch1 {
             nr12: 0xF3,
             nr13: 0xFF,
             nr14: 0xBF,
+            phase: 0.0,
         }
     }
     pub fn write(&mut self, address: u16, value: u8) {
@@ -232,6 +264,17 @@ impl Ch1 {
             0xFF13 => self.nr13 | 0xFF,
             0xFF14 => self.nr14 | 0xBF,
             _ => panic!("should not reach"),
+        }
+    }
+
+    pub fn next(&mut self, frequency: i32) -> f32 {
+        let hz = 131072 as f32 / (2048.0 - self.period() as f32);
+        self.phase = (self.phase + (hz / frequency as f32)) % 1.0;
+        // FIXME duty比=50%
+        if self.phase > 0.5 {
+            1.0
+        } else {
+            0.0
         }
     }
 }
