@@ -40,6 +40,7 @@ impl APU {
 
         if self.counter % 4 == 0 {
             // TODO CH1周波数スイープ
+            self.ch1.tick_sweep();
         }
 
         if self.counter == 8 {
@@ -58,12 +59,12 @@ impl APU {
         }
 
         let add_size = if curret_buffer_size < min_buffer_size {
-            curret_buffer_size - min_buffer_size
+            min_buffer_size - curret_buffer_size
         } else {
             must_add
         };
 
-        let mut wave = Vec::with_capacity(add_size as usize);
+        let mut wave = Vec::with_capacity(add_size as usize * 2);
         for _ in 0..add_size {
             let ch1 = self.ch1.next(freq) * MASTER_VOLUME;
 
@@ -182,6 +183,16 @@ impl Global {
     }
 }
 
+fn duty(duty: u8) -> f32 {
+    match duty {
+        0b00 => 0.125,
+        0b01 => 0.25,
+        0b10 => 0.50,
+        0b11 => 0.75,
+        _ => panic!("invalid duty {}", duty),
+    }
+}
+
 pub struct Ch1 {
     // 0xFF10
     nr10: u8,
@@ -195,6 +206,8 @@ pub struct Ch1 {
     nr14: u8,
 
     phase: f32,
+    sweep_pace: u8,
+    sweep_period: u16,
 }
 
 impl Ch1 {
@@ -206,6 +219,7 @@ impl Ch1 {
             nr13: 0xFF,
             nr14: 0xBF,
             phase: 0.0,
+            sweep_pace: 0,
         }
     }
     pub fn write(&mut self, address: u16, value: u8) {
@@ -267,11 +281,24 @@ impl Ch1 {
         }
     }
 
+    pub fn tick_sweep(&mut self) {
+        self.sweep_pace += 1;
+        if self.sweep_pace >= self.pace() {
+            self.sweep_pace = 0;
+            if self.direction() {
+                // 1= 減算
+                // self.sweep_period -= self.individual_step()
+            } else {
+                // 0= 加算
+                // self.sweep_period += self.individual_step()
+            }
+        }
+    }
+
     pub fn next(&mut self, frequency: i32) -> f32 {
-        let hz = 131072 as f32 / (2048.0 - self.period() as f32);
+        let hz = 131072.0 / (2048.0 - self.period() as f32);
         self.phase = (self.phase + (hz / frequency as f32)) % 1.0;
-        // FIXME duty比=50%
-        if self.phase > 0.5 {
+        if self.phase > duty(self.duty()) {
             1.0
         } else {
             0.0
