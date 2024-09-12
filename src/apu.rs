@@ -46,6 +46,7 @@ impl APU {
         if self.counter == 8 {
             self.counter = 0;
             // TODO エンベロープ スイープ
+            self.ch1.tick_envelope();
         }
 
         let freq = self.device.spec().freq;
@@ -86,6 +87,11 @@ pub struct Global {
     nr51: u8,
     // 0xFF24
     nr50: u8,
+
+    ch1_power: bool,
+    ch2_power: bool,
+    ch3_power: bool,
+    ch4_power: bool,
 }
 
 impl Global {
@@ -94,6 +100,11 @@ impl Global {
             nr52: 0xF1,
             nr51: 0xF3,
             nr50: 0x77,
+
+            ch1_power: true,
+            ch2_power: false,
+            ch3_power: false,
+            ch4_power: false,
         }
     }
 
@@ -115,20 +126,6 @@ impl Global {
     pub fn power(&self) -> bool {
         self.nr52 & 0x80 != 0
     }
-
-    pub fn ch4_power(&self) -> bool {
-        self.nr52 & 0x08 != 0
-    }
-    pub fn ch3_power(&self) -> bool {
-        self.nr52 & 0x04 != 0
-    }
-    pub fn ch2_power(&self) -> bool {
-        self.nr52 & 0x02 != 0
-    }
-    pub fn ch1_power(&self) -> bool {
-        self.nr52 & 0x01 != 0
-    }
-
     pub fn ch4_left(&self) -> bool {
         self.nr51 & 0x80 != 0
     }
@@ -171,10 +168,10 @@ impl Global {
         match address {
             0xFF26 => {
                 (self.power() as u8) << 7
-                    | (self.ch4_power() as u8) << 3
-                    | (self.ch3_power() as u8) << 2
-                    | (self.ch2_power() as u8) << 1
-                    | (self.ch1_power() as u8) << 0
+                    | (self.ch4_power as u8) << 3
+                    | (self.ch3_power as u8) << 2
+                    | (self.ch2_power as u8) << 1
+                    | (self.ch1_power as u8) << 0
             }
             0xFF25 => self.nr51,
             0xFF24 => self.nr50,
@@ -207,7 +204,7 @@ pub struct Ch1 {
 
     phase: f32,
     sweep_pace: u8,
-    sweep_period: u16,
+    current_period: u16,
 }
 
 impl Ch1 {
@@ -220,6 +217,7 @@ impl Ch1 {
             nr14: 0xBF,
             phase: 0.0,
             sweep_pace: 0,
+            current_period: 0,
         }
     }
     pub fn write(&mut self, address: u16, value: u8) {
@@ -227,8 +225,14 @@ impl Ch1 {
             0xFF10 => self.nr10 = value,
             0xFF11 => self.nr11 = value,
             0xFF12 => self.nr12 = value,
-            0xFF13 => self.nr13 = value,
-            0xFF14 => self.nr14 = value,
+            0xFF13 => {
+                self.nr13 = value;
+                self.current_period = self.period();
+            }
+            0xFF14 => {
+                self.nr14 = value;
+                self.current_period = self.period();
+            }
             _ => panic!("should not reach"),
         }
     }
@@ -282,21 +286,37 @@ impl Ch1 {
     }
 
     pub fn tick_sweep(&mut self) {
+        if self.pace() == 0 {
+            self.sweep_pace = 0;
+            return;
+        }
         self.sweep_pace += 1;
         if self.sweep_pace >= self.pace() {
             self.sweep_pace = 0;
             if self.direction() {
-                // 1= 減算
-                // self.sweep_period -= self.individual_step()
+                // 1 = 減算
+                self.current_period =
+                    self.current_period - self.current_period >> self.individual_step()
             } else {
-                // 0= 加算
-                // self.sweep_period += self.individual_step()
+                // 0 = 加算
+                self.current_period =
+                    self.current_period + self.current_period >> self.individual_step()
             }
+
+            if self.current_period > 0x7FF {
+                // TODO チャンネルをOFFにする
+                //  -> globalのch1_powerをfalseにする
+            }
+            // TODO current_periodがマイナスになる場合。
         }
     }
 
+    pub fn tick_envelope(&mut self) {
+        // TODO
+    }
+
     pub fn next(&mut self, frequency: i32) -> f32 {
-        let hz = 131072.0 / (2048.0 - self.period() as f32);
+        let hz = 131072.0 / (2048.0 - self.current_period as f32);
         self.phase = (self.phase + (hz / frequency as f32)) % 1.0;
         if self.phase > duty(self.duty()) {
             1.0
