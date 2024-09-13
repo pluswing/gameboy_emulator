@@ -190,6 +190,10 @@ fn duty(duty: u8) -> f32 {
     }
 }
 
+fn volume(volume: u8) -> f32 {
+    volume as f32 / 0x0F as f32
+}
+
 pub struct Ch1 {
     // 0xFF10
     nr10: u8,
@@ -203,8 +207,12 @@ pub struct Ch1 {
     nr14: u8,
 
     phase: f32,
+    // sweep
     sweep_pace: u8,
     current_period: u16,
+    // envelope
+    volume: u8,
+    envelope_pace: u8,
 }
 
 impl Ch1 {
@@ -218,13 +226,18 @@ impl Ch1 {
             phase: 0.0,
             sweep_pace: 0,
             current_period: 0,
+            volume: 0,
+            envelope_pace: 0,
         }
     }
     pub fn write(&mut self, address: u16, value: u8) {
         match address {
             0xFF10 => self.nr10 = value,
             0xFF11 => self.nr11 = value,
-            0xFF12 => self.nr12 = value,
+            0xFF12 => {
+                self.nr12 = value;
+                self.volume = self.initial_volume();
+            }
             0xFF13 => {
                 self.nr13 = value;
                 self.current_period = self.period();
@@ -295,33 +308,61 @@ impl Ch1 {
             self.sweep_pace = 0;
             if self.direction() {
                 // 1 = 減算
-                self.current_period =
-                    self.current_period - self.current_period >> self.individual_step()
+                self.current_period = self
+                    .current_period
+                    .wrapping_sub(self.current_period >> self.individual_step())
             } else {
                 // 0 = 加算
-                self.current_period =
-                    self.current_period + self.current_period >> self.individual_step()
+                self.current_period = self
+                    .current_period
+                    .wrapping_add(self.current_period >> self.individual_step())
             }
 
             if self.current_period > 0x7FF {
                 // TODO チャンネルをOFFにする
                 //  -> globalのch1_powerをfalseにする
+                // 一旦仮置き
+                self.current_period = self.period();
             }
-            // TODO current_periodがマイナスになる場合。
         }
     }
 
     pub fn tick_envelope(&mut self) {
-        // TODO
+        if self.sweep_pace() == 0 {
+            self.envelope_pace = 0;
+            return;
+        }
+
+        if self.initial_volume() == 0 && !self.env_dir() {
+            // TODO (初期ボリューム = 0、エンベロープ = 減少)、DAC がオフ
+        }
+
+        self.envelope_pace += 1;
+        if self.envelope_pace >= self.sweep_pace() {
+            self.envelope_pace = 0;
+            if self.env_dir() {
+                // 1= 時間の経過とともに音量が増加
+                if self.volume >= 0x0F {
+                    return;
+                }
+                self.volume = self.volume.wrapping_add(1)
+            } else {
+                // 0= 時間の経過とともに音量が減少
+                if self.volume == 0 {
+                    return;
+                }
+                self.volume = self.volume.wrapping_sub(1)
+            }
+        }
     }
 
     pub fn next(&mut self, frequency: i32) -> f32 {
         let hz = 131072.0 / (2048.0 - self.current_period as f32);
         self.phase = (self.phase + (hz / frequency as f32)) % 1.0;
-        if self.phase > duty(self.duty()) {
+        return if self.phase > duty(self.duty()) {
             1.0
         } else {
-            0.0
-        }
+            -1.0
+        } * volume(self.volume);
     }
 }
