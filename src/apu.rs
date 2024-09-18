@@ -253,7 +253,6 @@ impl Ch1 {
             0xFF14 => {
                 self.nr14 = value;
                 self.current_period = self.period();
-                // TODO これいる？
                 if self.trigger() {
                     self.do_trigger();
                 }
@@ -446,7 +445,6 @@ impl Ch2 {
             0xFF19 => {
                 self.nr24 = value;
                 self.current_period = self.period();
-                // TODO これいる？
                 if self.trigger() {
                     self.do_trigger();
                 }
@@ -547,4 +545,157 @@ impl Ch2 {
             -1.0
         } * volume(self.volume);
     }
+}
+
+pub struct Ch3 {
+    // 0xFF1A
+    nr30: u8,
+    // 0xFF1B
+    nr31: u8,
+    // 0xFF1C
+    nr32: u8,
+    // 0xFF1D
+    nr33: u8,
+    // 0xFF1E
+    nr34: u8,
+    // FF30～FF3F
+    waveform: [u8; 16],
+
+    phase: f32,
+    // sweep
+    sweep_pace: u8,
+    current_period: u16,
+    // envelope
+    volume: u8,
+    envelope_pace: u8,
+    // legnth
+    length_counter: u8,
+}
+
+impl Ch3 {
+    pub fn new() -> Self {
+        Self {
+            nr30: 0x7F,
+            nr31: 0xFF,
+            nr32: 0x9F,
+            nr33: 0xFF,
+            nr34: 0xBF,
+            waveform: [0; 16],
+
+            phase: 0.0,
+            sweep_pace: 0,
+            current_period: 0,
+            volume: 0,
+            envelope_pace: 0,
+            length_counter: 0,
+        }
+    }
+    pub fn write(&mut self, address: u16, value: u8) {
+        match address {
+            0xFF1A => self.nr30 = value,
+            0xFF1B => self.nr31 = value,
+            0xFF1C => {
+                self.nr32 = value;
+                self.volume = self.initial_volume();
+            }
+            0xFF1D => {
+                self.nr33 = value;
+                self.current_period = self.period();
+            }
+            0xFF1E => {
+                self.nr34 = value;
+                self.current_period = self.period();
+                if self.trigger() {
+                    self.do_trigger();
+                }
+            }
+            0xFF30..=0xFF3F => {
+                // waveform
+            }
+            _ => panic!("should not reach"),
+        }
+    }
+    /*
+      pub fn initial_length(&self) -> u8 {
+          self.nr31 & 0x3F
+      }
+      pub fn initial_volume(&self) -> u8 {
+          (self.nr22 & 0xF0) >> 4
+      }
+      pub fn trigger(&self) -> bool {
+          self.nr24 & 0x80 != 0
+      }
+      pub fn length_enable(&self) -> bool {
+          self.nr24 & 0x40 != 0
+      }
+      pub fn period(&self) -> u16 {
+          ((self.nr24 & 0x07) as u16) << 8 | self.nr23 as u16
+      }
+
+      pub fn read(&self, address: u16) -> u8 {
+          match address {
+              0xFF16 => self.nr21 | 0x3F,
+              0xFF17 => self.nr22 | 0x00,
+              0xFF18 => self.nr23 | 0xFF,
+              0xFF19 => self.nr24 | 0xBF,
+              _ => panic!("should not reach"),
+          }
+      }
+
+      pub fn do_trigger(&mut self) {
+          // TODO チャンネルON
+          self.length_counter = self.initial_length();
+          self.phase = 0.0;
+      }
+
+      pub fn tick_length(&mut self) {
+          if !self.length_enable() {
+              return;
+          }
+          if self.length_counter >= 64 {
+              // TODO チャンネルOFF
+              self.length_counter = 0;
+          }
+          self.length_counter += 1;
+      }
+
+      pub fn tick_envelope(&mut self) {
+          if self.sweep_pace() == 0 {
+              self.envelope_pace = 0;
+              return;
+          }
+
+          if self.initial_volume() == 0 && !self.env_dir() {
+              // TODO (初期ボリューム = 0、エンベロープ = 減少)、DAC がオフ
+          }
+
+          self.envelope_pace += 1;
+          if self.envelope_pace >= self.sweep_pace() {
+              self.envelope_pace = 0;
+              if self.env_dir() {
+                  // 1= 時間の経過とともに音量が増加
+                  if self.volume >= 0x0F {
+                      return;
+                  }
+                  self.volume = self.volume.wrapping_add(1)
+              } else {
+                  // 0= 時間の経過とともに音量が減少
+                  if self.volume == 0 {
+                      return;
+                  }
+                  self.volume = self.volume.wrapping_sub(1)
+              }
+          }
+      }
+
+      pub fn next(&mut self, frequency: i32) -> f32 {
+          let hz = 131072.0 / (2048.0 - self.period() as f32);
+          self.phase = (self.phase + (hz / frequency as f32)) % 1.0;
+          return if self.phase > duty(self.duty()) {
+              1.0
+          } else {
+              -1.0
+          } * volume(self.volume);
+      }
+    */
 }
