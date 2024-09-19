@@ -10,6 +10,7 @@ pub struct APU {
     pub global: Global,
     pub ch1: Ch1,
     pub ch2: Ch2,
+    pub ch3: Ch3,
 }
 
 impl APU {
@@ -22,6 +23,7 @@ impl APU {
             global: Global::new(),
             ch1: Ch1::new(),
             ch2: Ch2::new(),
+            ch3: Ch3::new(),
         }
     }
 
@@ -37,9 +39,9 @@ impl APU {
         self.counter += 1;
 
         if self.counter % 2 == 0 {
-            // TODO 音の長さ
             self.ch1.tick_length();
             self.ch2.tick_length();
+            self.ch3.tick_length();
         }
 
         if self.counter % 4 == 0 {
@@ -48,7 +50,6 @@ impl APU {
 
         if self.counter == 8 {
             self.counter = 0;
-            // TODO エンベロープ スイープ
             self.ch1.tick_envelope();
             self.ch2.tick_envelope();
         }
@@ -73,12 +74,13 @@ impl APU {
         for _ in 0..add_size {
             let ch1 = self.ch1.next(freq) * MASTER_VOLUME;
             let ch2 = self.ch2.next(freq) * MASTER_VOLUME;
+            let ch3 = self.ch3.next(freq) * MASTER_VOLUME;
 
             // left
-            wave.push(ch1 + ch2);
+            wave.push(ch1 + ch2 + ch3);
 
             // right
-            wave.push(ch1 + ch2);
+            wave.push(ch1 + ch2 + ch3);
         }
 
         self.device.queue_audio(&wave).unwrap();
@@ -562,13 +564,6 @@ pub struct Ch3 {
     waveform: [u8; 16],
 
     phase: f32,
-    // sweep
-    sweep_pace: u8,
-    current_period: u16,
-    // envelope
-    volume: u8,
-    envelope_pace: u8,
-    // legnth
     length_counter: u8,
 }
 
@@ -583,119 +578,94 @@ impl Ch3 {
             waveform: [0; 16],
 
             phase: 0.0,
-            sweep_pace: 0,
-            current_period: 0,
-            volume: 0,
-            envelope_pace: 0,
             length_counter: 0,
         }
     }
     pub fn write(&mut self, address: u16, value: u8) {
         match address {
-            0xFF1A => self.nr30 = value,
+            0xFF1A => {
+                self.nr30 = value;
+                let dac_on = self.nr30 & 0x80 != 0;
+                // TODO dac on / off
+            }
             0xFF1B => self.nr31 = value,
-            0xFF1C => {
-                self.nr32 = value;
-                self.volume = self.initial_volume();
-            }
-            0xFF1D => {
-                self.nr33 = value;
-                self.current_period = self.period();
-            }
+            0xFF1C => self.nr32 = value,
+            0xFF1D => self.nr33 = value,
             0xFF1E => {
                 self.nr34 = value;
-                self.current_period = self.period();
                 if self.trigger() {
                     self.do_trigger();
                 }
             }
-            0xFF30..=0xFF3F => {
-                // waveform
-            }
+            0xFF30..=0xFF3F => self.waveform[address as usize - 0xFF30] = value,
             _ => panic!("should not reach"),
         }
     }
-    /*
-      pub fn initial_length(&self) -> u8 {
-          self.nr31 & 0x3F
-      }
-      pub fn initial_volume(&self) -> u8 {
-          (self.nr22 & 0xF0) >> 4
-      }
-      pub fn trigger(&self) -> bool {
-          self.nr24 & 0x80 != 0
-      }
-      pub fn length_enable(&self) -> bool {
-          self.nr24 & 0x40 != 0
-      }
-      pub fn period(&self) -> u16 {
-          ((self.nr24 & 0x07) as u16) << 8 | self.nr23 as u16
-      }
 
-      pub fn read(&self, address: u16) -> u8 {
-          match address {
-              0xFF16 => self.nr21 | 0x3F,
-              0xFF17 => self.nr22 | 0x00,
-              0xFF18 => self.nr23 | 0xFF,
-              0xFF19 => self.nr24 | 0xBF,
-              _ => panic!("should not reach"),
-          }
-      }
+    pub fn initial_length(&self) -> u8 {
+        self.nr31
+    }
+    pub fn volume(&self) -> u8 {
+        (self.nr32 & 0x60) >> 5
+    }
+    pub fn trigger(&self) -> bool {
+        self.nr34 & 0x80 != 0
+    }
+    pub fn length_enable(&self) -> bool {
+        self.nr34 & 0x40 != 0
+    }
+    pub fn period(&self) -> u16 {
+        ((self.nr34 & 0x07) as u16) << 8 | self.nr33 as u16
+    }
 
-      pub fn do_trigger(&mut self) {
-          // TODO チャンネルON
-          self.length_counter = self.initial_length();
-          self.phase = 0.0;
-      }
+    pub fn read(&self, address: u16) -> u8 {
+        match address {
+            0xFF1A => self.nr30 | 0x7F,
+            0xFF1B => self.nr31 | 0xFF,
+            0xFF1C => self.nr32 | 0x9F,
+            0xFF1D => self.nr33 | 0xFF,
+            0xFF1E => self.nr34 | 0xBF,
+            0xFF30..=0xFF3F => self.waveform[address as usize - 0xFF30],
+            _ => panic!("should not reach"),
+        }
+    }
 
-      pub fn tick_length(&mut self) {
-          if !self.length_enable() {
-              return;
-          }
-          if self.length_counter >= 64 {
-              // TODO チャンネルOFF
-              self.length_counter = 0;
-          }
-          self.length_counter += 1;
-      }
+    pub fn do_trigger(&mut self) {
+        // TODO チャンネルON
+        self.length_counter = self.initial_length();
+        self.phase = 0.0;
+    }
 
-      pub fn tick_envelope(&mut self) {
-          if self.sweep_pace() == 0 {
-              self.envelope_pace = 0;
-              return;
-          }
+    pub fn tick_length(&mut self) {
+        if !self.length_enable() {
+            return;
+        }
+        if self.length_counter >= 64 {
+            // TODO チャンネルOFF
+            self.length_counter = 0;
+        }
+        self.length_counter += 1;
+    }
 
-          if self.initial_volume() == 0 && !self.env_dir() {
-              // TODO (初期ボリューム = 0、エンベロープ = 減少)、DAC がオフ
-          }
-
-          self.envelope_pace += 1;
-          if self.envelope_pace >= self.sweep_pace() {
-              self.envelope_pace = 0;
-              if self.env_dir() {
-                  // 1= 時間の経過とともに音量が増加
-                  if self.volume >= 0x0F {
-                      return;
-                  }
-                  self.volume = self.volume.wrapping_add(1)
-              } else {
-                  // 0= 時間の経過とともに音量が減少
-                  if self.volume == 0 {
-                      return;
-                  }
-                  self.volume = self.volume.wrapping_sub(1)
-              }
-          }
-      }
-
-      pub fn next(&mut self, frequency: i32) -> f32 {
-          let hz = 131072.0 / (2048.0 - self.period() as f32);
-          self.phase = (self.phase + (hz / frequency as f32)) % 1.0;
-          return if self.phase > duty(self.duty()) {
-              1.0
-          } else {
-              -1.0
-          } * volume(self.volume);
-      }
-    */
+    pub fn next(&mut self, frequency: i32) -> f32 {
+        let hz = 65536.0 / (2048.0 - self.period() as f32);
+        self.phase = (self.phase + (hz / frequency as f32)) % 1.0;
+        let volume = match self.volume() {
+            0b00 => 0.0,
+            0b01 => 1.0,
+            0b10 => 0.5,
+            0b11 => 0.25,
+            _ => panic!("invalid volume."),
+        };
+        let index = (self.phase * 32.0) as usize;
+        let upper = index % 2 == 0;
+        let target = self.waveform[index / 2];
+        let wave = if upper {
+            target & 0xF0 >> 4
+        } else {
+            target & 0x0F
+        };
+        let value = ((wave as f32 / 0x0F as f32) - 0.5) * 2.0;
+        value * volume
+    }
 }

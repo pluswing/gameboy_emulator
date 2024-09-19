@@ -52,6 +52,10 @@ impl MemoryBus {
             0xFF10 | 0xFF11 | 0xFF12 | 0xFF13 | 0xFF14 => self.apu.ch1.read(address as u16),
             // CH2
             0xFF16 | 0xFF17 | 0xFF18 | 0xFF19 => self.apu.ch2.read(address as u16),
+            // CH3
+            0xFF1A | 0xFF1B | 0xFF1C | 0xFF1D | 0xFF1E | 0xFF30..=0xFF3F => {
+                self.apu.ch3.read(address as u16)
+            }
             _ => self.memory[address],
         }
     }
@@ -94,6 +98,10 @@ impl MemoryBus {
             0xFF10 | 0xFF11 | 0xFF12 | 0xFF13 | 0xFF14 => self.apu.ch1.write(address as u16, value),
             // CH2
             0xFF16 | 0xFF17 | 0xFF18 | 0xFF19 => self.apu.ch2.write(address as u16, value),
+            // CH3
+            0xFF1A | 0xFF1B | 0xFF1C | 0xFF1D | 0xFF1E | 0xFF30..=0xFF3F => {
+                self.apu.ch3.write(address as u16, value)
+            }
             // ...
             _ => self.memory[address] = value,
         }
