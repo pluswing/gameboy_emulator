@@ -314,6 +314,7 @@ impl Ch1 {
     pub fn do_trigger(&mut self) {
         // TODO チャンネルON
         self.length_counter = self.initial_length();
+        self.volume = self.initial_volume();
         self.phase = 0.0;
     }
 
@@ -495,6 +496,7 @@ impl Ch2 {
     pub fn do_trigger(&mut self) {
         // TODO チャンネルON
         self.length_counter = self.initial_length();
+        self.volume = self.initial_volume();
         self.phase = 0.0;
     }
 
@@ -640,7 +642,7 @@ impl Ch3 {
         if !self.length_enable() {
             return;
         }
-        if self.length_counter >= 64 {
+        if self.length_counter >= 255 {
             // TODO チャンネルOFF
             self.length_counter = 0;
         }
@@ -658,6 +660,7 @@ impl Ch3 {
             _ => panic!("invalid volume."),
         };
         let index = (self.phase * 32.0) as usize;
+        let index = (index + 1) % 32;
         let upper = index % 2 == 0;
         let target = self.waveform[index / 2];
         let wave = if upper {
