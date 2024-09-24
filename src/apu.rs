@@ -11,6 +11,7 @@ pub struct APU {
     pub ch1: Ch1,
     pub ch2: Ch2,
     pub ch3: Ch3,
+    pub ch4: Ch4,
 }
 
 impl APU {
@@ -24,6 +25,7 @@ impl APU {
             ch1: Ch1::new(),
             ch2: Ch2::new(),
             ch3: Ch3::new(),
+            ch4: Ch4::new(),
         }
     }
 
@@ -42,6 +44,7 @@ impl APU {
             self.ch1.tick_length();
             self.ch2.tick_length();
             self.ch3.tick_length();
+            self.ch4.tick_length();
         }
 
         if self.counter % 4 == 0 {
@@ -52,6 +55,7 @@ impl APU {
             self.counter = 0;
             self.ch1.tick_envelope();
             self.ch2.tick_envelope();
+            self.ch4.tick_envelope();
         }
 
         let freq = self.device.spec().freq;
@@ -75,12 +79,13 @@ impl APU {
             let ch1 = self.ch1.next(freq) * MASTER_VOLUME;
             let ch2 = self.ch2.next(freq) * MASTER_VOLUME;
             let ch3 = self.ch3.next(freq) * MASTER_VOLUME;
+            let ch4 = self.ch4.next(freq) * MASTER_VOLUME;
 
             // left
-            wave.push(ch1 + ch2 + ch3);
+            wave.push(ch1 + ch2 + ch3 + ch4);
 
             // right
-            wave.push(ch1 + ch2 + ch3);
+            wave.push(ch1 + ch2 + ch3 + ch4);
         }
 
         self.device.queue_audio(&wave).unwrap();
@@ -179,6 +184,7 @@ impl Global {
                     | (self.ch3_power as u8) << 2
                     | (self.ch2_power as u8) << 1
                     | (self.ch1_power as u8) << 0
+                    | 0x70
             }
             0xFF25 => self.nr51,
             0xFF24 => self.nr50,
@@ -670,5 +676,152 @@ impl Ch3 {
         };
         let value = ((wave as f32 / 0x0F as f32) - 0.5) * 2.0;
         value * volume
+    }
+}
+
+pub struct Ch4 {
+    // 0xFF20
+    nr41: u8,
+    // 0xFF21
+    nr42: u8,
+    // 0xFF22
+    nr43: u8,
+    // 0xFF23
+    nr44: u8,
+
+    phase: f32,
+    // envelope
+    volume: u8,
+    envelope_pace: u8,
+    // legnth
+    length_counter: u8,
+}
+
+impl Ch4 {
+    pub fn new() -> Self {
+        Self {
+            nr41: 0xFF,
+            nr42: 0x00,
+            nr43: 0x00,
+            nr44: 0xBF,
+            phase: 0.0,
+            volume: 0,
+            envelope_pace: 0,
+            length_counter: 0,
+        }
+    }
+    pub fn write(&mut self, address: u16, value: u8) {
+        match address {
+            0xFF20 => self.nr41 = value,
+            0xFF21 => {
+                self.nr42 = value;
+                self.volume = self.initial_volume();
+            }
+            0xFF22 => {
+                self.nr43 = value;
+            }
+            0xFF23 => {
+                self.nr44 = value;
+                if self.trigger() {
+                    self.do_trigger();
+                }
+            }
+            _ => panic!("should not reach"),
+        }
+    }
+
+    pub fn initial_length(&self) -> u8 {
+        self.nr41 & 0x3F
+    }
+
+    pub fn initial_volume(&self) -> u8 {
+        (self.nr42 & 0xF0) >> 4
+    }
+    pub fn env_dir(&self) -> bool {
+        self.nr42 & 0x08 != 0
+    }
+    pub fn sweep_pace(&self) -> u8 {
+        self.nr42 & 0x07
+    }
+
+    pub fn clock_shift(&self) -> u8 {
+        (self.nr43 & 0xF0) >> 4
+    }
+
+    pub fn lfsr_width(&self) -> bool {
+        self.nr43 & 0x08 != 0
+    }
+
+    pub fn clock_divider(&self) -> u8 {
+        self.nr43 & 0x07
+    }
+
+    pub fn trigger(&self) -> bool {
+        self.nr44 & 0x80 != 0
+    }
+    pub fn length_enable(&self) -> bool {
+        self.nr44 & 0x40 != 0
+    }
+
+    pub fn read(&self, address: u16) -> u8 {
+        match address {
+            0xFF21 => self.nr41 | 0xFF,
+            0xFF22 => self.nr42 | 0x00,
+            0xFF23 => self.nr43 | 0x00,
+            0xFF24 => self.nr44 | 0xBF,
+            _ => panic!("should not reach"),
+        }
+    }
+
+    pub fn do_trigger(&mut self) {
+        // TODO チャンネルON
+        self.length_counter = self.initial_length();
+        self.volume = self.initial_volume();
+        self.phase = 0.0;
+    }
+
+    pub fn tick_length(&mut self) {
+        if !self.length_enable() {
+            return;
+        }
+        if self.length_counter >= 64 {
+            // TODO チャンネルOFF
+            self.length_counter = 0;
+        }
+        self.length_counter += 1;
+    }
+
+    pub fn tick_envelope(&mut self) {
+        if self.sweep_pace() == 0 {
+            self.envelope_pace = 0;
+            return;
+        }
+
+        if self.initial_volume() == 0 && !self.env_dir() {
+            // TODO (初期ボリューム = 0、エンベロープ = 減少)、DAC がオフ
+        }
+
+        self.envelope_pace += 1;
+        if self.envelope_pace >= self.sweep_pace() {
+            self.envelope_pace = 0;
+            if self.env_dir() {
+                // 1= 時間の経過とともに音量が増加
+                if self.volume >= 0x0F {
+                    return;
+                }
+                self.volume = self.volume.wrapping_add(1)
+            } else {
+                // 0= 時間の経過とともに音量が減少
+                if self.volume == 0 {
+                    return;
+                }
+                self.volume = self.volume.wrapping_sub(1)
+            }
+        }
+    }
+
+    pub fn next(&mut self, frequency: i32) -> f32 {
+        // TODO
+        0.0 * volume(self.volume)
     }
 }
