@@ -1,6 +1,7 @@
 use sdl2::audio::AudioQueue;
 
 const MASTER_VOLUME: f32 = 0.05;
+const DIVIDER_TABLE: [u8; 8] = [8, 16, 32, 48, 64, 80, 96, 112];
 
 pub struct APU {
     prev_div: u8,
@@ -695,6 +696,10 @@ pub struct Ch4 {
     envelope_pace: u8,
     // legnth
     length_counter: u8,
+
+    lfsr: u16,
+    timer_counter: u32,
+    value: u16,
 }
 
 impl Ch4 {
@@ -708,6 +713,9 @@ impl Ch4 {
             volume: 0,
             envelope_pace: 0,
             length_counter: 0,
+            lfsr: 0x7FFF,
+            timer_counter: 0,
+            value: 0,
         }
     }
     pub fn write(&mut self, address: u16, value: u8) {
@@ -765,10 +773,10 @@ impl Ch4 {
 
     pub fn read(&self, address: u16) -> u8 {
         match address {
-            0xFF21 => self.nr41 | 0xFF,
-            0xFF22 => self.nr42 | 0x00,
-            0xFF23 => self.nr43 | 0x00,
-            0xFF24 => self.nr44 | 0xBF,
+            0xFF20 => self.nr41 | 0xFF,
+            0xFF21 => self.nr42 | 0x00,
+            0xFF22 => self.nr43 | 0x00,
+            0xFF23 => self.nr44 | 0xBF,
             _ => panic!("should not reach"),
         }
     }
@@ -778,6 +786,9 @@ impl Ch4 {
         self.length_counter = self.initial_length();
         self.volume = self.initial_volume();
         self.phase = 0.0;
+        self.lfsr = 0x7FFF;
+        self.timer_counter = 0;
+        self.value = 0;
     }
 
     pub fn tick_length(&mut self) {
@@ -820,8 +831,24 @@ impl Ch4 {
         }
     }
 
+    fn random(&mut self) -> u16 {
+        let value = (self.lfsr & 0b01) ^ ((self.lfsr & 0b10) >> 1);
+        self.lfsr = (self.lfsr >> 1) | value << 14;
+        if self.lfsr_width() {
+            self.lfsr = (self.lfsr & !0x20) | value << 6;
+        }
+        value
+    }
+
     pub fn next(&mut self, frequency: i32) -> f32 {
-        // TODO
-        0.0 * volume(self.volume)
+        // TODO timer_counterを減らす処理
+
+        if self.timer_counter == 0 {
+            self.timer_counter =
+                (DIVIDER_TABLE[self.clock_divider() as usize] as u32) << self.clock_shift();
+            self.value = self.random();
+        }
+
+        (self.value as f32) * volume(self.volume)
     }
 }
