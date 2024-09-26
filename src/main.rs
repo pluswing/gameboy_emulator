@@ -105,10 +105,10 @@ fn main() {
     let pokemon =
         "rom/GB/ROM/POKEMON GREEN/-1/Pocket Monsters - Midori (Japan) (Rev 1) (SGB Enhanced).gb";
     let mario = "rom/GB/ROM/SUPER MARIOLAND/32/Super Mario Land (World).gb";
-    let yugioh = "rom/GB/ROM/YUGIOU/30/Yu-Gi-Oh! Duel Monsters (Japan) (SGB Enhanced).gb";
     let zelda = "rom/GB/ROM/ZELDA/33/Zelda no Densetsu - Yume o Miru Shima (Japan).gb";
+    let yugioh = "rom/GB/ROM/YUGIOU/30/Yu-Gi-Oh! Duel Monsters (Japan) (SGB Enhanced).gb";
 
-    let cartridge = Cartridge::new(pokemon);
+    let cartridge = Cartridge::new(zelda);
     let mut cpu = CPU::new(cartridge, device);
 
     loop {

@@ -87,6 +87,11 @@ impl APU {
 
             // right
             wave.push(ch1 + ch2 + ch3 + ch4);
+
+            self.global.ch1_power = self.ch1.enabled;
+            self.global.ch2_power = self.ch2.enabled;
+            self.global.ch3_power = self.ch3.enabled;
+            self.global.ch4_power = self.ch4.enabled;
         }
 
         self.device.queue_audio(&wave).unwrap();
@@ -229,6 +234,8 @@ pub struct Ch1 {
     envelope_pace: u8,
     // legnth
     length_counter: u8,
+
+    enabled: bool,
 }
 
 impl Ch1 {
@@ -245,6 +252,7 @@ impl Ch1 {
             volume: 0,
             envelope_pace: 0,
             length_counter: 0,
+            enabled: true,
         }
     }
     pub fn write(&mut self, address: u16, value: u8) {
@@ -319,7 +327,7 @@ impl Ch1 {
     }
 
     pub fn do_trigger(&mut self) {
-        // TODO チャンネルON
+        self.enabled = true;
         self.length_counter = self.initial_length();
         self.volume = self.initial_volume();
         self.phase = 0.0;
@@ -330,7 +338,7 @@ impl Ch1 {
             return;
         }
         if self.length_counter >= 64 {
-            // TODO チャンネルOFF
+            self.enabled = false;
             self.length_counter = 0;
         }
         self.length_counter += 1;
@@ -357,9 +365,7 @@ impl Ch1 {
             }
 
             if self.current_period > 0x7FF {
-                // TODO チャンネルをOFFにする
-                //  -> globalのch1_powerをfalseにする
-                // 一旦仮置き
+                self.enabled = false;
                 self.current_period = self.period();
             }
         }
@@ -372,7 +378,7 @@ impl Ch1 {
         }
 
         if self.initial_volume() == 0 && !self.env_dir() {
-            // TODO (初期ボリューム = 0、エンベロープ = 減少)、DAC がオフ
+            self.enabled = false;
         }
 
         self.envelope_pace += 1;
@@ -395,6 +401,9 @@ impl Ch1 {
     }
 
     pub fn next(&mut self, frequency: i32) -> f32 {
+        if !self.enabled {
+            return 0.0;
+        }
         let hz = 131072.0 / (2048.0 - self.current_period as f32);
         self.phase = (self.phase + (hz / frequency as f32)) % 1.0;
         return if self.phase > duty(self.duty()) {
@@ -417,13 +426,13 @@ pub struct Ch2 {
 
     phase: f32,
     // sweep
-    sweep_pace: u8,
     current_period: u16,
     // envelope
     volume: u8,
     envelope_pace: u8,
     // legnth
     length_counter: u8,
+    enabled: bool,
 }
 
 impl Ch2 {
@@ -434,11 +443,11 @@ impl Ch2 {
             nr23: 0xFF,
             nr24: 0xBF,
             phase: 0.0,
-            sweep_pace: 0,
             current_period: 0,
             volume: 0,
             envelope_pace: 0,
             length_counter: 0,
+            enabled: true,
         }
     }
     pub fn write(&mut self, address: u16, value: u8) {
@@ -501,7 +510,7 @@ impl Ch2 {
     }
 
     pub fn do_trigger(&mut self) {
-        // TODO チャンネルON
+        self.enabled = true;
         self.length_counter = self.initial_length();
         self.volume = self.initial_volume();
         self.phase = 0.0;
@@ -512,7 +521,7 @@ impl Ch2 {
             return;
         }
         if self.length_counter >= 64 {
-            // TODO チャンネルOFF
+            self.enabled = false;
             self.length_counter = 0;
         }
         self.length_counter += 1;
@@ -525,7 +534,7 @@ impl Ch2 {
         }
 
         if self.initial_volume() == 0 && !self.env_dir() {
-            // TODO (初期ボリューム = 0、エンベロープ = 減少)、DAC がオフ
+            self.enabled = false;
         }
 
         self.envelope_pace += 1;
@@ -548,6 +557,9 @@ impl Ch2 {
     }
 
     pub fn next(&mut self, frequency: i32) -> f32 {
+        if !self.enabled {
+            return 0.0;
+        }
         let hz = 131072.0 / (2048.0 - self.period() as f32);
         self.phase = (self.phase + (hz / frequency as f32)) % 1.0;
         return if self.phase > duty(self.duty()) {
@@ -574,6 +586,7 @@ pub struct Ch3 {
 
     phase: f32,
     length_counter: u8,
+    enabled: bool,
 }
 
 impl Ch3 {
@@ -588,14 +601,14 @@ impl Ch3 {
 
             phase: 0.0,
             length_counter: 0,
+            enabled: true,
         }
     }
     pub fn write(&mut self, address: u16, value: u8) {
         match address {
             0xFF1A => {
                 self.nr30 = value;
-                let dac_on = self.nr30 & 0x80 != 0;
-                // TODO dac on / off
+                self.enabled = self.nr30 & 0x80 != 0;
             }
             0xFF1B => self.nr31 = value,
             0xFF1C => self.nr32 = value,
@@ -640,7 +653,7 @@ impl Ch3 {
     }
 
     pub fn do_trigger(&mut self) {
-        // TODO チャンネルON
+        self.enabled = true;
         self.length_counter = self.initial_length();
         self.phase = 0.0;
     }
@@ -650,13 +663,16 @@ impl Ch3 {
             return;
         }
         if self.length_counter >= 255 {
-            // TODO チャンネルOFF
+            self.enabled = false;
             self.length_counter = 0;
         }
         self.length_counter += 1;
     }
 
     pub fn next(&mut self, frequency: i32) -> f32 {
+        if !self.enabled {
+            return 0.0;
+        }
         let hz = 65536.0 / (2048.0 - self.period() as f32);
         self.phase = (self.phase + (hz / frequency as f32)) % 1.0;
         let volume = match self.volume() {
@@ -700,6 +716,8 @@ pub struct Ch4 {
     lfsr: u16,
     timer_counter: u32,
     value: u16,
+
+    enabled: bool,
 }
 
 impl Ch4 {
@@ -716,6 +734,7 @@ impl Ch4 {
             lfsr: 0x7FFF,
             timer_counter: 0,
             value: 0,
+            enabled: true,
         }
     }
     pub fn write(&mut self, address: u16, value: u8) {
@@ -782,7 +801,7 @@ impl Ch4 {
     }
 
     pub fn do_trigger(&mut self) {
-        // TODO チャンネルON
+        self.enabled = true;
         self.length_counter = self.initial_length();
         self.volume = self.initial_volume();
         self.phase = 0.0;
@@ -796,7 +815,7 @@ impl Ch4 {
             return;
         }
         if self.length_counter >= 64 {
-            // TODO チャンネルOFF
+            self.enabled = false;
             self.length_counter = 0;
         }
         self.length_counter += 1;
@@ -809,7 +828,8 @@ impl Ch4 {
         }
 
         if self.initial_volume() == 0 && !self.env_dir() {
-            // TODO (初期ボリューム = 0、エンベロープ = 減少)、DAC がオフ
+            // 初期ボリューム = 0、エンベロープ = 減少の時、DACがオフ
+            self.enabled = false
         }
 
         self.envelope_pace += 1;
@@ -841,14 +861,20 @@ impl Ch4 {
     }
 
     pub fn next(&mut self, frequency: i32) -> f32 {
-        // TODO timer_counterを減らす処理
-
-        if self.timer_counter == 0 {
-            self.timer_counter =
-                (DIVIDER_TABLE[self.clock_divider() as usize] as u32) << self.clock_shift();
-            self.value = self.random();
+        if !self.enabled {
+            return 0.0;
         }
 
-        (self.value as f32) * volume(self.volume)
+        // 本当は23.7772
+        for _ in 0..24 {
+            if self.timer_counter == 0 {
+                self.timer_counter =
+                    (DIVIDER_TABLE[self.clock_divider() as usize] as u32) << self.clock_shift();
+                self.value = self.random();
+            }
+            self.timer_counter -= 1;
+        }
+
+        ((self.value as f32) - 0.5) * 2.0 * volume(self.volume)
     }
 }
