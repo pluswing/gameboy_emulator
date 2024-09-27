@@ -1,6 +1,12 @@
 use sdl2::audio::AudioQueue;
 
 const MASTER_VOLUME: f32 = 0.05;
+const DUTY_TABLE: [[u8; 8]; 4] = [
+    [0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0, 0, 1, 1],
+    [0, 0, 0, 0, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 0, 0],
+];
 const DIVIDER_TABLE: [u8; 8] = [8, 16, 32, 48, 64, 80, 96, 112];
 
 pub struct APU {
@@ -82,11 +88,24 @@ impl APU {
             let ch3 = self.ch3.next(freq) * MASTER_VOLUME;
             let ch4 = self.ch4.next(freq) * MASTER_VOLUME;
 
+            let left = if self.global.ch1_left() { ch1 } else { 0.0 }
+                + if self.global.ch2_left() { ch2 } else { 0.0 }
+                + if self.global.ch3_left() { ch3 } else { 0.0 }
+                + if self.global.ch4_left() { ch4 } else { 0.0 };
+
+            let right = if self.global.ch1_right() { ch1 } else { 0.0 }
+                + if self.global.ch2_right() { ch2 } else { 0.0 }
+                + if self.global.ch3_right() { ch3 } else { 0.0 }
+                + if self.global.ch4_right() { ch4 } else { 0.0 };
+
+            let left_volume = (self.global.left_volume() + 1) as f32 / 8.0;
+            let right_volume = (self.global.right_volume() + 1) as f32 / 8.0;
+
             // left
-            wave.push(ch1 + ch2 + ch3 + ch4);
+            wave.push(left * left_volume);
 
             // right
-            wave.push(ch1 + ch2 + ch3 + ch4);
+            wave.push(right * right_volume);
 
             self.global.ch1_power = self.ch1.enabled;
             self.global.ch2_power = self.ch2.enabled;
@@ -196,16 +215,6 @@ impl Global {
             0xFF24 => self.nr50,
             _ => panic!("should not reach"),
         }
-    }
-}
-
-fn duty(duty: u8) -> f32 {
-    match duty {
-        0b00 => 0.125,
-        0b01 => 0.25,
-        0b10 => 0.50,
-        0b11 => 0.75,
-        _ => panic!("invalid duty {}", duty),
     }
 }
 
@@ -406,11 +415,9 @@ impl Ch1 {
         }
         let hz = 131072.0 / (2048.0 - self.current_period as f32);
         self.phase = (self.phase + (hz / frequency as f32)) % 1.0;
-        return if self.phase > duty(self.duty()) {
-            1.0
-        } else {
-            -1.0
-        } * volume(self.volume);
+        let index = (self.phase * 8.0) as usize;
+        let value = DUTY_TABLE[self.duty() as usize][index];
+        ((value as f32) - 0.5) * 2.0 * volume(self.volume)
     }
 }
 
@@ -562,11 +569,9 @@ impl Ch2 {
         }
         let hz = 131072.0 / (2048.0 - self.period() as f32);
         self.phase = (self.phase + (hz / frequency as f32)) % 1.0;
-        return if self.phase > duty(self.duty()) {
-            1.0
-        } else {
-            -1.0
-        } * volume(self.volume);
+        let index = (self.phase * 8.0) as usize;
+        let value = DUTY_TABLE[self.duty() as usize][index];
+        ((value as f32) - 0.5) * 2.0 * volume(self.volume)
     }
 }
 
@@ -857,7 +862,11 @@ impl Ch4 {
         if self.lfsr_width() {
             self.lfsr = (self.lfsr & !0x20) | value << 6;
         }
-        value
+        if (self.lfsr & 0b01) == 0 {
+            1
+        } else {
+            0
+        }
     }
 
     pub fn next(&mut self, frequency: i32) -> f32 {
@@ -865,8 +874,7 @@ impl Ch4 {
             return 0.0;
         }
 
-        // 本当は23.7772
-        for _ in 0..24 {
+        for _ in 0..95 {
             if self.timer_counter == 0 {
                 self.timer_counter =
                     (DIVIDER_TABLE[self.clock_divider() as usize] as u32) << self.clock_shift();

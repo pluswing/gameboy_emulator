@@ -709,6 +709,7 @@ impl CPU {
         if self.is_halted {
             self.update_timers(1);
             self.update_graphics(1);
+            self.update_audio();
             self.do_interrupts();
             return;
         }
