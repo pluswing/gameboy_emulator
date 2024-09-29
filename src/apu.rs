@@ -188,6 +188,7 @@ impl Global {
         self.nr51 & 0x01 != 0
     }
 
+    // MEMO: 外部サウンドモジュールを使うときに使うもの？
     pub fn vin_left(&self) -> bool {
         self.nr50 & 0x80 != 0
     }
@@ -862,11 +863,7 @@ impl Ch4 {
         if self.lfsr_width() {
             self.lfsr = (self.lfsr & !0x20) | value << 6;
         }
-        if (self.lfsr & 0b01) == 0 {
-            1
-        } else {
-            0
-        }
+        (!self.lfsr) & 0b01
     }
 
     pub fn next(&mut self, frequency: i32) -> f32 {
@@ -874,14 +871,14 @@ impl Ch4 {
             return 0.0;
         }
 
-        for _ in 0..95 {
-            if self.timer_counter == 0 {
-                self.timer_counter =
-                    (DIVIDER_TABLE[self.clock_divider() as usize] as u32) << self.clock_shift();
-                self.value = self.random();
-            }
-            self.timer_counter -= 1;
+        let timer_count =
+            (DIVIDER_TABLE[self.clock_divider() as usize] as u32) << self.clock_shift();
+        let step = 4194304.0 / frequency as f32 / timer_count as f32;
+        self.phase = self.phase + step;
+        for _ in 0..(self.phase as usize) {
+            self.value = self.random();
         }
+        self.phase = self.phase % 1.0;
 
         ((self.value as f32) - 0.5) * 2.0 * volume(self.volume)
     }
