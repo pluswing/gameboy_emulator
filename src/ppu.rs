@@ -315,7 +315,7 @@ impl PPU {
                 // 1フレーム描画完了
                 self.ly = 0;
             } else if currentline <= 144 {
-                self.draw_scan_line(currentline);
+                self.draw_scan_line(currentline - 1);
             }
         }
         return interrupt;
@@ -381,14 +381,13 @@ impl PPU {
         //     "line: {} SCREEN: ({}, {}) WINDOW: ({}, {})",
         //     line, self.scx, self.scy, self.wx, self.wy
         // );
-    }
 
-    fn draw_all(&mut self) {
-        self.draw_bg(true);
-        self.draw_bg(false);
+        // TODO ここの実装
+        // 8x16モードの対応（スプライト）=> 夢を見る島
+        // ウインドウとスプライトの前後関係
 
         // self.frame を全書き換えする
-        self.frame = [255 as u8; 160 * 3 * 144];
+        // self.frame = [255 as u8; 160 * 3 * 144];
 
         // draw background
         // $9800-$9BFF のデータを見て、どのタイルがどこに配置されるかを計算する
@@ -448,6 +447,10 @@ impl PPU {
                     if x >= LCD_WIDTH || y >= LCD_HEIGHT {
                         continue;
                     }
+
+                    if y != line as usize {
+                        continue;
+                    }
                     let o = ((y * LCD_WIDTH + x) * 3) as usize;
                     self.frame[o] = color[0];
                     self.frame[o + 1] = color[1];
@@ -455,7 +458,18 @@ impl PPU {
                 }
             }
         }
+    }
 
+    fn draw_all(&mut self) {
+        self.draw_bg(true);
+        self.draw_bg(false);
+
+        // FIXME これおかしい。直す。
+        // self.draw_window();
+        self.draw_sprites();
+    }
+
+    fn draw_window(&mut self) {
         // ウインドウの描画
         // ウインドウの表示開始位置は、 WX、 WY レジスタでそれぞれ指定します。
         // 画面上の左上の位置は、 WX -7, WY で表されます (7 ピクセル分ずれます)。
@@ -519,7 +533,9 @@ impl PPU {
                 }
             }
         }
+    }
 
+    fn draw_sprites(&mut self) {
         // draw sprites
         for sprite in self.sprites {
             let sx = sprite.x as i32;
