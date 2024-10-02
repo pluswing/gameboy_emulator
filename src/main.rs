@@ -36,7 +36,7 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB24, 160, 144)
         .unwrap();
 
-    let scale = 1;
+    let scale = 2;
     let bg1_window = video_subsystem
         .window("BG1", 256 * scale as u32, 256 * scale as u32)
         .position_centered()
@@ -108,7 +108,7 @@ fn main() {
     let zelda = "rom/GB/ROM/ZELDA/33/Zelda no Densetsu - Yume o Miru Shima (Japan).gb";
     let yugioh = "rom/GB/ROM/YUGIOU/30/Yu-Gi-Oh! Duel Monsters (Japan) (SGB Enhanced).gb";
 
-    let cartridge = Cartridge::new(zelda);
+    let cartridge = Cartridge::new(pokemon);
     let mut cpu = CPU::new(cartridge, device);
 
     loop {
