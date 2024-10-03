@@ -388,7 +388,12 @@ impl PPU {
 
         // self.frame を全書き換えする
         // self.frame = [255 as u8; 160 * 3 * 144];
+        self.draw_bg_line(line);
+        self.draw_window_line(line);
+    }
 
+    fn draw_bg_line(&mut self, line: u8) {
+        // FIXME BG1/BG2の切り替えがうまく行ってないぽい。
         let vram_base_index = if self.control.bg_tile_map {
             0x9C00 - VRAM_BEGIN
         } else {
@@ -401,7 +406,6 @@ impl PPU {
 
         // 何列目の描画かを割り出す
         let row = oy / 8;
-        let col = ox / 8;
 
         let index_offset = row as u16 * 32;
 
@@ -411,12 +415,11 @@ impl PPU {
         // そのピクセルデータをとってきて、描く
         // xを起点にLCD_WIDTH分繰り返す
         for x in 0..LCD_WIDTH {
-            let src_x = ox.wrapping_add(ox);
+            let src_x = ox.wrapping_add(x as u8);
             let dest_y = line;
             let dest_x = x;
 
-            let vram_index = index_offset + (col.wrapping_add(x as u8 / 8)) as u16;
-            // println!("{}", vram_index);
+            let vram_index = index_offset + (ox.wrapping_add(x as u8) / 8) as u16;
 
             // tilemapのインデックスを取得する
             let index = self.vram[vram_base_index + vram_index as usize] as usize;
@@ -442,72 +445,62 @@ impl PPU {
             self.frame[o + 1] = color[1];
             self.frame[o + 2] = color[2];
         }
+    }
 
-        // draw background
-        // $9800-$9BFF のデータを見て、どのタイルがどこに配置されるかを計算する
-        // 0: 0x9800..9BFF
-        // 1: 0x9C00..9FFF
+    fn draw_window_line(&mut self, line: u8) {
+        if !self.control.window_enabled || self.wx > 166 || self.wy > 143 {
+            return;
+        }
 
-        // for addr in range {
-        //     let addr = addr as usize - VRAM_BEGIN;
-        //     let index = self.vram[addr] as usize;
-        //     // 背景/ウインドウタイルデータ選択
-        //     // 0: 0x8800..97FF
-        //     // 1: 0x8000..8FFF
-        //     let index = if self.control.tiles {
-        //         index
-        //     } else {
-        //         if index < 128 {
-        //             index + 256
-        //         } else {
-        //             index
-        //         }
-        //     };
-        //     let tile = self.tile_set[index];
-        //     let i = addr
-        //         - if self.control.bg_tile_map {
-        //             0x1C00
-        //         } else {
-        //             0x1800
-        //         };
-        //     let sx = (i % 32) * 8;
-        //     let sy = (i / 32) * 8;
-        //     for tx in 0..8 {
-        //         for ty in 0..8 {
-        //             let value = tile[ty][tx];
-        //             let color = tile_pixel_value_to_color(value, self.bgp);
-        //             let x = sx + tx;
-        //             let y = sy + ty;
+        let vram_base_index = if self.control.bg_tile_map {
+            0x1C00
+        } else {
+            0x1800
+        };
 
-        //             // scx, scyの値を元に、LCD上の位置を特定する。
-        //             // FIXME X位置がたぶん２タイル分ずれている。
-        //             //  => draw_scan_line()で1ラインずつ描画しないとダメ。
-        //             let x = if x < self.scx as usize {
-        //                 x + BACKGROUND_SIZE
-        //             } else {
-        //                 x
-        //             } - self.scx as usize;
+        // 書く場所 (dest)
+        let ox = self.wx - 7;
+        let oy = self.wy.wrapping_add(line);
 
-        //             let y = if y < self.scy as usize {
-        //                 y + BACKGROUND_SIZE
-        //             } else {
-        //                 y
-        //             } - self.scy as usize;
+        // 何列目の描画かを割り出す
+        let row = oy / 8;
 
-        //             if x >= LCD_WIDTH || y >= LCD_HEIGHT {
-        //                 continue;
-        //             }
+        // そのタイルの何行目を描くのか
+        let src_y = oy % 8;
 
-        //             if y != line as usize {
-        //                 continue;
-        //             }
-        //             let o = ((y * LCD_WIDTH + x) * 3) as usize;
-        //             self.frame[o] = color[0];
-        //             self.frame[o + 1] = color[1];
-        //             self.frame[o + 2] = color[2];
-        //         }
-        //     }
-        // }
+        // そのピクセルデータをとってきて、描く
+        // xを起点にLCD_WIDTH分繰り返す
+        for x in 0..LCD_WIDTH {
+            let dest_x = ox.wrapping_add(x as u8);
+            let dest_y = line;
+            let src_x = x;
+
+            let vram_index = (x / 8) as u16;
+
+            // tilemapのインデックスを取得する
+            let index = self.vram[vram_base_index + vram_index as usize] as usize;
+            let index = if self.control.tiles {
+                index
+            } else {
+                if index < 128 {
+                    index + 256
+                } else {
+                    index
+                }
+            };
+
+            // タイルを取ってくる
+            let tile = self.tile_set[index];
+
+            // タイルの描画ピクセルを取得する
+            let value = tile[(src_y % 8) as usize][(src_x % 8) as usize];
+            let color = tile_pixel_value_to_color(value, self.bgp);
+
+            let o = (dest_y as usize * LCD_WIDTH + dest_x as usize) * 3;
+            self.frame[o] = color[0];
+            self.frame[o + 1] = color[1];
+            self.frame[o + 2] = color[2];
+        }
     }
 
     fn draw_all(&mut self) {
