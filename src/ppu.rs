@@ -314,8 +314,6 @@ impl PPU {
             } else if currentline > 153 {
                 // 1フレーム描画完了
                 self.ly = 0;
-            } else if currentline <= 144 {
-                self.draw_scan_line(currentline - 1);
             }
         }
         return interrupt;
@@ -352,6 +350,9 @@ impl PPU {
                 self.status.ppu_mode = 3;
             } else {
                 mode = 0;
+                if self.status.ppu_mode != 0 {
+                    self.draw_scan_line(currentline);
+                }
                 self.status.ppu_mode = 0;
                 reqInt = self.status.mode0_int_select;
             }
@@ -389,7 +390,9 @@ impl PPU {
         // self.frame を全書き換えする
         // self.frame = [255 as u8; 160 * 3 * 144];
         self.draw_bg_line(line);
+        // TODO スプライト priority=0ものの描画
         self.draw_window_line(line);
+        // TODO スプライト priority=1ものの描画
     }
 
     fn draw_bg_line(&mut self, line: u8) {
@@ -452,30 +455,47 @@ impl PPU {
             return;
         }
 
-        let vram_base_index = if self.control.bg_tile_map {
+        // 描く場所（Y座標）が現在描画位置より小さい場合は描かなくて良い。
+        if self.wy > line {
+            return;
+        }
+
+        let vram_base_index = if self.control.window_tile_map {
             0x1C00
         } else {
             0x1800
         };
 
-        // 書く場所 (dest)
-        let ox = self.wx - 7;
-        let oy = self.wy.wrapping_add(line);
+        // どこを描くのかを割り出す
+        // let ox = 0;
+        let oy = line.wrapping_sub(self.wy);
+
+        // どこに描くのか
+        // dest_x = wx + x - 7
+        // dest_y = line;
 
         // 何列目の描画かを割り出す
         let row = oy / 8;
-
-        // そのタイルの何行目を描くのか
-        let src_y = oy % 8;
+        let index_offset = row as u16 * 32;
 
         // そのピクセルデータをとってきて、描く
         // xを起点にLCD_WIDTH分繰り返す
         for x in 0..LCD_WIDTH {
-            let dest_x = ox.wrapping_add(x as u8);
-            let dest_y = line;
             let src_x = x;
+            let src_y = oy;
 
-            let vram_index = (x / 8) as u16;
+            if self.wx + (x as u8) < 7 {
+                continue;
+            }
+
+            let dest_x = self.wx.wrapping_add(x as u8).wrapping_sub(7);
+            let dest_y = line;
+
+            if dest_x >= LCD_WIDTH as u8 {
+                continue;
+            }
+
+            let vram_index = index_offset + (x as u8 / 8) as u16;
 
             // tilemapのインデックスを取得する
             let index = self.vram[vram_base_index + vram_index as usize] as usize;
