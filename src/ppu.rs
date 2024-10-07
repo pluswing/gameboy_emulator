@@ -390,9 +390,8 @@ impl PPU {
         // self.frame を全書き換えする
         // self.frame = [255 as u8; 160 * 3 * 144];
         self.draw_bg_line(line);
-        // TODO スプライト priority=0ものの描画
         self.draw_window_line(line);
-        // TODO スプライト priority=1ものの描画
+        self.draw_sprites_line(line);
     }
 
     fn draw_bg_line(&mut self, line: u8) {
@@ -523,79 +522,60 @@ impl PPU {
         }
     }
 
+    fn draw_sprites_line(&mut self, line: u8) {
+        for sprite in self.sprites {
+            let sx = sprite.x as i32;
+            let sy = sprite.y as i32;
+            let tile = self.tile_set[sprite.tile_index as usize];
+            let attribute = sprite.attributes;
+            let priority = (attribute & 0x80) != 0;
+            let y_flip = (attribute & 0x40) != 0;
+            let x_flip = (attribute & 0x20) != 0;
+            let palette = (attribute & 0x10) >> 4;
+
+            let ty = (line as i32 - sy) % 8;
+            if ty < 0 {
+                continue;
+            }
+
+            // TODO ここでスプライトを描くか描かないかを決められるはず。
+            // TODO flip_yの計算はたぶんここでやる
+
+            for tx in 0..8 {
+                let value = tile[ty as usize][tx];
+                if value == TilePixelValue::Zero {
+                    continue;
+                }
+                let color = tile_pixel_value_to_color(
+                    value,
+                    if palette == 0 { self.obp0 } else { self.obp1 },
+                );
+                let tx = if x_flip { 7 - tx } else { tx };
+                let ty = if y_flip { 7 - ty } else { ty };
+                let x = sx + (tx as i32) - 8;
+                let y = sy + (ty as i32) - 16;
+                if x < 0 || x >= 160 || y < 0 || y >= 144 {
+                    continue;
+                }
+                if line as i32 != y {
+                    continue;
+                }
+                // y = lineにならないといけない
+                let o = ((y * 160 + x) * 3) as usize;
+                self.frame[o] = color[0];
+                self.frame[o + 1] = color[1];
+                self.frame[o + 2] = color[2];
+            }
+        }
+    }
+
     fn draw_all(&mut self) {
         self.draw_bg(true);
         self.draw_bg(false);
 
         // FIXME これおかしい。直す。
         // self.draw_window();
-        self.draw_sprites();
-    }
-
-    fn draw_window(&mut self) {
-        // ウインドウの描画
-        // ウインドウの表示開始位置は、 WX、 WY レジスタでそれぞれ指定します。
-        // 画面上の左上の位置は、 WX -7, WY で表されます (7 ピクセル分ずれます)。
-        if self.control.window_enabled && self.wx <= 166 && self.wy <= 143 {
-            let wx: i16 = self.wx as i16 - 7;
-            let wy = self.wy;
-            let range = if self.control.window_tile_map {
-                0x9C00..=0x9FFF
-            } else {
-                0x9800..=0x9BFF
-            };
-            for addr in range {
-                let addr = addr as usize - VRAM_BEGIN;
-                let index = self.vram[addr] as usize;
-                let index = if self.control.tiles {
-                    index
-                } else {
-                    if index < 128 {
-                        index + 256
-                    } else {
-                        index
-                    }
-                };
-                let tile = self.tile_set[index];
-                let i = addr
-                    - if self.control.window_tile_map {
-                        0x1C00
-                    } else {
-                        0x1800
-                    };
-                let sx = (i % 32) * 8;
-                let sy = (i / 32) * 8;
-                for tx in 0..8 {
-                    for ty in 0..8 {
-                        let value = tile[ty][tx];
-                        let color = tile_pixel_value_to_color(value, self.bgp);
-                        let x = sx + tx;
-                        let y = sy + ty;
-
-                        if x < wx as usize {
-                            continue;
-                        }
-                        if x as i16 - wx < 0 {
-                            continue;
-                        }
-                        let x = x - wx as usize;
-
-                        if y < wy as usize {
-                            continue;
-                        }
-                        let y = y - wy as usize;
-
-                        if x >= LCD_WIDTH || y >= LCD_HEIGHT {
-                            continue;
-                        }
-                        let o = ((y * LCD_WIDTH + x) * 3) as usize;
-                        self.frame[o] = color[0];
-                        self.frame[o + 1] = color[1];
-                        self.frame[o + 2] = color[2];
-                    }
-                }
-            }
-        }
+        // self.draw_sprites();
     }
 
     fn draw_sprites(&mut self) {

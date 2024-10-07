@@ -107,6 +107,7 @@ fn main() {
     let mario = "rom/GB/ROM/SUPER MARIOLAND/32/Super Mario Land (World).gb";
     let zelda = "rom/GB/ROM/ZELDA/33/Zelda no Densetsu - Yume o Miru Shima (Japan).gb";
     let yugioh = "rom/GB/ROM/YUGIOU/30/Yu-Gi-Oh! Duel Monsters (Japan) (SGB Enhanced).gb";
+    let dmg = "rom/dmg-acid2.gb";
 
     let cartridge = Cartridge::new(pokemon);
     let mut cpu = CPU::new(cartridge, device);
