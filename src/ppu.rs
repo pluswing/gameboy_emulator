@@ -202,10 +202,12 @@ pub struct PPU {
     // TODO 0xFF47が必要。palette
     tile_set: [Tile; 384],
     scanline_counter: u16,
-    pub frame: [u8; 160 * 3 * 144],
+    pub frame: [u8; LCD_WIDTH * 3 * LCD_HEIGHT],
     pub frame_updated: bool,
     pub bg1: [u8; 256 * 3 * 256],
     pub bg2: [u8; 256 * 3 * 256],
+    line_index: [TilePixelValue; LCD_WIDTH],
+    last_ly: u8,
 }
 
 impl PPU {
@@ -232,6 +234,8 @@ impl PPU {
             frame_updated: false,
             bg1: [0 as u8; 256 * 3 * 256],
             bg2: [0 as u8; 256 * 3 * 256],
+            line_index: [TilePixelValue::Zero; LCD_WIDTH],
+            last_ly: 0,
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
@@ -364,7 +368,7 @@ impl PPU {
             interrupt = PPUInterrupt::LCD;
         }
 
-        if self.ly == self.lyc {
+        if self.ly == self.lyc && self.ly != self.last_ly {
             self.status.lyc_eq_ly = true;
             if self.status.lyc_int_select {
                 interrupt = PPUInterrupt::LCD;
@@ -372,6 +376,7 @@ impl PPU {
         } else {
             self.status.lyc_eq_ly = false;
         }
+        self.last_ly = self.ly;
         return interrupt;
     }
 
@@ -441,6 +446,7 @@ impl PPU {
             // タイルの描画ピクセルを取得する
             let value = tile[(src_y % 8) as usize][(src_x % 8) as usize];
             let color = tile_pixel_value_to_color(value, self.bgp);
+            self.line_index[dest_x as usize] = value;
 
             let o = (dest_y as usize * LCD_WIDTH + dest_x as usize) * 3;
             self.frame[o] = color[0];
@@ -483,6 +489,10 @@ impl PPU {
             let src_x = x;
             let src_y = oy;
 
+            if self.wx.wrapping_add(x as u8) < self.wx {
+                continue;
+            }
+
             if self.wx + (x as u8) < 7 {
                 continue;
             }
@@ -514,6 +524,7 @@ impl PPU {
             // タイルの描画ピクセルを取得する
             let value = tile[(src_y % 8) as usize][(src_x % 8) as usize];
             let color = tile_pixel_value_to_color(value, self.bgp);
+            self.line_index[dest_x as usize] = value;
 
             let o = (dest_y as usize * LCD_WIDTH + dest_x as usize) * 3;
             self.frame[o] = color[0];
@@ -533,35 +544,40 @@ impl PPU {
             let x_flip = (attribute & 0x20) != 0;
             let palette = (attribute & 0x10) >> 4;
 
-            let ty = (line as i32 - sy) % 8;
-            if ty < 0 {
+            let sx = sx - 8;
+            let sy = sy - 16;
+
+            // lineにspriteが掛かっているかをチェック
+            if (line as i32) < sy || (line as i32) >= sy + 8 {
                 continue;
             }
 
-            // TODO ここでスプライトを描くか描かないかを決められるはず。
-            // TODO flip_yの計算はたぶんここでやる
+            let ty = line as i32 - sy;
+            let ty = if y_flip { 7 - ty } else { ty };
 
             for tx in 0..8 {
                 let value = tile[ty as usize][tx];
                 if value == TilePixelValue::Zero {
                     continue;
                 }
+
                 let color = tile_pixel_value_to_color(
                     value,
                     if palette == 0 { self.obp0 } else { self.obp1 },
                 );
                 let tx = if x_flip { 7 - tx } else { tx };
-                let ty = if y_flip { 7 - ty } else { ty };
-                let x = sx + (tx as i32) - 8;
-                let y = sy + (ty as i32) - 16;
-                if x < 0 || x >= 160 || y < 0 || y >= 144 {
+                let x = sx + (tx as i32);
+                let y = line as i32;
+
+                if x < 0 || x >= LCD_WIDTH as i32 || y < 0 || y >= LCD_HEIGHT as i32 {
                     continue;
                 }
-                if line as i32 != y {
+
+                if priority && self.line_index[x as usize] != TilePixelValue::Zero {
                     continue;
                 }
-                // y = lineにならないといけない
-                let o = ((y * 160 + x) * 3) as usize;
+
+                let o = ((y * LCD_WIDTH as i32 + x) * 3) as usize;
                 self.frame[o] = color[0];
                 self.frame[o + 1] = color[1];
                 self.frame[o + 2] = color[2];
@@ -572,48 +588,6 @@ impl PPU {
     fn draw_all(&mut self) {
         self.draw_bg(true);
         self.draw_bg(false);
-
-        // FIXME これおかしい。直す。
-        // self.draw_window();
-        // self.draw_sprites();
-    }
-
-    fn draw_sprites(&mut self) {
-        // draw sprites
-        for sprite in self.sprites {
-            let sx = sprite.x as i32;
-            let sy = sprite.y as i32;
-            let tile = self.tile_set[sprite.tile_index as usize];
-            let attribute = sprite.attributes;
-            let priority = (attribute & 0x80) != 0;
-            let y_flip = (attribute & 0x40) != 0;
-            let x_flip = (attribute & 0x20) != 0;
-            let palette = (attribute & 0x10) >> 4;
-
-            for tx in 0..8 {
-                for ty in 0..8 {
-                    let value = tile[ty][tx];
-                    if value == TilePixelValue::Zero {
-                        continue;
-                    }
-                    let color = tile_pixel_value_to_color(
-                        value,
-                        if palette == 0 { self.obp0 } else { self.obp1 },
-                    );
-                    let tx = if x_flip { 7 - tx } else { tx };
-                    let ty = if y_flip { 7 - ty } else { ty };
-                    let x = sx + (tx as i32) - 8;
-                    let y = sy + (ty as i32) - 16;
-                    if x < 0 || x >= 160 || y < 0 || y >= 144 {
-                        continue;
-                    }
-                    let o = ((y * 160 + x) * 3) as usize;
-                    self.frame[o] = color[0];
-                    self.frame[o + 1] = color[1];
-                    self.frame[o + 2] = color[2];
-                }
-            }
-        }
     }
 
     fn draw_bg(&mut self, bg1: bool) {
