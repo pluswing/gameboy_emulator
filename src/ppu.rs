@@ -400,7 +400,10 @@ impl PPU {
     }
 
     fn draw_bg_line(&mut self, line: u8) {
-        // FIXME BG1/BG2の切り替えがうまく行ってないぽい。
+        if !self.control.bg_window_enabled {
+            return;
+        }
+
         let vram_base_index = if self.control.bg_tile_map {
             0x9C00 - VRAM_BEGIN
         } else {
@@ -534,10 +537,15 @@ impl PPU {
     }
 
     fn draw_sprites_line(&mut self, line: u8) {
+        if !self.control.obj_enabled {
+            return;
+        }
+
+        let mut counter = 0;
         for sprite in self.sprites {
             let sx = sprite.x as i32;
             let sy = sprite.y as i32;
-            let tile = self.tile_set[sprite.tile_index as usize];
+
             let attribute = sprite.attributes;
             let priority = (attribute & 0x80) != 0;
             let y_flip = (attribute & 0x40) != 0;
@@ -547,16 +555,30 @@ impl PPU {
             let sx = sx - 8;
             let sy = sy - 16;
 
+            let y_size = if self.control.obj_size { 16 } else { 8 };
+
             // lineにspriteが掛かっているかをチェック
-            if (line as i32) < sy || (line as i32) >= sy + 8 {
+            if (line as i32) < sy || (line as i32) >= sy + y_size {
                 continue;
             }
 
             let ty = line as i32 - sy;
-            let ty = if y_flip { 7 - ty } else { ty };
+            let ty = if y_flip { (y_size - 1) - ty } else { ty };
 
             for tx in 0..8 {
-                let value = tile[ty as usize][tx];
+                let value = if self.control.obj_size {
+                    if ty >= 8 {
+                        let tile = self.tile_set[sprite.tile_index as usize | 0x01];
+                        tile[ty as usize - 8][tx]
+                    } else {
+                        let tile = self.tile_set[sprite.tile_index as usize & 0xFE];
+                        tile[ty as usize][tx]
+                    }
+                } else {
+                    let tile = self.tile_set[sprite.tile_index as usize];
+                    tile[ty as usize][tx]
+                };
+
                 if value == TilePixelValue::Zero {
                     continue;
                 }
@@ -581,6 +603,10 @@ impl PPU {
                 self.frame[o] = color[0];
                 self.frame[o + 1] = color[1];
                 self.frame[o + 2] = color[2];
+            }
+            counter += 1;
+            if counter >= 10 {
+                return;
             }
         }
     }
