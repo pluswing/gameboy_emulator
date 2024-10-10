@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 pub const VRAM_BEGIN: usize = 0x8000;
 pub const VRAM_END: usize = 0x9FFF;
 pub const VRAM_SIZE: usize = VRAM_END - VRAM_BEGIN + 1;
@@ -158,8 +160,9 @@ impl std::convert::From<u8> for LcdStatusRegisters {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Ord, Eq)]
 struct Sprite {
+    index: u8,
     y: u8,
     x: u8,
     tile_index: u8,
@@ -167,13 +170,25 @@ struct Sprite {
 }
 
 impl Sprite {
-    fn new(y: u8, x: u8, tile_index: u8, attributes: u8) -> Self {
+    fn new(index: u8, y: u8, x: u8, tile_index: u8, attributes: u8) -> Self {
         Sprite {
+            index,
             y,
             x,
             tile_index,
             attributes,
         }
+    }
+}
+
+impl PartialOrd for Sprite {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.x == other.x {
+            return Some(other.index.cmp(&self.index));
+        } else if self.y.abs_diff(other.y) < 8 {
+            return Some(self.index.cmp(&other.index));
+        }
+        Some(other.index.cmp(&self.index))
     }
 }
 
@@ -208,6 +223,7 @@ pub struct PPU {
     pub bg2: [u8; 256 * 3 * 256],
     line_index: [TilePixelValue; LCD_WIDTH],
     last_ly: u8,
+    window_line: u8,
 }
 
 impl PPU {
@@ -215,7 +231,7 @@ impl PPU {
         PPU {
             vram: [0; VRAM_SIZE],
             oam: [0; 0xA0],
-            sprites: [Sprite::new(0, 0, 0, 0); 40],
+            sprites: [Sprite::new(0, 0, 0, 0, 0); 40],
             ly: 0,
             lyc: 0,
             control: LcdControlRegisters::new(),
@@ -236,6 +252,7 @@ impl PPU {
             bg2: [0 as u8; 256 * 3 * 256],
             line_index: [TilePixelValue::Zero; LCD_WIDTH],
             last_ly: 0,
+            window_line: 0,
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
@@ -277,6 +294,7 @@ impl PPU {
             let x = self.oam[i + 1];
             let tile_index = self.oam[i + 2];
             let attributes = self.oam[i + 3];
+            self.sprites[n].index = n as u8;
             self.sprites[n].y = y;
             self.sprites[n].x = x;
             self.sprites[n].tile_index = tile_index;
@@ -318,6 +336,7 @@ impl PPU {
             } else if currentline > 153 {
                 // 1フレーム描画完了
                 self.ly = 0;
+                self.window_line = 0;
             }
         }
         return interrupt;
@@ -327,6 +346,7 @@ impl PPU {
         if !self.control.enabled {
             self.scanline_counter = 0;
             self.ly = 0;
+            self.window_line = 0;
             self.status.ppu_mode = 1;
             return PPUInterrupt::NONE;
         }
@@ -476,7 +496,8 @@ impl PPU {
 
         // どこを描くのかを割り出す
         // let ox = 0;
-        let oy = line.wrapping_sub(self.wy);
+        let oy = self.window_line;
+        self.window_line += 1;
 
         // どこに描くのか
         // dest_x = wx + x - 7
@@ -503,7 +524,7 @@ impl PPU {
             let dest_x = self.wx.wrapping_add(x as u8).wrapping_sub(7);
             let dest_y = line;
 
-            if dest_x >= LCD_WIDTH as u8 {
+            if dest_x >= LCD_WIDTH as u8 || dest_y >= LCD_HEIGHT as u8 {
                 continue;
             }
 
@@ -541,8 +562,24 @@ impl PPU {
             return;
         }
 
-        let mut counter = 0;
+        let mut sprites: Vec<Sprite> = Vec::new();
         for sprite in self.sprites {
+            let sy = sprite.y as i32 - 16;
+            let y_size = if self.control.obj_size { 16 } else { 8 };
+            // lineにspriteが掛かっているかをチェック
+            if (line as i32) < sy || (line as i32) >= sy + y_size {
+                continue;
+            }
+            sprites.push(sprite);
+        }
+        sprites.sort();
+        let sprites = if sprites.len() > 10 {
+            &sprites[0..10]
+        } else {
+            &sprites
+        };
+
+        for sprite in sprites {
             let sx = sprite.x as i32;
             let sy = sprite.y as i32;
 
@@ -556,11 +593,6 @@ impl PPU {
             let sy = sy - 16;
 
             let y_size = if self.control.obj_size { 16 } else { 8 };
-
-            // lineにspriteが掛かっているかをチェック
-            if (line as i32) < sy || (line as i32) >= sy + y_size {
-                continue;
-            }
 
             let ty = line as i32 - sy;
             let ty = if y_flip { (y_size - 1) - ty } else { ty };
@@ -603,10 +635,6 @@ impl PPU {
                 self.frame[o] = color[0];
                 self.frame[o + 1] = color[1];
                 self.frame[o + 2] = color[2];
-            }
-            counter += 1;
-            if counter >= 10 {
-                return;
             }
         }
     }
