@@ -1,5 +1,6 @@
 use std::fs::{self, File};
 use std::io::Read;
+use std::io::Write;
 
 use crate::mapper::mbc1::MBC1;
 use crate::mapper::nombc::NoMBC;
@@ -9,6 +10,8 @@ pub struct Cartridge {
     rom: Vec<u8>,
     ram: Vec<u8>,
     mapper: Mapper,
+
+    ram_file_path: String,
 }
 
 impl Cartridge {
@@ -47,9 +50,25 @@ impl Cartridge {
             _ => panic!("unsupported ram size."),
         };
 
-        let mut ram = vec![0; ram_size as usize];
+        // let mut ram = vec![0; ram_size as usize];
 
-        Cartridge { rom, ram, mapper }
+        let save_filename = "rom/GB/SAVE/KAERUNOTAMENI/36/KAERUNOTAMENI.sav";
+        let mut f = File::open(&save_filename).expect("no save file found");
+        let metadata = fs::metadata(&save_filename).expect("unable to read metadata");
+        if metadata.len() != ram_size {
+            panic!("save file size is not match.");
+        }
+
+        let mut ram = vec![0; metadata.len() as usize];
+        f.read(&mut ram).expect("buffer overflow");
+
+        let ram_file_path = String::from(filename) + ".save";
+        Cartridge {
+            rom,
+            ram,
+            mapper,
+            ram_file_path: ram_file_path.to_string(),
+        }
     }
 
     pub fn read_byte(&mut self, addr: u16) -> u8 {
@@ -62,11 +81,18 @@ impl Cartridge {
             .write_byte(&mut self.rom, &mut self.ram, addr, value);
     }
 
+    pub fn save_ram(&mut self) {
+        let mut file = File::create(self.ram_file_path.as_str()).unwrap();
+        file.write_all(&self.ram).unwrap();
+        file.flush().unwrap();
+    }
+
     pub fn for_test() -> Self {
         Cartridge {
             rom: vec![0; 0x8000 as usize],
             ram: vec![0; 0x0000 as usize],
             mapper: Mapper::NoMBC(NoMBC::new()),
+            ram_file_path: "_.save".to_string(),
         }
     }
 }
