@@ -1,6 +1,7 @@
 use std::fs::{self, File};
 use std::io::Read;
 use std::io::Write;
+use std::path::PathBuf;
 
 use crate::mapper::mbc1::MBC1;
 use crate::mapper::nombc::NoMBC;
@@ -50,19 +51,26 @@ impl Cartridge {
             _ => panic!("unsupported ram size."),
         };
 
-        // let mut ram = vec![0; ram_size as usize];
+        // let mut ram =
 
-        let save_filename = "rom/GB/SAVE/KAERUNOTAMENI/36/KAERUNOTAMENI.sav";
-        let mut f = File::open(&save_filename).expect("no save file found");
-        let metadata = fs::metadata(&save_filename).expect("unable to read metadata");
-        if metadata.len() != ram_size {
-            panic!("save file size is not match.");
-        }
+        let mut path = PathBuf::from(filename);
+        path.set_extension("save");
+        let ram_file_path = path.to_str().unwrap();
 
-        let mut ram = vec![0; metadata.len() as usize];
-        f.read(&mut ram).expect("buffer overflow");
+        let ram = if path.is_file() {
+            let mut f = File::open(&ram_file_path).expect("no save file found");
+            let metadata = fs::metadata(&ram_file_path).expect("unable to read metadata");
+            if metadata.len() != ram_size {
+                panic!("save file size is not match.");
+            }
 
-        let ram_file_path = String::from(filename) + ".save";
+            let mut ram = vec![0; metadata.len() as usize];
+            f.read(&mut ram).expect("buffer overflow");
+            ram
+        } else {
+            vec![0; ram_size as usize]
+        };
+
         Cartridge {
             rom,
             ram,

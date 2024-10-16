@@ -9,7 +9,7 @@ use crate::{
 
 pub struct MemoryBus {
     pub memory: [u8; 0x10000],
-    cartridge: Cartridge,
+    pub cartridge: Cartridge,
     pub ppu: PPU,
     pub joypad: Joypad,
     pub apu: APU,

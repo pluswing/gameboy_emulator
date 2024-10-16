@@ -109,13 +109,13 @@ fn main() {
     let yugioh = "rom/GB/ROM/YUGIOU/30/Yu-Gi-Oh! Duel Monsters (Japan) (SGB Enhanced).gb";
     let dmg = "rom/dmg-acid2.gb";
 
-    let cartridge = Cartridge::new(pokemon);
+    let cartridge = Cartridge::new(zelda);
     let mut cpu = CPU::new(cartridge, device);
 
     loop {
         cpu.step();
         if cpu.bus.ppu.frame_updated {
-            handle_user_input(&mut event_pump, &mut cpu.bus.joypad);
+            handle_user_input(&mut event_pump, &mut cpu.bus.cartridge, &mut cpu.bus.joypad);
             cpu.bus.ppu.frame_updated = false;
             let screen_state = cpu.bus.ppu.frame;
             texture.update(None, &screen_state, 160 * 3).unwrap();
@@ -134,14 +134,17 @@ fn main() {
     }
 }
 
-fn handle_user_input(event_pump: &mut EventPump, joypad: &mut Joypad) {
+fn handle_user_input(event_pump: &mut EventPump, cartridge: &mut Cartridge, joypad: &mut Joypad) {
     for event in event_pump.poll_iter() {
         match event {
             Event::Quit { .. }
             | Event::KeyDown {
                 keycode: Some(Keycode::Escape),
                 ..
-            } => std::process::exit(0),
+            } => {
+                cartridge.save_ram();
+                std::process::exit(0);
+            }
 
             // joypad
             Event::KeyDown {
