@@ -861,7 +861,7 @@ impl Ch4 {
         let value = (self.lfsr & 0b01) ^ ((self.lfsr & 0b10) >> 1);
         self.lfsr = (self.lfsr >> 1) | value << 14;
         if self.lfsr_width() {
-            self.lfsr = (self.lfsr & !0x20) | value << 6;
+            self.lfsr = (self.lfsr & !0x40) | value << 6;
         }
         (!self.lfsr) & 0b01
     }
