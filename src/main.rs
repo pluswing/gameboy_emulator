@@ -109,7 +109,7 @@ fn main() {
     let yugioh = "rom/GB/ROM/YUGIOU/30/Yu-Gi-Oh! Duel Monsters (Japan) (SGB Enhanced).gb";
     let dmg = "rom/dmg-acid2.gb";
 
-    let cartridge = Cartridge::new(zelda);
+    let cartridge = Cartridge::new(dq);
     let mut cpu = CPU::new(cartridge, device);
 
     loop {

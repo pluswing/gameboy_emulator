@@ -199,6 +199,10 @@ pub struct PPU {
     pub obp1: u8, // $FF49
     pub wy: u8,   // $FF4A
     pub wx: u8,   // $FF4B
+
+    // color registers
+    pub opri: bool,
+    // end color regs
     oam: [u8; 0xA0],
     sprites: [Sprite; 40],
     // TODO 0xFF47が必要。palette
@@ -231,6 +235,7 @@ impl PPU {
             obp1: 0,
             wy: 0,
             wx: 0,
+            opri: false,
             tile_set: [empty_tile(); 384],
             scanline_counter: 0,
             frame: [0 as u8; 160 * 3 * 144],

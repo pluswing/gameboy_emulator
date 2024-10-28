@@ -127,6 +127,8 @@ pub struct CPU {
     timer_counter: u16,
     div_counter: u16,
     clock_select: u8,
+
+    high_speed_mode: bool,
 }
 
 impl CPU {
@@ -141,9 +143,24 @@ impl CPU {
             timer_counter: 0,
             div_counter: 0,
             clock_select: 0,
+            high_speed_mode: false, // カラー対応。CPUスピード
         };
-        // FIXME BOOT ROMを実行したフラグ的なやつを立てる。
+        // FIXME BOOT ROMを実行したフラグ的なやつを立てる。（白黒）
         cpu.bus.write_byte(0xFF50, 1);
+
+        // ゲームボーイカラー対応機種ということをソフト側に伝える
+        cpu.registers.a = 0x11;
+        cpu.bus.write_byte(0xFF50, 0x11); // カラーの場合は0x11を書き込む。
+
+        // KEY0の初期化
+        let key0 = cpu.bus.read_byte(0x143);
+        if (key0 & 0x80) != 0 {
+            cpu.bus.write_byte(0xFF4C, key0);
+        } else {
+            cpu.bus.write_byte(0xFF4C, 0x04);
+            cpu.bus.ppu.opri = true;
+        }
+
         cpu
     }
 
@@ -544,7 +561,17 @@ impl CPU {
         self.registers.f.carry = carry;
     }
     fn stop(&mut self, arg0: instruction::STOP_Arg_0, flags: instruction::Flags) {
-        // FIXME キーボード入力の割り込みが入るまでなにもしない？
+        println!("CALL STOP");
+        // 速度切り替えを行う
+        let key1 = self.bus.read_byte(0xFF4D);
+        let curret_speed = key1 & 0x80 != 0; // true=倍速
+        let switch_speed = key1 & 0x01 != 0; // true=切り替え準備
+        if switch_speed {
+            // 速度切り替え実行
+            self.high_speed_mode = !curret_speed;
+            self.bus
+                .write_byte(0xFF4D, if self.high_speed_mode { 0x80 } else { 0x00 });
+        }
     }
     fn ccf(&mut self, flags: instruction::Flags) {
         self.registers.f.carry = !self.registers.f.carry;
