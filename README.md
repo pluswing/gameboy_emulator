@@ -61,3 +61,22 @@ Pocket Monsters - Midori (Japan) (Rev 1) (SGB Enhanced).gb: [03, 04, 03]
 Super Mario Land (World).gb: [01, 01, 00]
 Yu-Gi-Oh! Duel Monsters (Japan) (SGB Enhanced).gb: [03, 05, 02]
 Zelda no Densetsu - Yume o Miru Shima (Japan): [03, 04, 02]
+
+## カラー対応
+
+### できた
+- ゲームボーイカラーの機能のアンロック
+  - CGB対応ソフトかどうかのチェック
+- ゲームボーイカラー (ゲームボーイアドバンス) の見分け方
+  - ハード(emulator)がCGB対応してると言う
+- 速度切り替え準備 (STOP命令)
+
+### まだ
+- 速度調整
+  - LCD コントローラ (PPU)
+  - HDMA ※
+  - サウンドのタイミングと周波数 (APU) => DONE
+
+- PPU実装
+  - ...BGPIとか
+

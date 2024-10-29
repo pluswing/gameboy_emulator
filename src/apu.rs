@@ -36,9 +36,10 @@ impl APU {
         }
     }
 
-    pub fn update(&mut self, div: u8) {
-        let p = self.prev_div & 0x10;
-        let c = div & 0x10;
+    pub fn update(&mut self, div: u8, high_speed: bool) {
+        let mask = if high_speed { 0x20 } else { 0x10 };
+        let p = self.prev_div & mask;
+        let c = div & mask;
         self.prev_div = div;
         // DIV-APUカウンタのビット4が1から0になるたびに処理を行う
         if !(p != 0 && c == 0) {

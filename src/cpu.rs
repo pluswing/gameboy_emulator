@@ -145,7 +145,7 @@ impl CPU {
             clock_select: 0,
             high_speed_mode: false, // カラー対応。CPUスピード
         };
-        // FIXME BOOT ROMを実行したフラグ的なやつを立てる。（白黒）
+        // BOOT ROMを実行したフラグ的なやつを立てる。（白黒）
         cpu.bus.write_byte(0xFF50, 1);
 
         // ゲームボーイカラー対応機種ということをソフト側に伝える
@@ -855,7 +855,9 @@ impl CPU {
     }
 
     fn update_audio(&mut self) {
-        self.bus.apu.update(self.bus.memory[0xFF04]);
+        self.bus
+            .apu
+            .update(self.bus.memory[0xFF04], self.high_speed_mode);
     }
 
     fn update_timers(&mut self, cycles: u16) {
