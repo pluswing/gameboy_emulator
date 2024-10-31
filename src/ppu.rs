@@ -207,6 +207,7 @@ pub struct PPU {
     sprites: [Sprite; 40],
     // TODO 0xFF47が必要。palette
     tile_set: [Tile; 384],
+    cycles: u16,
     scanline_counter: u16,
     pub frame: [u8; LCD_WIDTH * 3 * LCD_HEIGHT],
     pub frame_updated: bool,
@@ -237,6 +238,7 @@ impl PPU {
             wx: 0,
             opri: false,
             tile_set: [empty_tile(); 384],
+            cycles: 0,
             scanline_counter: 0,
             frame: [0 as u8; 160 * 3 * 144],
             frame_updated: false,
@@ -298,8 +300,10 @@ impl PPU {
         self.oam[address - 0xFE00]
     }
 
-    pub fn update(&mut self, cycles: u16) -> PPUInterrupt {
-        self.scanline_counter += cycles;
+    pub fn update(&mut self, cycles: u16, high_speed_mode: bool) -> PPUInterrupt {
+        self.cycles += cycles;
+        self.scanline_counter = self.cycles / if high_speed_mode { 2 } else { 1 };
+        let line_count = 456 * if high_speed_mode { 2 } else { 1 };
         // FIXME VBLANKと同時発生時におかしくなるかも。
         let interrupt = self.set_lcd_status();
 
@@ -316,7 +320,7 @@ impl PPU {
             //     self.control
             // );
             // 1ライン描画した
-            self.scanline_counter -= 456;
+            self.cycles -= line_count;
             self.ly += 1;
             let currentline = self.ly;
             if currentline == 144 {
@@ -336,6 +340,7 @@ impl PPU {
 
     fn set_lcd_status(&mut self) -> PPUInterrupt {
         if !self.control.enabled {
+            self.cycles = 0;
             self.scanline_counter = 0;
             self.ly = 0;
             self.window_line = 0;

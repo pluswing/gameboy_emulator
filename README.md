@@ -73,7 +73,8 @@ Zelda no Densetsu - Yume o Miru Shima (Japan): [03, 04, 02]
 
 ### まだ
 - 速度調整
-  - LCD コントローラ (PPU)
+  - LCD コントローラ (PPU) => DONE
+  - VRAM bank / WRAM bank
   - HDMA ※
   - サウンドのタイミングと周波数 (APU) => DONE
 

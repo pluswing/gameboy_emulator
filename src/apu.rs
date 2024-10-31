@@ -36,8 +36,8 @@ impl APU {
         }
     }
 
-    pub fn update(&mut self, div: u8, high_speed: bool) {
-        let mask = if high_speed { 0x20 } else { 0x10 };
+    pub fn update(&mut self, div: u8, high_speed_mode: bool) {
+        let mask = if high_speed_mode { 0x20 } else { 0x10 };
         let p = self.prev_div & mask;
         let c = div & mask;
         self.prev_div = div;

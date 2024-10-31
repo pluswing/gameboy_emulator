@@ -847,7 +847,7 @@ impl CPU {
     }
 
     fn update_graphics(&mut self, cycles: u16) {
-        match self.bus.ppu.update(cycles) {
+        match self.bus.ppu.update(cycles, self.high_speed_mode) {
             PPUInterrupt::NONE => {}
             PPUInterrupt::VBALNK => self.request_interrupt(0),
             PPUInterrupt::LCD => self.request_interrupt(1),
