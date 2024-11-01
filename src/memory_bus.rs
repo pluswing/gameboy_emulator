@@ -46,6 +46,14 @@ impl MemoryBus {
             0xFE00..=0xFE9F => self.ppu.read_oam(address),
             0xFF50 => self.memory[address],
             0xFF00 => self.joypad.read(),
+
+            // HDMA
+            0xFF51 => self.ppu.hdma1,
+            0xFF52 => self.ppu.hdma2,
+            0xFF53 => self.ppu.hdma3,
+            0xFF54 => self.ppu.hdma4,
+            0xFF55 => self.ppu.hdma5, // FIXME フック必要？
+
             // APU
             0xFF26 | 0xFF25 | 0xFF24 => self.apu.global.read(address as u16),
             // CH1
@@ -81,6 +89,13 @@ impl MemoryBus {
             0xFF4A => self.ppu.wy = value,
             0xFF4B => self.ppu.wx = value,
             0xFE00..=0xFE9F => self.ppu.write_oam(address, value),
+
+            // HDMA
+            0xFF51 => self.ppu.hdma1 = value,
+            0xFF52 => self.ppu.hdma2 = value,
+            0xFF53 => self.ppu.hdma3 = value,
+            0xFF54 => self.ppu.hdma4 = value,
+            0xFF55 => self.do_hdma_transfer(value),
 
             0xFF50 => self.memory[address] = value, // FIXME boot rom bank switch
             0xFF01 => {
@@ -129,5 +144,30 @@ impl MemoryBus {
             self.write_byte(0xFE00 + i, value);
         }
         // TODO 160サイクルかかる
+    }
+
+    pub fn do_hdma_transfer(&mut self, value: u8) {
+        self.ppu.hdma5 = value;
+
+        // 下位7bitは転送サイズ（10hで割った値から1を引いた値）を指定し、つまり、$00..7Fの値で$10..800バイトの長さを定義することができます。
+        let size = self.ppu.hdma5 & 0x7F;
+        // 実際の転送サイズを計算する
+        let size = (size as u16 + 1) * 16;
+
+        // mode = true ==> HBlank DMA, false => 汎用DMA
+        let mode = self.ppu.hdma5 & 0x80 != 0;
+
+        // 汎用DMAで処理を行う。
+        // FIXME HBlank DMAは必要に応じて実装する。（必要ないかもしれない。。。）
+
+        let src = ((self.ppu.hdma1 as u16) << 8 | self.ppu.hdma2 as u16) & 0xFFF0;
+        let dest = (((self.ppu.hdma3 as u16) << 8 | self.ppu.hdma4 as u16) & 0x1FF0) | 0x8000;
+
+        for i in 0..size {
+            let v = self.read_byte(src + i);
+            self.write_byte(dest + i, v);
+        }
+
+        self.ppu.hdma5 = 0xFF;
     }
 }

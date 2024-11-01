@@ -200,14 +200,11 @@ pub struct PPU {
     pub wy: u8,   // $FF4A
     pub wx: u8,   // $FF4B
 
-    // color registers
-    pub opri: bool,
     // end color regs
     oam: [u8; 0xA0],
     sprites: [Sprite; 40],
     // TODO 0xFF47が必要。palette
     tile_set: [Tile; 384],
-    cycles: u16,
     scanline_counter: u16,
     pub frame: [u8; LCD_WIDTH * 3 * LCD_HEIGHT],
     pub frame_updated: bool,
@@ -216,6 +213,15 @@ pub struct PPU {
     line_index: [TilePixelValue; LCD_WIDTH],
     last_ly: u8,
     window_line: u8,
+
+    // color registers & valiables
+    pub opri: bool,
+    cycles: u16,
+    pub hdma1: u8,
+    pub hdma2: u8,
+    pub hdma3: u8,
+    pub hdma4: u8,
+    pub hdma5: u8,
 }
 
 impl PPU {
@@ -247,6 +253,11 @@ impl PPU {
             line_index: [TilePixelValue::Zero; LCD_WIDTH],
             last_ly: 0,
             window_line: 0,
+            hdma1: 0,
+            hdma2: 0,
+            hdma3: 0,
+            hdma4: 0,
+            hdma5: 0,
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
