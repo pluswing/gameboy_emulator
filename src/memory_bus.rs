@@ -52,7 +52,9 @@ impl MemoryBus {
             0xFF52 => self.ppu.hdma2,
             0xFF53 => self.ppu.hdma3,
             0xFF54 => self.ppu.hdma4,
-            0xFF55 => self.ppu.hdma5, // FIXME フック必要？
+            0xFF55 => self.ppu.hdma5,
+            // VBK
+            0xFF4F => self.ppu.vbk | 0xFE,
 
             // APU
             0xFF26 | 0xFF25 | 0xFF24 => self.apu.global.read(address as u16),
@@ -96,6 +98,8 @@ impl MemoryBus {
             0xFF53 => self.ppu.hdma3 = value,
             0xFF54 => self.ppu.hdma4 = value,
             0xFF55 => self.do_hdma_transfer(value),
+            // VBK
+            0xFF4F => self.ppu.vbk = value,
 
             0xFF50 => self.memory[address] = value, // FIXME boot rom bank switch
             0xFF01 => {

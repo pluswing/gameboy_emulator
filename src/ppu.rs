@@ -186,7 +186,7 @@ pub enum PPUInterrupt {
 }
 
 pub struct PPU {
-    vram: [u8; VRAM_SIZE],
+    vram: [u8; VRAM_SIZE * 2],
     pub ly: u8,  // 0xFF44
     pub lyc: u8, // 0xFF45 (LY compare)
     pub control: LcdControlRegisters,
@@ -222,12 +222,13 @@ pub struct PPU {
     pub hdma3: u8,
     pub hdma4: u8,
     pub hdma5: u8,
+    pub vbk: u8,
 }
 
 impl PPU {
     pub fn new() -> Self {
         PPU {
-            vram: [0; VRAM_SIZE],
+            vram: [0; VRAM_SIZE * 2],
             oam: [0; 0xA0],
             sprites: [Sprite::new(0, 0, 0, 0, 0); 40],
             ly: 0,
@@ -258,18 +259,26 @@ impl PPU {
             hdma3: 0,
             hdma4: 0,
             hdma5: 0,
+            vbk: 0,
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
-        self.vram[address]
+        let bank = (self.vbk & 0x01) as usize;
+        let offset = 0x2000 * bank;
+        self.vram[address + offset]
     }
     pub fn write_vram(&mut self, index: usize, value: u8) {
+        let bank = (self.vbk & 0x01) as usize;
+        let offset = 0x2000 * bank;
+        let index = index + offset;
+
         self.vram[index] = value;
 
-        if index >= 0x1800 {
+        if bank == 1 || index >= 0x1800 {
             return;
         }
 
+        // タイルセットの更新
         let normalized_index = index & 0xFFFE;
         let byte1 = self.vram[normalized_index];
         let byte2 = self.vram[normalized_index + 1];
@@ -460,7 +469,7 @@ impl PPU {
             let vram_index = index_offset + (ox.wrapping_add(x as u8) / 8) as u16;
 
             // tilemapのインデックスを取得する
-            let index = self.vram[vram_base_index + vram_index as usize] as usize;
+            let index = self.read_vram(vram_base_index + vram_index as usize) as usize;
             let index = if self.control.tiles {
                 index
             } else {
@@ -539,7 +548,7 @@ impl PPU {
             let vram_index = index_offset + (x as u8 / 8) as u16;
 
             // tilemapのインデックスを取得する
-            let index = self.vram[vram_base_index + vram_index as usize] as usize;
+            let index = self.read_vram(vram_base_index + vram_index as usize) as usize;
             let index = if self.control.tiles {
                 index
             } else {
