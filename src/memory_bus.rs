@@ -13,6 +13,10 @@ pub struct MemoryBus {
     pub ppu: PPU,
     pub joypad: Joypad,
     pub apu: APU,
+
+    // CGB
+    svbk: u8,
+    wram: [u8; 0x8000], // 32KB
 }
 
 impl MemoryBus {
@@ -23,6 +27,8 @@ impl MemoryBus {
             ppu: PPU::new(),
             joypad: Joypad::new(),
             apu: APU::new(device),
+            svbk: 0,
+            wram: [0; 0x8000],
         }
     }
     pub fn read_byte(&mut self, address: u16) -> u8 {
@@ -55,6 +61,10 @@ impl MemoryBus {
             0xFF55 => self.ppu.hdma5,
             // VBK
             0xFF4F => self.ppu.vbk | 0xFE,
+            // SVBK
+            0xFF70 => self.svbk,
+            // WRAM
+            0xC000..=0xDFFF => self.read_wram(address as u16),
 
             // APU
             0xFF26 | 0xFF25 | 0xFF24 => self.apu.global.read(address as u16),
@@ -100,6 +110,10 @@ impl MemoryBus {
             0xFF55 => self.do_hdma_transfer(value),
             // VBK
             0xFF4F => self.ppu.vbk = value,
+            // SVBK
+            0xFF70 => self.svbk = value,
+            // WRAM
+            0xC000..=0xDFFF => self.write_wram(address as u16, value),
 
             0xFF50 => self.memory[address] = value, // FIXME boot rom bank switch
             0xFF01 => {
@@ -173,5 +187,37 @@ impl MemoryBus {
         }
 
         self.ppu.hdma5 = 0xFF;
+    }
+
+    fn read_wram(&mut self, address: u16) -> u8 {
+        match address {
+            0xC000..=0xCFFF => self.wram[address as usize - 0xC000],
+            0xD000..=0xDFFF => {
+                let mut bank = (self.svbk & 0x07) as usize;
+                if bank == 0 {
+                    bank = 1
+                }
+                let offset = bank * 0x1000;
+                let address = address as usize - 0xC000 + offset;
+                self.wram[address]
+            }
+            _ => panic!("should not reach."),
+        }
+    }
+
+    fn write_wram(&mut self, address: u16, value: u8) {
+        match address {
+            0xC000..=0xCFFF => self.wram[address as usize - 0xC000] = value,
+            0xD000..=0xDFFF => {
+                let mut bank = (self.svbk & 0x07) as usize;
+                if bank == 0 {
+                    bank = 1
+                }
+                let offset = bank * 0x1000;
+                let address = address as usize - 0xC000 + offset;
+                self.wram[address] = value
+            }
+            _ => panic!("should not reach."),
+        }
     }
 }
