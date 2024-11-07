@@ -187,6 +187,14 @@ pub enum PPUInterrupt {
 
 pub struct PPU {
     vram: [u8; VRAM_SIZE * 2],
+    // => 0ページ, 1ページがある。(0x8000-0x9FFF)
+    // 0ページ (0x0000 - 0x1FFF)
+    //  0x17FFまでに タイルデータ
+    //  0x1800から先に タイルマップ
+    // 1ページ (0x2000 - 0x3FFF)
+    //  0x17FFまでに タイルデータ
+    //  0x1800から先に BG マップ属性
+    //
     pub ly: u8,  // 0xFF44
     pub lyc: u8, // 0xFF45 (LY compare)
     pub control: LcdControlRegisters,
@@ -479,6 +487,9 @@ impl PPU {
                     index
                 }
             };
+
+            // let attr = self.read_vram(vram_base_index + vram_index as usize + 0x2000) as usize;
+            // attr = 優先度	Yフリップ	Xフリップ		銀行	カラーパレット
 
             // タイルを取ってくる
             let tile = self.tile_set[index];

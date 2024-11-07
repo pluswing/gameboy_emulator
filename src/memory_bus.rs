@@ -198,7 +198,7 @@ impl MemoryBus {
                     bank = 1
                 }
                 let offset = bank * 0x1000;
-                let address = address as usize - 0xC000 + offset;
+                let address = address as usize - 0xD000 + offset;
                 self.wram[address]
             }
             _ => panic!("should not reach."),
@@ -214,7 +214,7 @@ impl MemoryBus {
                     bank = 1
                 }
                 let offset = bank * 0x1000;
-                let address = address as usize - 0xC000 + offset;
+                let address = address as usize - 0xD000 + offset;
                 self.wram[address] = value
             }
             _ => panic!("should not reach."),
