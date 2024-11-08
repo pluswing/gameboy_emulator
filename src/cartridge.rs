@@ -40,6 +40,10 @@ impl Cartridge {
             0x03 => Mapper::MBC1(MBC1::new()), // FIXME: + RAM + BATTERY
             _ => panic!("unsupported cartridge type."),
         };
+        // 19 => bm MBC5
+        // 10 => gold MBC3+TIMER+RAM+BATTERY
+        // 1B => yugi3 MBC5+RAM+BATTERY
+        // 1B => yugi4 MBC5+RAM+BATTERY
 
         let ram_size = match rom[0x0149] {
             0x00 => 0,

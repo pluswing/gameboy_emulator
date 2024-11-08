@@ -211,8 +211,7 @@ pub struct PPU {
     // end color regs
     oam: [u8; 0xA0],
     sprites: [Sprite; 40],
-    // TODO 0xFF47が必要。palette
-    tile_set: [Tile; 384],
+    tile_set: [[Tile; 384]; 2],
     scanline_counter: u16,
     pub frame: [u8; LCD_WIDTH * 3 * LCD_HEIGHT],
     pub frame_updated: bool,
@@ -252,7 +251,7 @@ impl PPU {
             wy: 0,
             wx: 0,
             opri: false,
-            tile_set: [empty_tile(); 384],
+            tile_set: [[empty_tile(); 384]; 2],
             cycles: 0,
             scanline_counter: 0,
             frame: [0 as u8; 160 * 3 * 144],
@@ -282,7 +281,7 @@ impl PPU {
 
         self.vram[index] = value;
 
-        if bank == 1 || index >= 0x1800 {
+        if index >= 0x1800 {
             return;
         }
 
@@ -303,7 +302,7 @@ impl PPU {
                 (true, false) => TilePixelValue::One,
                 (false, false) => TilePixelValue::Zero,
             };
-            self.tile_set[tile_index][row_index][pixel_index] = value;
+            self.tile_set[bank][tile_index][row_index][pixel_index] = value;
         }
     }
 
@@ -488,11 +487,15 @@ impl PPU {
                 }
             };
 
-            // let attr = self.read_vram(vram_base_index + vram_index as usize + 0x2000) as usize;
-            // attr = 優先度	Yフリップ	Xフリップ		銀行	カラーパレット
+            let attr = self.read_vram(vram_base_index + vram_index as usize + 0x2000) as usize;
+            let priority = attr & 0x80 != 0;
+            let y_flip = attr & 0x40 != 0;
+            let x_flip = attr & 0x20 != 0;
+            let bank = (attr & 0x08) >> 3;
+            let color_palette = attr & 0x07;
 
             // タイルを取ってくる
-            let tile = self.tile_set[index];
+            let tile = self.tile_set[bank][index];
 
             // タイルの描画ピクセルを取得する
             let value = tile[(src_y % 8) as usize][(src_x % 8) as usize];
@@ -571,7 +574,7 @@ impl PPU {
             };
 
             // タイルを取ってくる
-            let tile = self.tile_set[index];
+            let tile = self.tile_set[0][index];
 
             // タイルの描画ピクセルを取得する
             let value = tile[(src_y % 8) as usize][(src_x % 8) as usize];
@@ -638,14 +641,14 @@ impl PPU {
             for tx in 0..8 {
                 let value = if self.control.obj_size {
                     if ty >= 8 {
-                        let tile = self.tile_set[sprite.tile_index as usize | 0x01];
+                        let tile = self.tile_set[0][sprite.tile_index as usize | 0x01];
                         tile[ty as usize - 8][tx]
                     } else {
-                        let tile = self.tile_set[sprite.tile_index as usize & 0xFE];
+                        let tile = self.tile_set[0][sprite.tile_index as usize & 0xFE];
                         tile[ty as usize][tx]
                     }
                 } else {
-                    let tile = self.tile_set[sprite.tile_index as usize];
+                    let tile = self.tile_set[0][sprite.tile_index as usize];
                     tile[ty as usize][tx]
                 };
 
@@ -701,7 +704,7 @@ impl PPU {
                     index
                 }
             };
-            let tile = self.tile_set[index];
+            let tile = self.tile_set[0][index];
             let i = addr - if bg1 { 0x1800 } else { 0x1C00 };
             let sx = (i % 32) * 8;
             let sy = (i / 32) * 8;
