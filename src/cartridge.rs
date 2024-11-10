@@ -4,6 +4,7 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use crate::mapper::mbc1::MBC1;
+use crate::mapper::mbc5::MBC5;
 use crate::mapper::nombc::NoMBC;
 use crate::mapper::Mapper;
 
@@ -36,14 +37,16 @@ impl Cartridge {
         let mapper = match rom[0x0147] {
             0x00 => Mapper::NoMBC(NoMBC::new()),
             0x01 => Mapper::MBC1(MBC1::new()),
-            0x02 => Mapper::MBC1(MBC1::new()), // FIXME: + RAM
-            0x03 => Mapper::MBC1(MBC1::new()), // FIXME: + RAM + BATTERY
+            0x02 => Mapper::MBC1(MBC1::new()), // + RAM
+            0x03 => Mapper::MBC1(MBC1::new()), // + RAM + BATTERY
+            0x19 => Mapper::MBC5(MBC5::new()),
+            0x1B => Mapper::MBC5(MBC5::new()), // + RAM + BATTERY
             _ => panic!("unsupported cartridge type."),
         };
-        // 19 => bm MBC5
+        // 19 => bm MBC5 0K
         // 10 => gold MBC3+TIMER+RAM+BATTERY
-        // 1B => yugi3 MBC5+RAM+BATTERY
-        // 1B => yugi4 MBC5+RAM+BATTERY
+        // 1B => yugi3 MBC5+RAM+BATTERY OK
+        // 1B => yugi4 MBC5+RAM+BATTERY OK
 
         let ram_size = match rom[0x0149] {
             0x00 => 0,
