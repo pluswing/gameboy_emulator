@@ -754,7 +754,10 @@ impl CPU {
             //     self.read_next_byte(),
             // );
             // if instruction_byte != 0x00 {
-            //     println!("{:04X} ==> {}", self.pc, description);
+            //     if self.pc == 0x4DA7 || self.pc == 0x4DA9 {
+            //     } else {
+            //         println!("{:04X} ==> {}", self.pc, description);
+            //     }
             // }
             self.execute(instruction);
             self.pc = self

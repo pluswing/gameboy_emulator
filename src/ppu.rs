@@ -476,7 +476,7 @@ impl PPU {
             let vram_index = index_offset + (ox.wrapping_add(x as u8) / 8) as u16;
 
             // tilemapのインデックスを取得する
-            let index = self.read_vram(vram_base_index + vram_index as usize) as usize;
+            let index = self.vram[vram_base_index + vram_index as usize] as usize;
             let index = if self.control.tiles {
                 index
             } else {
@@ -487,7 +487,7 @@ impl PPU {
                 }
             };
 
-            let attr = self.read_vram(vram_base_index + vram_index as usize + 0x2000) as usize;
+            let attr = self.vram[vram_base_index + vram_index as usize + 0x2000] as usize;
             let priority = attr & 0x80 != 0;
             let y_flip = attr & 0x40 != 0;
             let x_flip = attr & 0x20 != 0;
@@ -562,7 +562,7 @@ impl PPU {
             let vram_index = index_offset + (x as u8 / 8) as u16;
 
             // tilemapのインデックスを取得する
-            let index = self.read_vram(vram_base_index + vram_index as usize) as usize;
+            let index = self.vram[vram_base_index + vram_index as usize] as usize;
             let index = if self.control.tiles {
                 index
             } else {

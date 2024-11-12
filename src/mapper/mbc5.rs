@@ -52,7 +52,13 @@ impl MBC5 {
                 // RAMバンク番号
                 self.ram_bank = value;
             }
-            _ => panic!("should not reach!"),
+            0xA000..=0xBFFF => {
+                // RAMへの書き込み
+                let bank = self.ram_bank & 0x0F;
+                let addr = addr as usize + (bank as usize * 0x2000);
+                ram[addr as usize - 0xA000] = value;
+            }
+            _ => panic!("should not reach! addr: {:04X}", addr),
         }
     }
 }
