@@ -230,6 +230,8 @@ pub struct PPU {
     pub hdma4: u8,
     pub hdma5: u8,
     pub vbk: u8,
+    pub bcps: u8,
+    pub bg_palette: [u8; 64], // bcpd
 }
 
 impl PPU {
@@ -267,6 +269,8 @@ impl PPU {
             hdma4: 0,
             hdma5: 0,
             vbk: 0,
+            bcps: 0,
+            bg_palette: [0; 64],
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
@@ -720,6 +724,15 @@ impl PPU {
                     frame[o + 2] = color[2];
                 }
             }
+        }
+    }
+
+    pub fn write_gb_palette(&mut self, value: u8) {
+        let addr = self.bcps & 0x7F;
+        let auto_increment = self.bcps & 0x80 != 0;
+        self.bg_palette[addr as usize] = value;
+        if auto_increment {
+            self.bcps += 1
         }
     }
 }
