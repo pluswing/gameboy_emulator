@@ -20,6 +20,7 @@ fn empty_tile() -> Tile {
 }
 
 fn tile_pixel_value_to_color(value: TilePixelValue, palette: u8) -> [u8; 3] {
+    // let palette = 0b11100100;
     let value = match value {
         TilePixelValue::Zero => (palette & 0x03) >> 0,
         TilePixelValue::One => (palette & 0x0C) >> 2,
@@ -215,8 +216,8 @@ pub struct PPU {
     scanline_counter: u16,
     pub frame: [u8; LCD_WIDTH * 3 * LCD_HEIGHT],
     pub frame_updated: bool,
-    pub bg1: [u8; 256 * 3 * 256],
-    pub bg2: [u8; 256 * 3 * 256],
+    pub bg1: Box<[u8; 256 * 3 * 256]>,
+    pub bg2: Box<[u8; 256 * 3 * 256]>,
     line_index: [TilePixelValue; LCD_WIDTH],
     last_ly: u8,
     window_line: u8,
@@ -258,8 +259,8 @@ impl PPU {
             scanline_counter: 0,
             frame: [0 as u8; 160 * 3 * 144],
             frame_updated: false,
-            bg1: [0 as u8; 256 * 3 * 256],
-            bg2: [0 as u8; 256 * 3 * 256],
+            bg1: Box::new([0 as u8; 256 * 3 * 256]),
+            bg2: Box::new([0 as u8; 256 * 3 * 256]),
             line_index: [TilePixelValue::Zero; LCD_WIDTH],
             last_ly: 0,
             window_line: 0,
@@ -731,6 +732,19 @@ impl PPU {
         let addr = self.bcps & 0x7F;
         let auto_increment = self.bcps & 0x80 != 0;
         self.bg_palette[addr as usize] = value;
+
+        let color = self.bg_palette[0] as u16 | ((self.bg_palette[1] as u16) << 8);
+
+        let red = (color & 0xF800) >> 11;
+        let green = (color & 0x07C0) >> 6;
+        let blue = (color & 0x003E) >> 1;
+
+        let red = (red << 3) | (red >> 2);
+        let green = (green << 3) | (green >> 2);
+        let blue = (blue << 3) | (blue >> 2);
+
+        // [[red, green, blue], [...], ...]
+
         if auto_increment {
             self.bcps += 1
         }

@@ -125,6 +125,11 @@ impl MemoryBus {
                 // let res = [value, 0x00].iter().map(|&s| s as char).collect::<String>();
                 // print!("{}", res);
             }
+            0xFF02 => {
+                // BEAT MANIA2の起動時にTransfer enableを立てていて、
+                // 落ちるのを待つので、書き込まれないようにする。
+                // println!("SC: {:02X}", value);
+            }
             0xFF04 => {
                 // DIV
                 self.memory[address] = 0;

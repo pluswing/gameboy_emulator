@@ -11,7 +11,7 @@ use cartridge::Cartridge;
 use cpu::CPU;
 use joypad::Joypad;
 use sdl2::audio::{AudioQueue, AudioSpecDesired};
-use sdl2::event::Event;
+use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::video::Window;
@@ -114,7 +114,7 @@ fn main() {
         "rom/GB/ROM/YUGIOUDM3/41/Yu-Gi-Oh! Duel Monsters III - Tri Holy God Advant (Japan).gbc";
     let yugi4 = "rom/GB/ROM/YUGIOUDM4J/43/Yu-Gi-Oh! Duel Monsters 4 - Battle of Great Duelist - Jounouchi Deck (Japan).gbc";
 
-    let cartridge = Cartridge::new(yugi4);
+    let cartridge = Cartridge::new(bm);
     let mut cpu = CPU::new(cartridge, device);
 
     loop {
@@ -127,11 +127,15 @@ fn main() {
             canvas.copy(&texture, None, None).unwrap();
             canvas.present();
 
-            bg1_texture.update(None, &cpu.bus.ppu.bg1, 256 * 3).unwrap();
+            bg1_texture
+                .update(None, cpu.bus.ppu.bg1.as_ref(), 256 * 3)
+                .unwrap();
             bg1_canvas.copy(&bg1_texture, None, None).unwrap();
             bg1_canvas.present();
 
-            bg2_texture.update(None, &cpu.bus.ppu.bg2, 256 * 3).unwrap();
+            bg2_texture
+                .update(None, cpu.bus.ppu.bg2.as_ref(), 256 * 3)
+                .unwrap();
             bg2_canvas.copy(&bg2_texture, None, None).unwrap();
             bg2_canvas.present();
             // ::std::thread::sleep(std::time::Duration::new(0, 70_000));
@@ -143,6 +147,10 @@ fn handle_user_input(event_pump: &mut EventPump, cartridge: &mut Cartridge, joyp
     for event in event_pump.poll_iter() {
         match event {
             Event::Quit { .. }
+            | Event::Window {
+                win_event: WindowEvent::Close,
+                ..
+            }
             | Event::KeyDown {
                 keycode: Some(Keycode::Escape),
                 ..
