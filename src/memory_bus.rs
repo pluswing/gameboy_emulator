@@ -116,7 +116,7 @@ impl MemoryBus {
             0xC000..=0xDFFF => self.write_wram(address as u16, value),
             // BCPS
             0xFF68 => self.ppu.bcps = value,
-            0xFF69 => self.ppu.write_gb_palette(value),
+            0xFF69 => self.ppu.write_bg_palette(value),
 
             0xFF50 => self.memory[address] = value, // FIXME boot rom bank switch
             0xFF01 => {

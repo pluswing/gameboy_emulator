@@ -19,6 +19,15 @@ fn empty_tile() -> Tile {
     [[TilePixelValue::Zero; 8]; 8]
 }
 
+fn tile_pixel_value_to_color_for_gcb(value: TilePixelValue, palette: [[u8; 3]; 4]) -> [u8; 3] {
+    match value {
+        TilePixelValue::Zero => palette[0],
+        TilePixelValue::One => palette[1],
+        TilePixelValue::Two => palette[2],
+        TilePixelValue::Three => palette[3],
+    }
+}
+
 fn tile_pixel_value_to_color(value: TilePixelValue, palette: u8) -> [u8; 3] {
     // let palette = 0b11100100;
     let value = match value {
@@ -232,7 +241,8 @@ pub struct PPU {
     pub hdma5: u8,
     pub vbk: u8,
     pub bcps: u8,
-    pub bg_palette: [u8; 64], // bcpd
+    pub bg_palette_raw: [u8; 64],      // bcpd
+    pub bg_palette: [[[u8; 3]; 4]; 8], // [palette][color][r,g,b]
 }
 
 impl PPU {
@@ -271,7 +281,8 @@ impl PPU {
             hdma5: 0,
             vbk: 0,
             bcps: 0,
-            bg_palette: [0; 64],
+            bg_palette_raw: [0; 64],
+            bg_palette: [[[0; 3]; 4]; 8],
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
@@ -430,19 +441,6 @@ impl PPU {
     }
 
     fn draw_scan_line(&mut self, line: u8) {
-        // 1ラインを描画する。
-        // self.frame
-        // println!(
-        //     "line: {} SCREEN: ({}, {}) WINDOW: ({}, {})",
-        //     line, self.scx, self.scy, self.wx, self.wy
-        // );
-
-        // TODO ここの実装
-        // 8x16モードの対応（スプライト）=> 夢を見る島
-        // ウインドウとスプライトの前後関係
-
-        // self.frame を全書き換えする
-        // self.frame = [255 as u8; 160 * 3 * 144];
         self.draw_bg_line(line);
         self.draw_window_line(line);
         self.draw_sprites_line(line);
@@ -502,9 +500,12 @@ impl PPU {
             // タイルを取ってくる
             let tile = self.tile_set[bank][index];
 
+            // パレットをとる
+            let palette = self.bg_palette[color_palette];
+
             // タイルの描画ピクセルを取得する
             let value = tile[(src_y % 8) as usize][(src_x % 8) as usize];
-            let color = tile_pixel_value_to_color(value, self.bgp);
+            let color = tile_pixel_value_to_color_for_gcb(value, palette);
             self.line_index[dest_x as usize] = value;
 
             let o = (dest_y as usize * LCD_WIDTH + dest_x as usize) * 3;
@@ -728,22 +729,28 @@ impl PPU {
         }
     }
 
-    pub fn write_gb_palette(&mut self, value: u8) {
+    pub fn write_bg_palette(&mut self, value: u8) {
         let addr = self.bcps & 0x7F;
         let auto_increment = self.bcps & 0x80 != 0;
-        self.bg_palette[addr as usize] = value;
+        self.bg_palette_raw[addr as usize] = value;
 
-        let color = self.bg_palette[0] as u16 | ((self.bg_palette[1] as u16) << 8);
+        let index = addr / 2;
+        let lower = index * 2;
+        let upper = index * 2 + 1;
+        let palette = self.bg_palette_raw[lower as usize] as u16
+            | ((self.bg_palette_raw[upper as usize] as u16) << 8);
 
-        let red = (color & 0xF800) >> 11;
-        let green = (color & 0x07C0) >> 6;
-        let blue = (color & 0x003E) >> 1;
+        let red = ((palette & 0xF800) >> 11) as u8;
+        let green = ((palette & 0x07C0) >> 6) as u8;
+        let blue = ((palette & 0x003E) >> 1) as u8;
 
         let red = (red << 3) | (red >> 2);
         let green = (green << 3) | (green >> 2);
         let blue = (blue << 3) | (blue >> 2);
 
-        // [[red, green, blue], [...], ...]
+        let color_index = (index % 4) as usize;
+        let palette_index = (index / 4) as usize; // 前回動画終了時は8だった。
+        self.bg_palette[palette_index][color_index] = [red, green, blue];
 
         if auto_increment {
             self.bcps += 1
