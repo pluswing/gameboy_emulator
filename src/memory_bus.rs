@@ -65,6 +65,9 @@ impl MemoryBus {
             0xFF70 => self.svbk,
             // WRAM
             0xC000..=0xDFFF => self.read_wram(address as u16),
+            // BCPS
+            0xFF68 => self.ppu.bcps,
+            0xFF69 => 0, // FIXME 何を返せばいい？
 
             // APU
             0xFF26 | 0xFF25 | 0xFF24 => self.apu.global.read(address as u16),

@@ -19,7 +19,7 @@ fn empty_tile() -> Tile {
     [[TilePixelValue::Zero; 8]; 8]
 }
 
-fn tile_pixel_value_to_color_for_gcb(value: TilePixelValue, palette: [[u8; 3]; 4]) -> [u8; 3] {
+fn tile_pixel_value_to_color_for_cgb(value: TilePixelValue, palette: [[u8; 3]; 4]) -> [u8; 3] {
     match value {
         TilePixelValue::Zero => palette[0],
         TilePixelValue::One => palette[1],
@@ -505,7 +505,7 @@ impl PPU {
 
             // タイルの描画ピクセルを取得する
             let value = tile[(src_y % 8) as usize][(src_x % 8) as usize];
-            let color = tile_pixel_value_to_color_for_gcb(value, palette);
+            let color = tile_pixel_value_to_color_for_cgb(value, palette);
             self.line_index[dest_x as usize] = value;
 
             let o = (dest_y as usize * LCD_WIDTH + dest_x as usize) * 3;
@@ -740,20 +740,20 @@ impl PPU {
         let palette = self.bg_palette_raw[lower as usize] as u16
             | ((self.bg_palette_raw[upper as usize] as u16) << 8);
 
-        let red = ((palette & 0xF800) >> 11) as u8;
-        let green = ((palette & 0x07C0) >> 6) as u8;
-        let blue = ((palette & 0x003E) >> 1) as u8;
+        let red = (palette & 0x001F) as u8;
+        let green = ((palette & 0x03E0) >> 5) as u8;
+        let blue = ((palette & 0x7C00) >> 10) as u8;
 
         let red = (red << 3) | (red >> 2);
         let green = (green << 3) | (green >> 2);
         let blue = (blue << 3) | (blue >> 2);
 
         let color_index = (index % 4) as usize;
-        let palette_index = (index / 4) as usize; // 前回動画終了時は8だった。
+        let palette_index = (index / 4) as usize;
         self.bg_palette[palette_index][color_index] = [red, green, blue];
 
         if auto_increment {
-            self.bcps += 1
+            self.bcps = self.bcps.wrapping_add(1);
         }
     }
 }
