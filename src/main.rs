@@ -106,6 +106,7 @@ fn main() {
         "rom/GB/ROM/POKEMON GREEN/-1/Pocket Monsters - Midori (Japan) (Rev 1) (SGB Enhanced).gb";
     let mario = "rom/GB/ROM/SUPER MARIOLAND/32/Super Mario Land (World).gb";
     let zelda = "rom/GB/ROM/ZELDA/33/Zelda no Densetsu - Yume o Miru Shima (Japan).gb";
+    let zeldadx = "/Users/pluswing/develop/gameboy_emulator/rom/GB/ROM/ZELDA/45/Zelda no Densetsu - Yume o Miru Shima DX (Japan) (SGB Enhanced) (GB Compatible).gbc";
     let yugioh = "rom/GB/ROM/YUGIOU/30/Yu-Gi-Oh! Duel Monsters (Japan) (SGB Enhanced).gb";
     let dmg = "rom/dmg-acid2.gb";
     let bm = "rom/GB/ROM/BEAT MANIA2/40/Beatmania GB 2 - Gotcha Mix (Japan) (SGB Enhanced) (GB Compatible).gbc";
@@ -114,7 +115,7 @@ fn main() {
         "rom/GB/ROM/YUGIOUDM3/41/Yu-Gi-Oh! Duel Monsters III - Tri Holy God Advant (Japan).gbc";
     let yugi4 = "rom/GB/ROM/YUGIOUDM4J/43/Yu-Gi-Oh! Duel Monsters 4 - Battle of Great Duelist - Jounouchi Deck (Japan).gbc";
 
-    let cartridge = Cartridge::new(bm);
+    let cartridge = Cartridge::new(yugi4);
     let mut cpu = CPU::new(cartridge, device);
 
     loop {

@@ -68,6 +68,9 @@ impl MemoryBus {
             // BCPS
             0xFF68 => self.ppu.bcps,
             0xFF69 => 0, // FIXME 何を返せばいい？
+            // OCPS
+            0xFF6A => self.ppu.ocps,
+            0xFF6B => 0, // FIXME 何を返せばいい？
 
             // APU
             0xFF26 | 0xFF25 | 0xFF24 => self.apu.global.read(address as u16),
@@ -120,6 +123,9 @@ impl MemoryBus {
             // BCPS
             0xFF68 => self.ppu.bcps = value,
             0xFF69 => self.ppu.write_bg_palette(value),
+            // OCPS
+            0xFF6A => self.ppu.ocps = value,
+            0xFF6B => self.ppu.write_sprite_palette(value),
 
             0xFF50 => self.memory[address] = value, // FIXME boot rom bank switch
             0xFF01 => {

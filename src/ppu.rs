@@ -243,6 +243,10 @@ pub struct PPU {
     pub bcps: u8,
     pub bg_palette_raw: [u8; 64],      // bcpd
     pub bg_palette: [[[u8; 3]; 4]; 8], // [palette][color][r,g,b]
+
+    pub ocps: u8,
+    pub sprite_palette_raw: [u8; 64],      // bcpd
+    pub sprite_palette: [[[u8; 3]; 4]; 8], // [palette][color][r,g,b]
 }
 
 impl PPU {
@@ -283,6 +287,9 @@ impl PPU {
             bcps: 0,
             bg_palette_raw: [0; 64],
             bg_palette: [[[0; 3]; 4]; 8],
+            ocps: 0,
+            sprite_palette_raw: [0; 64],
+            sprite_palette: [[[0; 3]; 4]; 8],
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
@@ -579,12 +586,22 @@ impl PPU {
                 }
             };
 
+            let attr = self.vram[vram_base_index + vram_index as usize + 0x2000] as usize;
+            let priority = attr & 0x80 != 0;
+            let y_flip = attr & 0x40 != 0;
+            let x_flip = attr & 0x20 != 0;
+            let bank = (attr & 0x08) >> 3;
+            let color_palette = attr & 0x07;
+
             // タイルを取ってくる
-            let tile = self.tile_set[0][index];
+            let tile = self.tile_set[bank][index];
+
+            // パレットをとる
+            let palette = self.bg_palette[color_palette];
 
             // タイルの描画ピクセルを取得する
             let value = tile[(src_y % 8) as usize][(src_x % 8) as usize];
-            let color = tile_pixel_value_to_color(value, self.bgp);
+            let color = tile_pixel_value_to_color_for_cgb(value, palette);
             self.line_index[dest_x as usize] = value;
 
             let o = (dest_y as usize * LCD_WIDTH + dest_x as usize) * 3;
@@ -611,6 +628,8 @@ impl PPU {
             sprites.push(sprite);
         }
 
+        // FIXME self.opri == trueの場合の対処を入れる。
+        // trueだったら、白黒ゲームボーイ準拠挙動にする
         sprites.sort_by(|a, b| {
             let y_diff = a.y.abs_diff(b.y);
             let x_diff = a.x.abs_diff(b.x);
@@ -634,7 +653,10 @@ impl PPU {
             let priority = (attribute & 0x80) != 0;
             let y_flip = (attribute & 0x40) != 0;
             let x_flip = (attribute & 0x20) != 0;
-            let palette = (attribute & 0x10) >> 4;
+            let bg_palette = (attribute & 0x10) >> 4;
+            let bank = ((attribute & 0x08) >> 3) as usize;
+            let color_palette = (attribute & 0x07) as usize;
+            let palette = self.sprite_palette[color_palette];
 
             let sx = sx - 8;
             let sy = sy - 16;
@@ -647,14 +669,14 @@ impl PPU {
             for tx in 0..8 {
                 let value = if self.control.obj_size {
                     if ty >= 8 {
-                        let tile = self.tile_set[0][sprite.tile_index as usize | 0x01];
+                        let tile = self.tile_set[bank][sprite.tile_index as usize | 0x01];
                         tile[ty as usize - 8][tx]
                     } else {
-                        let tile = self.tile_set[0][sprite.tile_index as usize & 0xFE];
+                        let tile = self.tile_set[bank][sprite.tile_index as usize & 0xFE];
                         tile[ty as usize][tx]
                     }
                 } else {
-                    let tile = self.tile_set[0][sprite.tile_index as usize];
+                    let tile = self.tile_set[bank][sprite.tile_index as usize];
                     tile[ty as usize][tx]
                 };
 
@@ -662,10 +684,16 @@ impl PPU {
                     continue;
                 }
 
-                let color = tile_pixel_value_to_color(
-                    value,
-                    if palette == 0 { self.obp0 } else { self.obp1 },
-                );
+                // 白黒用描画
+                // let color = tile_pixel_value_to_color(
+                //     value,
+                //     if bg_palette == 0 {
+                //         self.obp0
+                //     } else {
+                //         self.obp1
+                //     },
+                // );
+                let color = tile_pixel_value_to_color_for_cgb(value, palette);
                 let tx = if x_flip { 7 - tx } else { tx };
                 let x = sx + (tx as i32);
                 let y = line as i32;
@@ -754,6 +782,34 @@ impl PPU {
 
         if auto_increment {
             self.bcps = self.bcps.wrapping_add(1);
+        }
+    }
+
+    pub fn write_sprite_palette(&mut self, value: u8) {
+        let addr = self.ocps & 0x7F;
+        let auto_increment = self.ocps & 0x80 != 0;
+        self.sprite_palette_raw[addr as usize] = value;
+
+        let index = addr / 2;
+        let lower = index * 2;
+        let upper = index * 2 + 1;
+        let palette = self.sprite_palette_raw[lower as usize] as u16
+            | ((self.sprite_palette_raw[upper as usize] as u16) << 8);
+
+        let red = (palette & 0x001F) as u8;
+        let green = ((palette & 0x03E0) >> 5) as u8;
+        let blue = ((palette & 0x7C00) >> 10) as u8;
+
+        let red = (red << 3) | (red >> 2);
+        let green = (green << 3) | (green >> 2);
+        let blue = (blue << 3) | (blue >> 2);
+
+        let color_index = (index % 4) as usize;
+        let palette_index = (index / 4) as usize;
+        self.sprite_palette[palette_index][color_index] = [red, green, blue];
+
+        if auto_increment {
+            self.ocps = self.ocps.wrapping_add(1);
         }
     }
 }
