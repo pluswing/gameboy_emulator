@@ -67,10 +67,10 @@ impl MemoryBus {
             0xC000..=0xDFFF => self.read_wram(address as u16),
             // BCPS
             0xFF68 => self.ppu.bcps,
-            0xFF69 => 0, // FIXME 何を返せばいい？
+            0xFF69 => self.ppu.read_bg_palette(),
             // OCPS
             0xFF6A => self.ppu.ocps,
-            0xFF6B => 0, // FIXME 何を返せばいい？
+            0xFF6B => self.ppu.read_sprite_palette(),
 
             // APU
             0xFF26 | 0xFF25 | 0xFF24 => self.apu.global.read(address as u16),

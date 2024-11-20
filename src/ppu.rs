@@ -195,6 +195,11 @@ pub enum PPUInterrupt {
     LCD,
 }
 
+struct DrawBgInfo {
+    value: TilePixelValue,
+    priority: bool,
+}
+
 pub struct PPU {
     vram: [u8; VRAM_SIZE * 2],
     // => 0ページ, 1ページがある。(0x8000-0x9FFF)
@@ -758,15 +763,13 @@ impl PPU {
     }
 
     pub fn write_bg_palette(&mut self, value: u8) {
-        let addr = self.bcps & 0x7F;
+        let addr = self.bcps & 0x3F;
         let auto_increment = self.bcps & 0x80 != 0;
         self.bg_palette_raw[addr as usize] = value;
 
-        let index = addr / 2;
-        let lower = index * 2;
-        let upper = index * 2 + 1;
-        let palette = self.bg_palette_raw[lower as usize] as u16
-            | ((self.bg_palette_raw[upper as usize] as u16) << 8);
+        let lower = (addr & 0x3E) as usize;
+        let palette =
+            self.bg_palette_raw[lower] as u16 | ((self.bg_palette_raw[lower + 1] as u16) << 8);
 
         let red = (palette & 0x001F) as u8;
         let green = ((palette & 0x03E0) >> 5) as u8;
@@ -776,25 +779,28 @@ impl PPU {
         let green = (green << 3) | (green >> 2);
         let blue = (blue << 3) | (blue >> 2);
 
-        let color_index = (index % 4) as usize;
-        let palette_index = (index / 4) as usize;
-        self.bg_palette[palette_index][color_index] = [red, green, blue];
+        let color_index = (addr & 0x06) >> 1;
+        let palette_index = (addr & 0x38) >> 3;
+        self.bg_palette[palette_index as usize][color_index as usize] = [red, green, blue];
 
         if auto_increment {
             self.bcps = self.bcps.wrapping_add(1);
         }
     }
 
+    pub fn read_bg_palette(&mut self) -> u8 {
+        let addr = self.bcps & 0x3F;
+        self.bg_palette_raw[addr as usize]
+    }
+
     pub fn write_sprite_palette(&mut self, value: u8) {
-        let addr = self.ocps & 0x7F;
+        let addr = self.ocps & 0x3F;
         let auto_increment = self.ocps & 0x80 != 0;
         self.sprite_palette_raw[addr as usize] = value;
 
-        let index = addr / 2;
-        let lower = index * 2;
-        let upper = index * 2 + 1;
-        let palette = self.sprite_palette_raw[lower as usize] as u16
-            | ((self.sprite_palette_raw[upper as usize] as u16) << 8);
+        let lower = (addr & 0x3E) as usize;
+        let palette = self.sprite_palette_raw[lower] as u16
+            | ((self.sprite_palette_raw[lower + 1] as u16) << 8);
 
         let red = (palette & 0x001F) as u8;
         let green = ((palette & 0x03E0) >> 5) as u8;
@@ -804,12 +810,17 @@ impl PPU {
         let green = (green << 3) | (green >> 2);
         let blue = (blue << 3) | (blue >> 2);
 
-        let color_index = (index % 4) as usize;
-        let palette_index = (index / 4) as usize;
-        self.sprite_palette[palette_index][color_index] = [red, green, blue];
+        let color_index = (addr & 0x06) >> 1;
+        let palette_index = (addr & 0x38) >> 3;
+        self.sprite_palette[palette_index as usize][color_index as usize] = [red, green, blue];
 
         if auto_increment {
             self.ocps = self.ocps.wrapping_add(1);
         }
+    }
+
+    pub fn read_sprite_palette(&mut self) -> u8 {
+        let addr = self.ocps & 0x3F;
+        self.sprite_palette_raw[addr as usize]
     }
 }
