@@ -195,9 +195,19 @@ pub enum PPUInterrupt {
     LCD,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
 struct DrawBgInfo {
     value: TilePixelValue,
     priority: bool,
+}
+
+impl DrawBgInfo {
+    fn new() -> Self {
+        return Self {
+            value: TilePixelValue::Zero,
+            priority: false,
+        };
+    }
 }
 
 pub struct PPU {
@@ -224,15 +234,15 @@ pub struct PPU {
     pub wx: u8,   // $FF4B
 
     // end color regs
-    oam: [u8; 0xA0],
-    sprites: [Sprite; 40],
-    tile_set: [[Tile; 384]; 2],
+    oam: Box<[u8; 0xA0]>,
+    sprites: Box<[Sprite; 40]>,
+    tile_set: Box<[[Tile; 384]; 2]>,
     scanline_counter: u16,
     pub frame: [u8; LCD_WIDTH * 3 * LCD_HEIGHT],
     pub frame_updated: bool,
     pub bg1: Box<[u8; 256 * 3 * 256]>,
     pub bg2: Box<[u8; 256 * 3 * 256]>,
-    line_index: [TilePixelValue; LCD_WIDTH],
+    line_index: Box<[DrawBgInfo; LCD_WIDTH]>,
     last_ly: u8,
     window_line: u8,
 
@@ -246,20 +256,20 @@ pub struct PPU {
     pub hdma5: u8,
     pub vbk: u8,
     pub bcps: u8,
-    pub bg_palette_raw: [u8; 64],      // bcpd
-    pub bg_palette: [[[u8; 3]; 4]; 8], // [palette][color][r,g,b]
+    pub bg_palette_raw: Box<[u8; 64]>,      // bcpd
+    pub bg_palette: Box<[[[u8; 3]; 4]; 8]>, // [palette][color][r,g,b]
 
     pub ocps: u8,
-    pub sprite_palette_raw: [u8; 64],      // bcpd
-    pub sprite_palette: [[[u8; 3]; 4]; 8], // [palette][color][r,g,b]
+    pub sprite_palette_raw: Box<[u8; 64]>,      // bcpd
+    pub sprite_palette: Box<[[[u8; 3]; 4]; 8]>, // [palette][color][r,g,b]
 }
 
 impl PPU {
     pub fn new() -> Self {
         PPU {
             vram: [0; VRAM_SIZE * 2],
-            oam: [0; 0xA0],
-            sprites: [Sprite::new(0, 0, 0, 0, 0); 40],
+            oam: Box::new([0; 0xA0]),
+            sprites: Box::new([Sprite::new(0, 0, 0, 0, 0); 40]),
             ly: 0,
             lyc: 0,
             control: LcdControlRegisters::new(),
@@ -273,14 +283,14 @@ impl PPU {
             wy: 0,
             wx: 0,
             opri: false,
-            tile_set: [[empty_tile(); 384]; 2],
+            tile_set: Box::new([[empty_tile(); 384]; 2]),
             cycles: 0,
             scanline_counter: 0,
             frame: [0 as u8; 160 * 3 * 144],
             frame_updated: false,
             bg1: Box::new([0 as u8; 256 * 3 * 256]),
             bg2: Box::new([0 as u8; 256 * 3 * 256]),
-            line_index: [TilePixelValue::Zero; LCD_WIDTH],
+            line_index: Box::new([DrawBgInfo::new(); LCD_WIDTH]),
             last_ly: 0,
             window_line: 0,
             hdma1: 0,
@@ -290,11 +300,11 @@ impl PPU {
             hdma5: 0,
             vbk: 0,
             bcps: 0,
-            bg_palette_raw: [0; 64],
-            bg_palette: [[[0; 3]; 4]; 8],
+            bg_palette_raw: Box::new([0; 64]),
+            bg_palette: Box::new([[[0; 3]; 4]; 8]),
             ocps: 0,
-            sprite_palette_raw: [0; 64],
-            sprite_palette: [[[0; 3]; 4]; 8],
+            sprite_palette_raw: Box::new([0; 64]),
+            sprite_palette: Box::new([[[0; 3]; 4]; 8]),
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
@@ -518,7 +528,7 @@ impl PPU {
             // タイルの描画ピクセルを取得する
             let value = tile[(src_y % 8) as usize][(src_x % 8) as usize];
             let color = tile_pixel_value_to_color_for_cgb(value, palette);
-            self.line_index[dest_x as usize] = value;
+            self.line_index[dest_x as usize] = DrawBgInfo { value, priority };
 
             let o = (dest_y as usize * LCD_WIDTH + dest_x as usize) * 3;
             self.frame[o] = color[0];
@@ -607,7 +617,7 @@ impl PPU {
             // タイルの描画ピクセルを取得する
             let value = tile[(src_y % 8) as usize][(src_x % 8) as usize];
             let color = tile_pixel_value_to_color_for_cgb(value, palette);
-            self.line_index[dest_x as usize] = value;
+            self.line_index[dest_x as usize] = DrawBgInfo { value, priority };
 
             let o = (dest_y as usize * LCD_WIDTH + dest_x as usize) * 3;
             self.frame[o] = color[0];
@@ -624,13 +634,13 @@ impl PPU {
         let y_size = if self.control.obj_size { 16 } else { 8 };
 
         let mut sprites: Vec<Sprite> = Vec::new();
-        for sprite in self.sprites {
+        for sprite in self.sprites.iter() {
             let sy = sprite.y as i32 - 16;
             // lineにspriteが掛かっているかをチェック
             if (line as i32) < sy || (line as i32) >= sy + y_size {
                 continue;
             }
-            sprites.push(sprite);
+            sprites.push(*sprite);
         }
 
         // FIXME self.opri == trueの場合の対処を入れる。
@@ -707,7 +717,15 @@ impl PPU {
                     continue;
                 }
 
-                if priority && self.line_index[x as usize] != TilePixelValue::Zero {
+                // スプライトの優先度が高い場合、背景の色IDが0以外の時に書かない。
+                if priority && self.line_index[x as usize].value != TilePixelValue::Zero {
+                    continue;
+                }
+
+                // GB/Windowの優先度が高い場合、スプライト優先度に関わらず、ID:0以外は書かない。
+                if self.line_index[x as usize].priority
+                    && self.line_index[x as usize].value != TilePixelValue::Zero
+                {
                     continue;
                 }
 
@@ -784,7 +802,7 @@ impl PPU {
         self.bg_palette[palette_index as usize][color_index as usize] = [red, green, blue];
 
         if auto_increment {
-            self.bcps = self.bcps.wrapping_add(1);
+            self.bcps = (self.bcps + 1) & 0xBF;
         }
     }
 
@@ -815,7 +833,7 @@ impl PPU {
         self.sprite_palette[palette_index as usize][color_index as usize] = [red, green, blue];
 
         if auto_increment {
-            self.ocps = self.ocps.wrapping_add(1);
+            self.ocps = (self.ocps + 1) & 0xBF;
         }
     }
 
