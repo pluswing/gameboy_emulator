@@ -28,27 +28,6 @@ fn tile_pixel_value_to_color_for_cgb(value: TilePixelValue, palette: [[u8; 3]; 4
     }
 }
 
-fn tile_pixel_value_to_color(value: TilePixelValue, palette: u8) -> [u8; 3] {
-    // let palette = 0b11100100;
-    let value = match value {
-        TilePixelValue::Zero => (palette & 0x03) >> 0,
-        TilePixelValue::One => (palette & 0x0C) >> 2,
-        TilePixelValue::Two => (palette & 0x30) >> 4,
-        TilePixelValue::Three => (palette & 0xC0) >> 6,
-    };
-    get_color(value)
-}
-
-fn get_color(value: u8) -> [u8; 3] {
-    match value {
-        0b00 => [255, 255, 255],
-        0b01 => [170, 170, 170],
-        0b10 => [85, 85, 85],
-        0b11 => [0, 0, 0],
-        _ => panic!("should not reach"),
-    }
-}
-
 // 0xFF40
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct LcdControlRegisters {
@@ -262,6 +241,8 @@ pub struct PPU {
     pub ocps: u8,
     pub sprite_palette_raw: Box<[u8; 64]>,      // bcpd
     pub sprite_palette: Box<[[[u8; 3]; 4]; 8]>, // [palette][color][r,g,b]
+
+    pub debug_palette: u8,
 }
 
 impl PPU {
@@ -305,6 +286,8 @@ impl PPU {
             ocps: 0,
             sprite_palette_raw: Box::new([0; 64]),
             sprite_palette: Box::new([[[0; 3]; 4]; 8]),
+
+            debug_palette: 0,
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
@@ -315,9 +298,7 @@ impl PPU {
     pub fn write_vram(&mut self, index: usize, value: u8) {
         let bank = (self.vbk & 0x01) as usize;
         let offset = 0x2000 * bank;
-        let index = index + offset;
-
-        self.vram[index] = value;
+        self.vram[index + offset] = value;
 
         if index >= 0x1800 {
             return;
@@ -469,9 +450,10 @@ impl PPU {
     }
 
     fn draw_bg_line(&mut self, line: u8) {
-        if !self.control.bg_window_enabled {
-            return;
-        }
+        // FIXME DMG の場合は必要。
+        // if !self.control.bg_window_enabled {
+        //     return;
+        // }
 
         let vram_base_index = if self.control.bg_tile_map {
             0x9C00 - VRAM_BEGIN
@@ -538,6 +520,9 @@ impl PPU {
     }
 
     fn draw_window_line(&mut self, line: u8) {
+        // if !self.control.bg_window_enabled {
+        //     return;
+        // }
         if !self.control.window_enabled || self.wx > 166 || self.wy > 143 {
             return;
         }
@@ -717,16 +702,19 @@ impl PPU {
                     continue;
                 }
 
-                // スプライトの優先度が高い場合、背景の色IDが0以外の時に書かない。
-                if priority && self.line_index[x as usize].value != TilePixelValue::Zero {
-                    continue;
-                }
+                // bg_window_enabled=falseの場合、優先度は無視する。（必ず描く)
+                if self.control.bg_window_enabled {
+                    // スプライトの優先度が高い場合、背景の色IDが0以外の時に書かない。
+                    if priority && self.line_index[x as usize].value != TilePixelValue::Zero {
+                        continue;
+                    }
 
-                // GB/Windowの優先度が高い場合、スプライト優先度に関わらず、ID:0以外は書かない。
-                if self.line_index[x as usize].priority
-                    && self.line_index[x as usize].value != TilePixelValue::Zero
-                {
-                    continue;
+                    // GB/Windowの優先度が高い場合、スプライト優先度に関わらず、ID:0以外は書かない。
+                    if self.line_index[x as usize].priority
+                        && self.line_index[x as usize].value != TilePixelValue::Zero
+                    {
+                        continue;
+                    }
                 }
 
                 let o = ((y * LCD_WIDTH as i32 + x) * 3) as usize;
@@ -738,8 +726,48 @@ impl PPU {
     }
 
     fn draw_all(&mut self) {
-        self.draw_bg(true);
-        self.draw_bg(false);
+        // self.draw_bg(true);
+        // self.draw_bg(false);
+        self.draw_tile(true);
+        self.draw_tile(false);
+        self.debug_palette = (self.debug_palette + 1) % 8;
+    }
+
+    fn draw_tile(&mut self, bg1: bool) {
+        let frame = if bg1 { &mut self.bg1 } else { &mut self.bg2 };
+        let bank = if bg1 { 0 } else { 1 };
+        for index in 0..384 {
+            let index = if self.control.tiles {
+                index
+            } else {
+                if index < 128 {
+                    index + 256
+                } else {
+                    index
+                }
+            };
+
+            // タイルを取ってくる
+            let tile = self.tile_set[bank][index];
+
+            // パレットをとる
+            let palette = self.bg_palette[self.debug_palette as usize];
+
+            let sx = (index % 32) * 8;
+            let sy = (index / 32) * 8;
+            for tx in 0..8 {
+                for ty in 0..8 {
+                    let value = tile[ty][tx];
+                    let color = tile_pixel_value_to_color_for_cgb(value, palette);
+                    let x = sx + tx;
+                    let y = sy + ty;
+                    let o = ((y * 256 + x) * 3) as usize;
+                    frame[o] = color[0];
+                    frame[o + 1] = color[1];
+                    frame[o + 2] = color[2];
+                }
+            }
+        }
     }
 
     fn draw_bg(&mut self, bg1: bool) {
@@ -761,14 +789,26 @@ impl PPU {
                     index
                 }
             };
-            let tile = self.tile_set[0][index];
+            let attr = self.vram[addr as usize + 0x2000] as usize;
+            let priority = attr & 0x80 != 0;
+            let y_flip = attr & 0x40 != 0;
+            let x_flip = attr & 0x20 != 0;
+            let bank = (attr & 0x08) >> 3;
+            let color_palette = attr & 0x07;
+
+            // タイルを取ってくる
+            let tile = self.tile_set[bank][index];
+
+            // パレットをとる
+            let palette = self.bg_palette[color_palette];
+
             let i = addr - if bg1 { 0x1800 } else { 0x1C00 };
             let sx = (i % 32) * 8;
             let sy = (i / 32) * 8;
             for tx in 0..8 {
                 for ty in 0..8 {
                     let value = tile[ty][tx];
-                    let color = tile_pixel_value_to_color(value, self.bgp);
+                    let color = tile_pixel_value_to_color_for_cgb(value, palette);
                     let x = sx + tx;
                     let y = sy + ty;
                     let o = ((y * 256 + x) * 3) as usize;
