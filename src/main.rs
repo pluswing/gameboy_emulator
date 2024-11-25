@@ -7,6 +7,8 @@ mod mapper;
 mod memory_bus;
 mod ppu;
 
+use std::time::Instant;
+
 use cartridge::Cartridge;
 use cpu::CPU;
 use joypad::Joypad;
@@ -24,10 +26,11 @@ fn main() {
     let window = video_subsystem
         .window("GameBoy Emulator", 160 * scale as u32, 144 * scale as u32)
         .position_centered()
+        .opengl()
         .build()
         .unwrap();
 
-    let mut canvas = window.into_canvas().present_vsync().build().unwrap();
+    let mut canvas = window.into_canvas().build().unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
     canvas.set_scale(scale as f32, scale as f32).unwrap();
 
@@ -40,9 +43,10 @@ fn main() {
     let bg1_window = video_subsystem
         .window("BG1", 256 * scale as u32, 256 * scale as u32)
         .position_centered()
+        .opengl()
         .build()
         .unwrap();
-    let mut bg1_canvas = bg1_window.into_canvas().present_vsync().build().unwrap();
+    let mut bg1_canvas = bg1_window.into_canvas().build().unwrap();
     bg1_canvas.set_scale(scale as f32, scale as f32).unwrap();
     let bg1_creator = bg1_canvas.texture_creator();
     let mut bg1_texture = bg1_creator
@@ -52,17 +56,18 @@ fn main() {
     let bg2_window = video_subsystem
         .window("BG2", 256 * scale as u32, 256 * scale as u32)
         .position_centered()
+        .opengl()
         .build()
         .unwrap();
-    let mut bg2_canvas = bg2_window.into_canvas().present_vsync().build().unwrap();
+    let mut bg2_canvas = bg2_window.into_canvas().build().unwrap();
     bg2_canvas.set_scale(scale as f32, scale as f32).unwrap();
     let bg2_creator = bg2_canvas.texture_creator();
     let mut bg2_texture = bg2_creator
         .create_texture_target(PixelFormatEnum::RGB24, 256, 256)
         .unwrap();
 
-    bg1_canvas.window_mut().hide();
-    bg2_canvas.window_mut().hide();
+    // bg1_canvas.window_mut().hide();
+    // bg2_canvas.window_mut().hide();
 
     // init audio
     let audio_subsystem = sdl_context.audio().unwrap();
@@ -115,9 +120,11 @@ fn main() {
         "rom/GB/ROM/YUGIOUDM3/41/Yu-Gi-Oh! Duel Monsters III - Tri Holy God Advant (Japan).gbc";
     let yugi4 = "rom/GB/ROM/YUGIOUDM4J/43/Yu-Gi-Oh! Duel Monsters 4 - Battle of Great Duelist - Jounouchi Deck (Japan).gbc";
 
-    let cartridge = Cartridge::new(yugi4);
+    let cartridge = Cartridge::new(kinka);
     let mut cpu = CPU::new(cartridge, device);
 
+    let timer = Instant::now();
+    let interval = 1_000_000_000 / 60; // 60FPS
     loop {
         cpu.step();
         if cpu.bus.ppu.frame_updated {
@@ -139,6 +146,11 @@ fn main() {
                 .unwrap();
             bg2_canvas.copy(&bg2_texture, None, None).unwrap();
             bg2_canvas.present();
+
+            let time = timer.elapsed().as_nanos();
+            if time < interval {
+                ::std::thread::sleep(std::time::Duration::new(0, (interval - time) as u32));
+            }
             // ::std::thread::sleep(std::time::Duration::new(0, 70_000));
         }
     }

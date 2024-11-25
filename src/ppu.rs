@@ -298,14 +298,15 @@ impl PPU {
     pub fn write_vram(&mut self, index: usize, value: u8) {
         let bank = (self.vbk & 0x01) as usize;
         let offset = 0x2000 * bank;
-        self.vram[index + offset] = value;
+        let idx = index + offset;
+        self.vram[idx] = value;
 
         if index >= 0x1800 {
             return;
         }
 
         // タイルセットの更新
-        let normalized_index = index & 0xFFFE;
+        let normalized_index = idx & 0xFFFE;
         let byte1 = self.vram[normalized_index];
         let byte2 = self.vram[normalized_index + 1];
         let tile_index = index / 16;
@@ -730,28 +731,18 @@ impl PPU {
         // self.draw_bg(false);
         self.draw_tile(true);
         self.draw_tile(false);
-        self.debug_palette = (self.debug_palette + 1) % 8;
+        self.debug_palette = (self.debug_palette + 1) % (8 * 10);
     }
 
     fn draw_tile(&mut self, bg1: bool) {
         let frame = if bg1 { &mut self.bg1 } else { &mut self.bg2 };
         let bank = if bg1 { 0 } else { 1 };
         for index in 0..384 {
-            let index = if self.control.tiles {
-                index
-            } else {
-                if index < 128 {
-                    index + 256
-                } else {
-                    index
-                }
-            };
-
             // タイルを取ってくる
             let tile = self.tile_set[bank][index];
 
             // パレットをとる
-            let palette = self.bg_palette[self.debug_palette as usize];
+            let palette = self.bg_palette[(self.debug_palette / 10) as usize];
 
             let sx = (index % 32) * 8;
             let sy = (index / 32) * 8;

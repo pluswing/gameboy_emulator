@@ -198,6 +198,8 @@ impl MemoryBus {
         let src = ((self.ppu.hdma1 as u16) << 8 | self.ppu.hdma2 as u16) & 0xFFF0;
         let dest = (((self.ppu.hdma3 as u16) << 8 | self.ppu.hdma4 as u16) & 0x1FF0) | 0x8000;
 
+        // println!("HDMA mode: {} s{:04X} d{:04X} {}", mode, src, dest, size);
+
         for i in 0..size {
             let v = self.read_byte(src + i);
             self.write_byte(dest + i, v);
