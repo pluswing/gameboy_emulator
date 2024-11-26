@@ -16,7 +16,6 @@ use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
-use sdl2::video::Window;
 use sdl2::EventPump;
 
 fn main() {
@@ -30,7 +29,11 @@ fn main() {
         .build()
         .unwrap();
 
-    let mut canvas = window.into_canvas().build().unwrap();
+    let mut canvas = window
+        .into_canvas()
+        .index(find_sdl_gl_driver().unwrap())
+        .build()
+        .unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
     canvas.set_scale(scale as f32, scale as f32).unwrap();
 
@@ -46,7 +49,11 @@ fn main() {
         .opengl()
         .build()
         .unwrap();
-    let mut bg1_canvas = bg1_window.into_canvas().build().unwrap();
+    let mut bg1_canvas = bg1_window
+        .into_canvas()
+        .index(find_sdl_gl_driver().unwrap())
+        .build()
+        .unwrap();
     bg1_canvas.set_scale(scale as f32, scale as f32).unwrap();
     let bg1_creator = bg1_canvas.texture_creator();
     let mut bg1_texture = bg1_creator
@@ -59,7 +66,11 @@ fn main() {
         .opengl()
         .build()
         .unwrap();
-    let mut bg2_canvas = bg2_window.into_canvas().build().unwrap();
+    let mut bg2_canvas = bg2_window
+        .into_canvas()
+        .index(find_sdl_gl_driver().unwrap())
+        .build()
+        .unwrap();
     bg2_canvas.set_scale(scale as f32, scale as f32).unwrap();
     let bg2_creator = bg2_canvas.texture_creator();
     let mut bg2_texture = bg2_creator
@@ -120,10 +131,10 @@ fn main() {
         "rom/GB/ROM/YUGIOUDM3/41/Yu-Gi-Oh! Duel Monsters III - Tri Holy God Advant (Japan).gbc";
     let yugi4 = "rom/GB/ROM/YUGIOUDM4J/43/Yu-Gi-Oh! Duel Monsters 4 - Battle of Great Duelist - Jounouchi Deck (Japan).gbc";
 
-    let cartridge = Cartridge::new(kinka);
+    let cartridge = Cartridge::new(zelda);
     let mut cpu = CPU::new(cartridge, device);
 
-    let timer = Instant::now();
+    let mut timer = Instant::now();
     let interval = 1_000_000_000 / 60; // 60FPS
     loop {
         cpu.step();
@@ -151,6 +162,7 @@ fn main() {
             if time < interval {
                 ::std::thread::sleep(std::time::Duration::new(0, (interval - time) as u32));
             }
+            timer = Instant::now();
             // ::std::thread::sleep(std::time::Duration::new(0, 70_000));
         }
     }
@@ -248,4 +260,13 @@ fn handle_user_input(event_pump: &mut EventPump, cartridge: &mut Cartridge, joyp
             _ => { /* do nothing */ }
         }
     }
+}
+
+fn find_sdl_gl_driver() -> Option<u32> {
+    for (index, item) in sdl2::render::drivers().enumerate() {
+        if item.name == "opengl" {
+            return Some(index as u32);
+        }
+    }
+    None
 }

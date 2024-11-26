@@ -28,6 +28,25 @@ fn tile_pixel_value_to_color_for_cgb(value: TilePixelValue, palette: [[u8; 3]; 4
     }
 }
 
+fn get_palette(palette: u8) -> [[u8; 3]; 4] {
+    [
+        get_color((palette & 0x03) >> 0),
+        get_color((palette & 0x0C) >> 2),
+        get_color((palette & 0x30) >> 4),
+        get_color((palette & 0xC0) >> 6),
+    ]
+}
+
+fn get_color(value: u8) -> [u8; 3] {
+    match value {
+        0b00 => [255, 255, 255],
+        0b01 => [170, 170, 170],
+        0b10 => [85, 85, 85],
+        0b11 => [0, 0, 0],
+        _ => panic!("should not reach"),
+    }
+}
+
 // 0xFF40
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct LcdControlRegisters {
@@ -506,10 +525,18 @@ impl PPU {
             let tile = self.tile_set[bank][index];
 
             // パレットをとる
-            let palette = self.bg_palette[color_palette];
+            let mut palette = self.bg_palette[color_palette];
+
+            // DMGの場合は、bgpからパレットデータを作る
+            if self.opri {
+                palette = get_palette(self.bgp);
+            }
+
+            let y = if y_flip { 7 - (src_y % 8) } else { src_y % 8 } as usize;
+            let x = if x_flip { 7 - (src_x % 8) } else { src_x % 8 } as usize;
 
             // タイルの描画ピクセルを取得する
-            let value = tile[(src_y % 8) as usize][(src_x % 8) as usize];
+            let value = tile[y][x];
             let color = tile_pixel_value_to_color_for_cgb(value, palette);
             self.line_index[dest_x as usize] = DrawBgInfo { value, priority };
 
@@ -598,10 +625,18 @@ impl PPU {
             let tile = self.tile_set[bank][index];
 
             // パレットをとる
-            let palette = self.bg_palette[color_palette];
+            let mut palette = self.bg_palette[color_palette];
+
+            // DMGの場合は、bgpからパレットデータを作る
+            if self.opri {
+                palette = get_palette(self.bgp);
+            }
+
+            let y = if y_flip { 7 - (src_y % 8) } else { src_y % 8 } as usize;
+            let x = if x_flip { 7 - (src_x % 8) } else { src_x % 8 } as usize;
 
             // タイルの描画ピクセルを取得する
-            let value = tile[(src_y % 8) as usize][(src_x % 8) as usize];
+            let value = tile[y][x];
             let color = tile_pixel_value_to_color_for_cgb(value, palette);
             self.line_index[dest_x as usize] = DrawBgInfo { value, priority };
 
@@ -629,17 +664,18 @@ impl PPU {
             sprites.push(*sprite);
         }
 
-        // FIXME self.opri == trueの場合の対処を入れる。
         // trueだったら、白黒ゲームボーイ準拠挙動にする
-        sprites.sort_by(|a, b| {
-            let y_diff = a.y.abs_diff(b.y);
-            let x_diff = a.x.abs_diff(b.x);
-            if y_diff < y_size as u8 && x_diff < 8 {
-                a.x.cmp(&b.x)
-            } else {
-                a.index.cmp(&b.index)
-            }
-        });
+        if self.opri {
+            sprites.sort_by(|a, b| {
+                let y_diff = a.y.abs_diff(b.y);
+                let x_diff = a.x.abs_diff(b.x);
+                if y_diff < y_size as u8 && x_diff < 8 {
+                    a.x.cmp(&b.x)
+                } else {
+                    a.index.cmp(&b.index)
+                }
+            });
+        }
 
         let sprites = if sprites.len() > 10 {
             &sprites[0..10]
@@ -657,7 +693,16 @@ impl PPU {
             let bg_palette = (attribute & 0x10) >> 4;
             let bank = ((attribute & 0x08) >> 3) as usize;
             let color_palette = (attribute & 0x07) as usize;
-            let palette = self.sprite_palette[color_palette];
+            let mut palette = self.sprite_palette[color_palette];
+
+            // DMGの場合は、obp0/1からパレットデータを作る
+            if self.opri {
+                palette = get_palette(if bg_palette == 0 {
+                    self.obp0
+                } else {
+                    self.obp1
+                });
+            }
 
             let sx = sx - 8;
             let sy = sy - 16;
