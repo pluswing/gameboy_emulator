@@ -4,6 +4,7 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use crate::mapper::mbc1::MBC1;
+use crate::mapper::mbc3::MBC3;
 use crate::mapper::mbc5::MBC5;
 use crate::mapper::nombc::NoMBC;
 use crate::mapper::Mapper;
@@ -41,6 +42,7 @@ impl Cartridge {
             0x03 => Mapper::MBC1(MBC1::new()), // + RAM + BATTERY
             0x19 => Mapper::MBC5(MBC5::new()),
             0x1B => Mapper::MBC5(MBC5::new()), // + RAM + BATTERY
+            0x10 => Mapper::MBC3(MBC3::new()), // TIMER + RAM + BATTERY
             _ => panic!("unsupported cartridge type."),
         };
         // 19 => bm MBC5 0K
