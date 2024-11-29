@@ -80,6 +80,23 @@ impl Cartridge {
             vec![0; ram_size as usize]
         };
 
+        // 互換パレット
+        let licensee_code = rom[0x014B];
+        if licensee_code == 0x33 {
+            let new_licensee_code1 = rom[0x0144];
+            let new_licensee_code2 = rom[0x0145];
+            /* equal '01' */
+            if new_licensee_code1 == 0x30 && new_licensee_code2 == 0x31 {
+                // OK
+            }
+        } else {
+            if licensee_code == 0x01 {
+                // OK
+            }
+        }
+
+        // TODO ゲームタイトルの16 バイトすべての合計を計算
+
         Cartridge {
             rom,
             ram,

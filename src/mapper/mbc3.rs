@@ -4,6 +4,7 @@ pub struct MBC3 {
     ram_bank: u8,
     latch_clock_data: u8,
     rtc_value: u8,
+    rtc: [u8; 5],
 }
 
 impl MBC3 {
@@ -14,6 +15,7 @@ impl MBC3 {
             ram_bank: 0,
             latch_clock_data: 0,
             rtc_value: 0,
+            rtc: [0; 5],
         }
     }
 
@@ -23,7 +25,7 @@ impl MBC3 {
             0x0000..=0x3FFF => rom[addr as usize],
             // bank1
             0x4000..=0x7FFF => {
-                let bank = if self.bank == 0 { 1 } else { self.bank };
+                let bank = if self.bank == 0 { 1 } else { self.bank & 0x7F };
                 let addr = addr as usize - 0x4000 + (bank as usize * 0x4000);
                 rom[addr]
             }
@@ -49,6 +51,7 @@ impl MBC3 {
             0x2000..=0x3FFF => {
                 // ROMバンク番号
                 self.bank = value;
+                println!("BANK: {:02X}, {}", value, value);
             }
             0x4000..=0x5FFF => {
                 // RAMバンク/RTCレジスタの選択レジスタ
@@ -58,7 +61,9 @@ impl MBC3 {
                 // ラッチクロックデータ
                 if self.latch_clock_data == 0x00 && value == 0x01 {
                     // 現在の時刻がRTCレジスタにラッチする。
-                    self.rtc_value = value;
+                    if self.ram_bank >= 0x08 {
+                        self.rtc_value = self.rtc[self.ram_bank as usize - 0x08];
+                    }
                 }
                 self.latch_clock_data = value;
             }
@@ -67,8 +72,8 @@ impl MBC3 {
                 if !self.ram_enabled {
                 } else if self.ram_bank <= 0x03 {
                     self.write_ram(ram, addr, value)
-                } else {
-                    self.write_rtc(addr, value)
+                } else if self.ram_bank >= 0x08 {
+                    self.write_rtc(value)
                 }
             }
             _ => panic!("should not reach!"),
@@ -79,7 +84,7 @@ impl MBC3 {
         ram[addr as usize - 0xA000 + self.ram_bank as usize * 0x2000] = value;
     }
 
-    fn write_rtc(&mut self, addr: u16, value: u8) {
-        // TODO
+    fn write_rtc(&mut self, value: u8) {
+        self.rtc[self.ram_bank as usize - 0x08] = value;
     }
 }
