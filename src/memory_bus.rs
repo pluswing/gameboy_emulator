@@ -178,7 +178,7 @@ impl MemoryBus {
             let value = self.read_byte(address + i);
             self.write_byte(0xFE00 + i, value);
         }
-        // TODO 160サイクルかかる
+        // FIXME 160サイクルかかる
     }
 
     pub fn do_hdma_transfer(&mut self, value: u8) {

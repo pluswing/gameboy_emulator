@@ -367,15 +367,15 @@ impl PPU {
     }
 
     pub fn update(&mut self, cycles: u16, high_speed_mode: bool) -> PPUInterrupt {
+        if !self.control.enabled {
+            return PPUInterrupt::NONE;
+        }
+
         self.cycles += cycles;
         self.scanline_counter = self.cycles / if high_speed_mode { 2 } else { 1 };
         let line_count = 456 * if high_speed_mode { 2 } else { 1 };
         // FIXME VBLANKと同時発生時におかしくなるかも。
         let interrupt = self.set_lcd_status();
-
-        if !self.control.enabled {
-            return PPUInterrupt::NONE;
-        }
 
         if self.scanline_counter >= 456 {
             // println!(

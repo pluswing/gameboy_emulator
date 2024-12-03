@@ -81,21 +81,66 @@ impl Cartridge {
         };
 
         // 互換パレット
+        let mut made_nintendo = false;
         let licensee_code = rom[0x014B];
         if licensee_code == 0x33 {
             let new_licensee_code1 = rom[0x0144];
             let new_licensee_code2 = rom[0x0145];
             /* equal '01' */
             if new_licensee_code1 == 0x30 && new_licensee_code2 == 0x31 {
-                // OK
+                made_nintendo = true;
             }
         } else {
             if licensee_code == 0x01 {
-                // OK
+                made_nintendo = true;
             }
         }
 
+        if !made_nintendo {
+            // TODO パレットID01を使用する
+        }
         // TODO ゲームタイトルの16 バイトすべての合計を計算
+        let mut sum: u8 = 0;
+        for i in 0..16 {
+            sum = sum.wrapping_add(rom[0x0134 + i as usize])
+        }
+
+        let checksum_table: [u8; 65] = [
+            0x00, 0x88, 0x16, 0x36, 0xD1, 0xDB, 0xF2, 0x3C, 0x8C, 0x92, 0x3D, 0x5C, 0x58, 0xC9,
+            0x3E, 0x70, 0x1D, 0x59, 0x69, 0x19, 0x35, 0xA8, 0x14, 0xAA, 0x75, 0x95, 0x99, 0x34,
+            0x6F, 0x15, 0xFF, 0x97, 0x4B, 0x90, 0x17, 0x10, 0x39, 0xF7, 0xF6, 0xA2, 0x49, 0x4E,
+            0x43, 0x68, 0xE0, 0x8B, 0xF0, 0xCE, 0x0C, 0x29, 0xE8, 0xB7, 0x86, 0x9A, 0x52, 0x01,
+            0x9D, 0x71, 0x9C, 0xBD, 0x5D, 0x6D, 0x67, 0x3F, 0x6B,
+        ];
+        let mut match_index = checksum_table.len();
+        for (i, v) in checksum_table.iter().enumerate() {
+            if sum == *v {
+                match_index = i;
+                break;
+            }
+        }
+
+        if match_index != checksum_table.len() {
+            if match_index <= 64 {
+                // pallette_id = match_index
+            } else {
+                // FIXME
+                // タイトルの 4 番目の文字に基づいてさらに修正
+                let v = rom[0x0134 + 3];
+                // "BEFAARBEKEK R-"[v - 0x41];
+                //
+                // db "BEFAARBEKEK R-"
+                // .row
+                //   db "URAR INAILICE "
+                //   db "R"
+            }
+        }
+
+        let palettes = [[
+            [0xFFFFFF, 0xADAD84, 0x42737B, 0x000000],
+            [0xFFFFFF, 0xFF7300, 0x944200, 0x000000],
+            [0xFFFFFF, 0xFF7300, 0x944200, 0x000000],
+        ]];
 
         Cartridge {
             rom,
