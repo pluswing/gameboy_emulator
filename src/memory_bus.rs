@@ -24,7 +24,7 @@ impl MemoryBus {
         MemoryBus {
             memory: [0; 0x10000],
             cartridge,
-            ppu: PPU::new(),
+            ppu: PPU::new(/* cartridge.palette */),
             joypad: Joypad::new(),
             apu: APU::new(device),
             svbk: 0,

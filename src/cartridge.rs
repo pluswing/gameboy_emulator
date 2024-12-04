@@ -13,6 +13,7 @@ pub struct Cartridge {
     rom: Vec<u8>,
     ram: Vec<u8>,
     mapper: Mapper,
+    pub palette: [[[u8; 3]; 4]; 3], // [BGP, OBJ0, OBJ1]
 
     ram_file_path: String,
 }
@@ -136,16 +137,34 @@ impl Cartridge {
             }
         }
 
-        let palettes = [[
-            [0xFFFFFF, 0xADAD84, 0x42737B, 0x000000],
-            [0xFFFFFF, 0xFF7300, 0x944200, 0x000000],
-            [0xFFFFFF, 0xFF7300, 0x944200, 0x000000],
-        ]];
+        // 0x1C 0x01 0xAA => pokemon midori
+
+        let palette = [
+            [
+                [0xFF, 0xFF, 0xFF],
+                [0x7B, 0xFF, 0x31],
+                [0x00, 0x63, 0xC5],
+                [0x00, 0x00, 0x00],
+            ], // BGP
+            [
+                [0xFF, 0xFF, 0xFF],
+                [0xFF, 0x84, 0x84],
+                [0x94, 0x3A, 0x3A],
+                [0x00, 0x00, 0x00],
+            ], // OBJ0
+            [
+                [0xFF, 0xFF, 0xFF],
+                [0x7B, 0xFF, 0x31],
+                [0x00, 0x63, 0xC5],
+                [0x00, 0x00, 0x00],
+            ], // OBJ1
+        ];
 
         Cartridge {
             rom,
             ram,
             mapper,
+            palette,
             ram_file_path: ram_file_path.to_string(),
         }
     }
@@ -171,6 +190,26 @@ impl Cartridge {
             rom: vec![0; 0x8000 as usize],
             ram: vec![0; 0x0000 as usize],
             mapper: Mapper::NoMBC(NoMBC::new()),
+            palette: [
+                [
+                    [0xFF, 0xFF, 0xFF],
+                    [0x7B, 0xFF, 0x31],
+                    [0x00, 0x63, 0xC5],
+                    [0x00, 0x00, 0x00],
+                ], // BGP
+                [
+                    [0xFF, 0xFF, 0xFF],
+                    [0xFF, 0x84, 0x84],
+                    [0x94, 0x3A, 0x3A],
+                    [0x00, 0x00, 0x00],
+                ], // OBJ0
+                [
+                    [0xFF, 0xFF, 0xFF],
+                    [0x7B, 0xFF, 0x31],
+                    [0x00, 0x63, 0xC5],
+                    [0x00, 0x00, 0x00],
+                ], // OBJ1
+            ],
             ram_file_path: "_.save".to_string(),
         }
     }
