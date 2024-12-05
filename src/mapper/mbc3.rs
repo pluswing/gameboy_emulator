@@ -25,7 +25,7 @@ impl MBC3 {
             0x0000..=0x3FFF => rom[addr as usize],
             // bank1
             0x4000..=0x7FFF => {
-                let bank = if self.bank == 0 { 1 } else { self.bank & 0x7F };
+                let bank = if self.bank == 0 { 1 } else { self.bank & 0x3F };
                 let addr = addr as usize - 0x4000 + (bank as usize * 0x4000);
                 rom[addr]
             }
