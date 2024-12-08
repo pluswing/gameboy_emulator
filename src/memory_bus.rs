@@ -23,8 +23,8 @@ impl MemoryBus {
     pub fn new(cartridge: Cartridge, device: AudioQueue<f32>) -> Self {
         MemoryBus {
             memory: [0; 0x10000],
+            ppu: PPU::new(cartridge.palette),
             cartridge,
-            ppu: PPU::new(/* cartridge.palette */),
             joypad: Joypad::new(),
             apu: APU::new(device),
             svbk: 0,

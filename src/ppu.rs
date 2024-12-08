@@ -28,12 +28,12 @@ fn tile_pixel_value_to_color_for_cgb(value: TilePixelValue, palette: [[u8; 3]; 4
     }
 }
 
-fn get_palette(palette: u8) -> [[u8; 3]; 4] {
+fn get_palette(value: u8, palette: [[u8; 3]; 4]) -> [[u8; 3]; 4] {
     [
-        get_color((palette & 0x03) >> 0),
-        get_color((palette & 0x0C) >> 2),
-        get_color((palette & 0x30) >> 4),
-        get_color((palette & 0xC0) >> 6),
+        palette[((value & 0x03) >> 0) as usize],
+        palette[((value & 0x0C) >> 2) as usize],
+        palette[((value & 0x30) >> 4) as usize],
+        palette[((value & 0xC0) >> 6) as usize],
     ]
 }
 
@@ -45,6 +45,17 @@ fn get_color(value: u8) -> [u8; 3] {
         0b11 => [0, 0, 0],
         _ => panic!("should not reach"),
     }
+}
+
+fn rgb555to888(palette: u16) -> [u8; 3] {
+    let red = (palette & 0x001F) as u8;
+    let green = ((palette & 0x03E0) >> 5) as u8;
+    let blue = ((palette & 0x7C00) >> 10) as u8;
+
+    let red = (red << 3) | (red >> 2);
+    let green = (green << 3) | (green >> 2);
+    let blue = (blue << 3) | (blue >> 2);
+    return [red, green, blue];
 }
 
 // 0xFF40
@@ -262,10 +273,11 @@ pub struct PPU {
     pub sprite_palette: Box<[[[u8; 3]; 4]; 8]>, // [palette][color][r,g,b]
 
     pub debug_palette: u8,
+    compatible_palette: [[[u8; 3]; 4]; 3],
 }
 
 impl PPU {
-    pub fn new() -> Self {
+    pub fn new(compatible_palette: [[u16; 4]; 3]) -> Self {
         PPU {
             vram: [0; VRAM_SIZE * 2],
             oam: Box::new([0; 0xA0]),
@@ -307,6 +319,17 @@ impl PPU {
             sprite_palette: Box::new([[[0; 3]; 4]; 8]),
 
             debug_palette: 0,
+            compatible_palette: compatible_palette
+                .iter()
+                .map(|v| {
+                    return [
+                        rgb555to888(v[0]),
+                        rgb555to888(v[1]),
+                        rgb555to888(v[2]),
+                        rgb555to888(v[3]),
+                    ];
+                })
+                .collect(),
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
@@ -529,7 +552,8 @@ impl PPU {
 
             // DMGの場合は、bgpからパレットデータを作る
             if self.opri {
-                palette = get_palette(self.bgp);
+                let palette = self.compatible_palette[0];
+                let palette = get_palette(self.bgp, palette);
             }
 
             let y = if y_flip { 7 - (src_y % 8) } else { src_y % 8 } as usize;
@@ -629,7 +653,8 @@ impl PPU {
 
             // DMGの場合は、bgpからパレットデータを作る
             if self.opri {
-                palette = get_palette(self.bgp);
+                let palette = self.compatible_palette[0];
+                let palette = get_palette(self.bgp, palette);
             }
 
             let y = if y_flip { 7 - (src_y % 8) } else { src_y % 8 } as usize;
@@ -697,11 +722,13 @@ impl PPU {
 
             // DMGの場合は、obp0/1からパレットデータを作る
             if self.opri {
-                palette = get_palette(if bg_palette == 0 {
+                let value = if bg_palette == 0 {
                     self.obp0
                 } else {
                     self.obp1
-                });
+                };
+                let palette = self.compatible_palette[if bg_palette == 0 { 0 } else { 1 }];
+                let palette = get_palette(value, palette);
             }
 
             let sx = sx - 8;
@@ -896,13 +923,7 @@ impl PPU {
         let palette = self.sprite_palette_raw[lower] as u16
             | ((self.sprite_palette_raw[lower + 1] as u16) << 8);
 
-        let red = (palette & 0x001F) as u8;
-        let green = ((palette & 0x03E0) >> 5) as u8;
-        let blue = ((palette & 0x7C00) >> 10) as u8;
-
-        let red = (red << 3) | (red >> 2);
-        let green = (green << 3) | (green >> 2);
-        let blue = (blue << 3) | (blue >> 2);
+        let [red, green, blue] = rgb555to888(palette);
 
         let color_index = (addr & 0x06) >> 1;
         let palette_index = (addr & 0x38) >> 3;

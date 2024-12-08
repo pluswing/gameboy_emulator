@@ -266,7 +266,7 @@ impl Cartridge {
             rom: vec![0; 0x8000 as usize],
             ram: vec![0; 0x0000 as usize],
             mapper: Mapper::NoMBC(NoMBC::new()),
-            palette: [], // FIXME
+            palette: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
             ram_file_path: "_.save".to_string(),
         }
     }
