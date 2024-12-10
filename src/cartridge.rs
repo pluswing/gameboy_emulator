@@ -81,32 +81,13 @@ impl Cartridge {
             vec![0; ram_size as usize]
         };
 
-        // 互換パレット
-        let mut made_nintendo = false;
-        let licensee_code = rom[0x014B];
-        if licensee_code == 0x33 {
-            let new_licensee_code1 = rom[0x0144];
-            let new_licensee_code2 = rom[0x0145];
-            /* equal '01' */
-            if new_licensee_code1 == 0x30 && new_licensee_code2 == 0x31 {
-                made_nintendo = true;
-            }
-        } else {
-            if licensee_code == 0x01 {
-                made_nintendo = true;
-            }
-        }
-
-        if !made_nintendo {
-            // TODO パレットID01を使用する
-        }
-
-        let checksum_table: [u8; 65] = [
+        let checksum_table: [u8; 65 + 14] = [
             0x00, 0x88, 0x16, 0x36, 0xD1, 0xDB, 0xF2, 0x3C, 0x8C, 0x92, 0x3D, 0x5C, 0x58, 0xC9,
             0x3E, 0x70, 0x1D, 0x59, 0x69, 0x19, 0x35, 0xA8, 0x14, 0xAA, 0x75, 0x95, 0x99, 0x34,
             0x6F, 0x15, 0xFF, 0x97, 0x4B, 0x90, 0x17, 0x10, 0x39, 0xF7, 0xF6, 0xA2, 0x49, 0x4E,
             0x43, 0x68, 0xE0, 0x8B, 0xF0, 0xCE, 0x0C, 0x29, 0xE8, 0xB7, 0x86, 0x9A, 0x52, 0x01,
-            0x9D, 0x71, 0x9C, 0xBD, 0x5D, 0x6D, 0x67, 0x3F, 0x6B,
+            0x9D, 0x71, 0x9C, 0xBD, 0x5D, 0x6D, 0x67, 0x3F, 0x6B, 0xB3, 0x46, 0x28, 0xA5, 0xC6,
+            0xD3, 0x27, 0x61, 0x18, 0x66, 0x6A, 0xBF, 0x0D, 0xF4,
         ];
         let palette_index_table: [u8; 94] = [
             0, 4, 5, 35, 34, 3, 31, 15, 10, 5, 19, 36, 7, 37, 30, 44, 21, 32, 31, 20, 5, 33, 13,
@@ -201,23 +182,51 @@ impl Cartridge {
             [0x7FFF, 0x1BEF, 0x6180, 0x0000],
         ];
 
-        // TODO ゲームタイトルの16 バイトすべての合計を計算
-        let mut sum: u8 = 0;
-        for i in 0..16 {
-            sum = sum.wrapping_add(rom[0x0134 + i as usize])
-        }
-
-        let mut match_index = 0xFF;
-        for (i, v) in checksum_table.iter().enumerate() {
-            if sum == *v {
-                match_index = i;
-                break;
+        // 互換パレット
+        let mut made_nintendo = false;
+        let licensee_code = rom[0x014B];
+        if licensee_code == 0x33 {
+            let new_licensee_code1 = rom[0x0144];
+            let new_licensee_code2 = rom[0x0145];
+            /* equal '01' */
+            if new_licensee_code1 == 0x30 && new_licensee_code2 == 0x31 {
+                made_nintendo = true;
+            }
+        } else {
+            if licensee_code == 0x01 {
+                made_nintendo = true;
             }
         }
+
+        let cgb_game = (rom[0x0143] & 0x80) != 0;
+
+        let match_index = if !made_nintendo || cgb_game {
+            1
+        } else {
+            // ゲームタイトルの16 バイトすべての合計を計算
+            let mut sum: u8 = 0;
+            for i in 0..16 {
+                sum = sum.wrapping_add(rom[0x0134 + i as usize])
+            }
+
+            let mut match_index = 0xFF;
+            for (i, v) in checksum_table.iter().enumerate() {
+                if sum == *v {
+                    match_index = i;
+                    break;
+                }
+            }
+            if match_index == 0xFF {
+                1
+            } else {
+                match_index
+            }
+        };
 
         let match_index = if match_index <= 64 {
             match_index
         } else {
+            println!("TITLE 4: {:02X}", match_index);
             // FIXME
             // タイトルの 4 番目の文字に基づいてさらに修正
             // let v = rom[0x0134 + 3];

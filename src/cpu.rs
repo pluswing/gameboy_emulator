@@ -153,7 +153,7 @@ impl CPU {
         cpu.bus.write_byte(0xFF50, 0x11); // カラーの場合は0x11を書き込む。
 
         // KEY0の初期化
-        let key0 = cpu.bus.read_byte(0x143);
+        let key0 = cpu.bus.read_byte(0x0143);
         if (key0 & 0x80) != 0 {
             cpu.bus.write_byte(0xFF4C, key0);
         } else {

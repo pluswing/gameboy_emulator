@@ -329,7 +329,9 @@ impl PPU {
                         rgb555to888(v[3]),
                     ];
                 })
-                .collect(),
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap(),
         }
     }
     pub fn read_vram(&self, address: usize) -> u8 {
@@ -552,8 +554,8 @@ impl PPU {
 
             // DMGの場合は、bgpからパレットデータを作る
             if self.opri {
-                let palette = self.compatible_palette[0];
-                let palette = get_palette(self.bgp, palette);
+                let cp = self.compatible_palette[0];
+                palette = get_palette(self.bgp, cp);
             }
 
             let y = if y_flip { 7 - (src_y % 8) } else { src_y % 8 } as usize;
@@ -653,8 +655,8 @@ impl PPU {
 
             // DMGの場合は、bgpからパレットデータを作る
             if self.opri {
-                let palette = self.compatible_palette[0];
-                let palette = get_palette(self.bgp, palette);
+                let cp = self.compatible_palette[0];
+                palette = get_palette(self.bgp, cp);
             }
 
             let y = if y_flip { 7 - (src_y % 8) } else { src_y % 8 } as usize;
@@ -727,8 +729,8 @@ impl PPU {
                 } else {
                     self.obp1
                 };
-                let palette = self.compatible_palette[if bg_palette == 0 { 0 } else { 1 }];
-                let palette = get_palette(value, palette);
+                let cp = self.compatible_palette[if bg_palette == 0 { 1 } else { 2 }];
+                palette = get_palette(value, cp);
             }
 
             let sx = sx - 8;

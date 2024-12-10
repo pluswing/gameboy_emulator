@@ -131,7 +131,7 @@ fn main() {
         "rom/GB/ROM/YUGIOUDM3/41/Yu-Gi-Oh! Duel Monsters III - Tri Holy God Advant (Japan).gbc";
     let yugi4 = "rom/GB/ROM/YUGIOUDM4J/43/Yu-Gi-Oh! Duel Monsters 4 - Battle of Great Duelist - Jounouchi Deck (Japan).gbc";
 
-    let cartridge = Cartridge::new(pokemon);
+    let cartridge = Cartridge::new(mario);
     let mut cpu = CPU::new(cartridge, device);
 
     let mut timer = Instant::now();
