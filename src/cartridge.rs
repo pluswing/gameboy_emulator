@@ -97,89 +97,70 @@ impl Cartridge {
             18, 29,
         ];
         let palette_comb_table: [[u8; 3]; 51] = [
-            [4, 4, 29],
-            [18, 18, 18],
-            [20, 20, 20],
-            [24, 24, 24],
-            [9, 9, 9],
-            [0, 0, 0],
-            [27, 27, 27],
-            [5, 5, 5],
-            [12, 12, 12],
-            [26, 26, 26],
-            [16, 8, 8],
-            [4, 28, 28],
-            [4, 2, 2],
-            [3, 4, 4],
-            [4, 29, 29],
-            [28, 4, 28],
-            [2, 17, 2],
-            [16, 16, 8],
-            [4, 4, 7],
-            [4, 4, 18],
-            [4, 4, 20],
-            [19, 19, 9],
+            [4 * 4, 4 * 4, 29 * 4],
+            [18 * 4, 18 * 4, 18 * 4],
+            [20 * 4, 20 * 4, 20 * 4],
+            [24 * 4, 24 * 4, 24 * 4],
+            [9 * 4, 9 * 4, 9 * 4],
+            [0 * 4, 0 * 4, 0 * 4],
+            [27 * 4, 27 * 4, 27 * 4],
+            [5 * 4, 5 * 4, 5 * 4],
+            [12 * 4, 12 * 4, 12 * 4],
+            [26 * 4, 26 * 4, 26 * 4],
+            [16 * 4, 8 * 4, 8 * 4],
+            [4 * 4, 28 * 4, 28 * 4],
+            [4 * 4, 2 * 4, 2 * 4],
+            [3 * 4, 4 * 4, 4 * 4],
+            [4 * 4, 29 * 4, 29 * 4],
+            [28 * 4, 4 * 4, 28 * 4],
+            [2 * 4, 17 * 4, 2 * 4],
+            [16 * 4, 16 * 4, 8 * 4],
+            [4 * 4, 4 * 4, 7 * 4],
+            [4 * 4, 4 * 4, 18 * 4],
+            [4 * 4, 4 * 4, 20 * 4],
+            [19 * 4, 19 * 4, 9 * 4],
             [4 * 4 - 1, 4 * 4 - 1, 11 * 4],
-            [17, 17, 2],
-            [4, 4, 2],
-            [4, 4, 3],
-            [28, 28, 0],
-            [3, 3, 0],
-            [0, 0, 1],
-            [18, 22, 18],
-            [20, 22, 20],
-            [24, 22, 24],
-            [16, 22, 8],
-            [17, 4, 13],
+            [17 * 4, 17 * 4, 2 * 4],
+            [4 * 4, 4 * 4, 2 * 4],
+            [4 * 4, 4 * 4, 3 * 4],
+            [28 * 4, 28 * 4, 0 * 4],
+            [3 * 4, 3 * 4, 0 * 4],
+            [0 * 4, 0 * 4, 1 * 4],
+            [18 * 4, 22 * 4, 18 * 4],
+            [20 * 4, 22 * 4, 20 * 4],
+            [24 * 4, 22 * 4, 24 * 4],
+            [16 * 4, 22 * 4, 8 * 4],
+            [17 * 4, 4 * 4, 13 * 4],
             [28 * 4 - 1, 0 * 4, 14 * 4],
             [28 * 4 - 1, 4 * 4, 15 * 4],
-            [19, 22, 9],
-            [16, 28, 10],
-            [4, 23, 28],
-            [17, 22, 2],
-            [4, 0, 2],
-            [4, 28, 3],
-            [28, 3, 0],
-            [3, 28, 4],
-            [21, 28, 4],
-            [3, 28, 0],
-            [25, 3, 28],
-            [0, 28, 8],
-            [4, 3, 28],
-            [28, 3, 6],
-            [4, 28, 29],
+            [19 * 4, 22 * 4, 9 * 4],
+            [16 * 4, 28 * 4, 10 * 4],
+            [4 * 4, 23 * 4, 28 * 4],
+            [17 * 4, 22 * 4, 2 * 4],
+            [4 * 4, 0 * 4, 2 * 4],
+            [4 * 4, 28 * 4, 3 * 4],
+            [28 * 4, 3 * 4, 0 * 4],
+            [3 * 4, 28 * 4, 4 * 4],
+            [21 * 4, 28 * 4, 4 * 4],
+            [3 * 4, 28 * 4, 0 * 4],
+            [25 * 4, 3 * 4, 28 * 4],
+            [0 * 4, 28 * 4, 8 * 4],
+            [4 * 4, 3 * 4, 28 * 4],
+            [28 * 4, 3 * 4, 6 * 4],
+            [4 * 4, 28 * 4, 29 * 4],
         ];
-        let palette_table: [[u16; 4]; 30] = [
-            [0x7FFF, 0x32BF, 0x00D0, 0x0000],
-            [0x639F, 0x4279, 0x15B0, 0x04CB],
-            [0x7FFF, 0x6E31, 0x454A, 0x0000],
-            [0x7FFF, 0x1BEF, 0x0200, 0x0000],
-            [0x7FFF, 0x421F, 0x1CF2, 0x0000],
-            [0x7FFF, 0x5294, 0x294A, 0x0000],
-            [0x7FFF, 0x03FF, 0x012F, 0x0000],
-            [0x7FFF, 0x03EF, 0x01D6, 0x0000],
-            [0x7FFF, 0x42B5, 0x3DC8, 0x0000],
-            [0x7E74, 0x03FF, 0x0180, 0x0000],
-            [0x67FF, 0x77AC, 0x1A13, 0x2D6B],
-            [0x7ED6, 0x4BFF, 0x2175, 0x0000],
-            [0x53FF, 0x4A5F, 0x7E52, 0x0000],
-            [0x4FFF, 0x7ED2, 0x3A4C, 0x1CE0],
-            [0x03ED, 0x7FFF, 0x255F, 0x0000],
-            [0x036A, 0x021F, 0x03FF, 0x7FFF],
-            [0x7FFF, 0x01DF, 0x0112, 0x0000],
-            [0x231F, 0x035F, 0x00F2, 0x0009],
-            [0x7FFF, 0x03EA, 0x011F, 0x0000],
-            [0x299F, 0x001A, 0x000C, 0x0000],
-            [0x7FFF, 0x027F, 0x001F, 0x0000],
-            [0x7FFF, 0x03E0, 0x0206, 0x0120],
-            [0x7FFF, 0x7EEB, 0x001F, 0x7C00],
-            [0x7FFF, 0x3FFF, 0x7E00, 0x001F],
-            [0x7FFF, 0x03FF, 0x001F, 0x0000],
-            [0x03FF, 0x001F, 0x000C, 0x0000],
-            [0x7FFF, 0x033F, 0x0193, 0x0000],
-            [0x0000, 0x4200, 0x037F, 0x7FFF],
-            [0x7FFF, 0x7E8C, 0x7C00, 0x0000],
-            [0x7FFF, 0x1BEF, 0x6180, 0x0000],
+        let palette_table: [u16; 30 * 4] = [
+            0x7FFF, 0x32BF, 0x00D0, 0x0000, 0x639F, 0x4279, 0x15B0, 0x04CB, 0x7FFF, 0x6E31, 0x454A,
+            0x0000, 0x7FFF, 0x1BEF, 0x0200, 0x0000, 0x7FFF, 0x421F, 0x1CF2, 0x0000, 0x7FFF, 0x5294,
+            0x294A, 0x0000, 0x7FFF, 0x03FF, 0x012F, 0x0000, 0x7FFF, 0x03EF, 0x01D6, 0x0000, 0x7FFF,
+            0x42B5, 0x3DC8, 0x0000, 0x7E74, 0x03FF, 0x0180, 0x0000, 0x67FF, 0x77AC, 0x1A13, 0x2D6B,
+            0x7ED6, 0x4BFF, 0x2175, 0x0000, 0x53FF, 0x4A5F, 0x7E52, 0x0000, 0x4FFF, 0x7ED2, 0x3A4C,
+            0x1CE0, 0x03ED, 0x7FFF, 0x255F, 0x0000, 0x036A, 0x021F, 0x03FF, 0x7FFF, 0x7FFF, 0x01DF,
+            0x0112, 0x0000, 0x231F, 0x035F, 0x00F2, 0x0009, 0x7FFF, 0x03EA, 0x011F, 0x0000, 0x299F,
+            0x001A, 0x000C, 0x0000, 0x7FFF, 0x027F, 0x001F, 0x0000, 0x7FFF, 0x03E0, 0x0206, 0x0120,
+            0x7FFF, 0x7EEB, 0x001F, 0x7C00, 0x7FFF, 0x3FFF, 0x7E00, 0x001F, 0x7FFF, 0x03FF, 0x001F,
+            0x0000, 0x03FF, 0x001F, 0x000C, 0x0000, 0x7FFF, 0x033F, 0x0193, 0x0000, 0x0000, 0x4200,
+            0x037F, 0x7FFF, 0x7FFF, 0x7E8C, 0x7C00, 0x0000, 0x7FFF, 0x1BEF, 0x6180, 0x0000,
         ];
 
         // 互換パレット
@@ -199,9 +180,10 @@ impl Cartridge {
         }
 
         let cgb_game = (rom[0x0143] & 0x80) != 0;
+        let default_palette_id = 0;
 
         let match_index = if !made_nintendo || cgb_game {
-            1
+            default_palette_id
         } else {
             // ゲームタイトルの16 バイトすべての合計を計算
             let mut sum: u8 = 0;
@@ -217,7 +199,7 @@ impl Cartridge {
                 }
             }
             if match_index == 0xFF {
-                1
+                default_palette_id
             } else {
                 match_index
             }
@@ -226,24 +208,47 @@ impl Cartridge {
         let match_index = if match_index <= 64 {
             match_index
         } else {
-            println!("TITLE 4: {:02X}", match_index);
-            // FIXME
             // タイトルの 4 番目の文字に基づいてさらに修正
-            // let v = rom[0x0134 + 3];
-            // "BEFAARBEKEK R-"[v - 0x41];
-            //
-            // db "BEFAARBEKEK R-"
-            // .row
-            //   db "URAR INAILICE "
-            //   db "R"
-            match_index
+            let row1 = "BEFAARBEKEK R-";
+            let row2 = "URAR INAILICE ";
+            let row3 = "R";
+
+            let index = match_index - 0x41;
+            let c = char::from_u32(rom[0x0134 + 3] as u32).unwrap();
+
+            if row1.chars().nth(index).unwrap_or('_') == c {
+                match_index
+            } else if row2.chars().nth(index).unwrap_or('_') == c {
+                match_index + 14
+            } else if row3.chars().nth(index).unwrap_or('_') == c {
+                match_index + 28
+            } else {
+                default_palette_id
+            }
         };
         let palette_index = palette_index_table[match_index];
         let palette_comb = palette_comb_table[palette_index as usize];
 
-        let obj0 = palette_table[palette_comb[0] as usize];
-        let obj1 = palette_table[palette_comb[1] as usize];
-        let bgp = palette_table[palette_comb[2] as usize];
+        let obj0: [u16; 4] = [
+            palette_table[palette_comb[0] as usize],
+            palette_table[(palette_comb[0] + 1) as usize],
+            palette_table[(palette_comb[0] + 2) as usize],
+            palette_table[(palette_comb[0] + 3) as usize],
+        ];
+
+        let obj1: [u16; 4] = [
+            palette_table[palette_comb[1] as usize],
+            palette_table[(palette_comb[1] + 1) as usize],
+            palette_table[(palette_comb[1] + 2) as usize],
+            palette_table[(palette_comb[1] + 3) as usize],
+        ];
+
+        let bgp: [u16; 4] = [
+            palette_table[palette_comb[2] as usize],
+            palette_table[(palette_comb[2] + 1) as usize],
+            palette_table[(palette_comb[2] + 2) as usize],
+            palette_table[(palette_comb[2] + 3) as usize],
+        ];
 
         Cartridge {
             rom,
