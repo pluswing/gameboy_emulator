@@ -77,8 +77,8 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB24, 256, 256)
         .unwrap();
 
-    // bg1_canvas.window_mut().hide();
-    // bg2_canvas.window_mut().hide();
+    bg1_canvas.window_mut().hide();
+    bg2_canvas.window_mut().hide();
 
     // init audio
     let audio_subsystem = sdl_context.audio().unwrap();
@@ -206,7 +206,10 @@ fn handle_user_input(event_pump: &mut EventPump, cartridge: &mut Cartridge, joyp
             Event::KeyDown {
                 keycode: Some(Keycode::Return),
                 ..
-            } => joypad.start = true,
+            } => {
+                joypad.start = true;
+                println!("** PRESS START **");
+            }
             Event::KeyUp {
                 keycode: Some(Keycode::Return),
                 ..

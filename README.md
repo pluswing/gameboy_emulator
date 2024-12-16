@@ -41,19 +41,21 @@ https://dic.nicovideo.jp/a/gb%E9%9F%B3%E6%BA%90
 https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware#Register_Reading
 
 ## test results
-01-special.gb               passed
-02-interrupts.gb            Timer doesn't work
-03-op sp,hl.gb              passed
-04-op r,imm.gb              passed
-05-op rp.gb                 passed
-06-ld r,r.gb                passed
-07-jr,jp,call,ret,rst.gb    passed
-08-misc instrs.gb           passed
-09-op r,r.gb                passed
-10-bit ops.gb               passed
-11-op a,(hl).gb             passed
+
+01-special.gb passed
+02-interrupts.gb Timer doesn't work
+03-op sp,hl.gb passed
+04-op r,imm.gb passed
+05-op rp.gb passed
+06-ld r,r.gb passed
+07-jr,jp,call,ret,rst.gb passed
+08-misc instrs.gb passed
+09-op r,r.gb passed
+10-bit ops.gb passed
+11-op a,(hl).gb passed
 
 ## cartridge types
+
 Dragon Quest Monsters - Terry no Wonderland (Japan) (SGB Enhanced) (GB Compatible).gbc: [03, 06, 02]
 Kaeru no Tame ni Kane wa Naru (Japan).gb: [03, 04, 02]
 Super Mario Land 2 - 6-tsu no Kinka (Japan) (Rev 2).gb: [03, 04, 02]
@@ -65,19 +67,27 @@ Zelda no Densetsu - Yume o Miru Shima (Japan): [03, 04, 02]
 ## カラー対応
 
 ### できた
+
 - ゲームボーイカラーの機能のアンロック
-  - CGB対応ソフトかどうかのチェック
+  - CGB 対応ソフトかどうかのチェック
 - ゲームボーイカラー (ゲームボーイアドバンス) の見分け方
-  - ハード(emulator)がCGB対応してると言う
-- 速度切り替え準備 (STOP命令)
+  - ハード(emulator)が CGB 対応してると言う
+- 速度切り替え準備 (STOP 命令)
 
 ### まだ
+
 - 速度調整
+
   - LCD コントローラ (PPU) => DONE
   - VRAM bank / WRAM bank
   - HDMA ※
   - サウンドのタイミングと周波数 (APU) => DONE
 
-- PPU実装
-  - ...BGPIとか
+- PPU 実装
+  - ...BGPI とか
 
+```
+gold01.shutdown.log
+thread 'main' panicked at src/cpu.rs:777:13:
+Unknown instruction found for: 0xDB
+```

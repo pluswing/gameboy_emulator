@@ -747,20 +747,23 @@ impl CPU {
             instruction_byte = self.bus.read_byte(self.pc + 1);
         }
         if let Some(instruction) = instruction::Instruction::from_byte(instruction_byte, prefixed) {
-            // let description = format!(
-            //     "0x{}{:02X}(0x{:02X})",
-            //     if prefixed { "CB" } else { "" },
-            //     instruction_byte,
-            //     self.read_next_byte(),
-            // );
-            // if instruction_byte != 0x00 {
-            //     println!(
-            //         "{:04X} ==> {} HL:{:04X}",
-            //         self.pc,
-            //         description,
-            //         self.registers.get_hl()
-            //     );
-            // }
+            let description = format!(
+                "0x{}{:02X}(0x{:02X})",
+                if prefixed { "CB" } else { "" },
+                instruction_byte,
+                self.read_next_byte(),
+            );
+            if instruction_byte != 0x00 {
+                println!(
+                    "{:04X} ==> {} AF:{:04X} BC:{:04X} DE:{:04X} HL:{:04X}",
+                    self.pc,
+                    description,
+                    self.registers.get_af(),
+                    self.registers.get_bc(),
+                    self.registers.get_de(),
+                    self.registers.get_hl()
+                );
+            }
             self.execute(instruction);
             self.pc = self
                 .pc
