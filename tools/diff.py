@@ -1,9 +1,13 @@
 import re
+import sys
 
-with open("gold01.return_menu.log.s") as f:
+a = sys.argv[1]
+b = sys.argv[2]
+
+with open(a) as f:
   alines = f.readlines()
 
-with open("gold01.shutdown.log.s") as f:
+with open(b) as f:
   blines = f.readlines()
 
 for i, (a, b) in enumerate(zip(alines, blines)):

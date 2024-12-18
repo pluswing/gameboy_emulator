@@ -1,4 +1,4 @@
-with open("gold01.shutdown.log") as f:
+with open("gold03_ret4.log") as f:
   lines = f.readlines()
 
 for i, line in enumerate(lines):
@@ -6,5 +6,5 @@ for i, line in enumerate(lines):
     lines = lines[i:]
     break
 
-with open("gold01.shutdown.log.s", "w") as f:
+with open("gold03_ret4.log.s", "w") as f:
   f.writelines(lines)
