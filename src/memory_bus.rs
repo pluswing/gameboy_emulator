@@ -86,7 +86,15 @@ impl MemoryBus {
             0xFF20 | 0xFF21 | 0xFF22 | 0xFF23 => self.apu.ch4.read(address as u16),
             // key0, key1 (0xFF4C, 0xFF4D)
             0xFF56 => {
-                println!("READ 0xFF56");
+                println!("READ 0xFF56 0x{:02X}", self.memory[address]);
+                self.memory[address]
+            }
+            0xFF01 => {
+                println!("READ 0xFF01 (DATA) 0x{:02X}", self.memory[address]);
+                self.memory[address]
+            }
+            0xFF02 => {
+                println!("READ 0xFF02 (CTRL) 0x{:02X}", self.memory[address]);
                 self.memory[address]
             }
             _ => self.memory[address],
@@ -137,11 +145,13 @@ impl MemoryBus {
                 // テストROMがここに出力をするので、hook
                 // let res = [value, 0x00].iter().map(|&s| s as char).collect::<String>();
                 // print!("{}", res);
+                println!("WRITE 0xFF01 (DATA) 0x{:02X}", self.memory[address]);
             }
             0xFF02 => {
                 // BEAT MANIA2の起動時にTransfer enableを立てていて、
                 // 落ちるのを待つので、書き込まれないようにする。
                 // println!("SC: {:02X}", value);
+                println!("WRITE 0xFF02 (CTRL) 0x{:02X}", self.memory[address]);
             }
             0xFF04 => {
                 // DIV
@@ -206,7 +216,7 @@ impl MemoryBus {
         let src = ((self.ppu.hdma1 as u16) << 8 | self.ppu.hdma2 as u16) & 0xFFF0;
         let dest = (((self.ppu.hdma3 as u16) << 8 | self.ppu.hdma4 as u16) & 0x1FF0) | 0x8000;
 
-        // println!("HDMA mode: {} s{:04X} d{:04X} {}", mode, src, dest, size);
+        println!("HDMA mode: {} s{:04X} d{:04X} {}", mode, src, dest, size);
 
         for i in 0..size {
             let v = self.read_byte(src + i);

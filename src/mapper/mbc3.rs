@@ -51,7 +51,7 @@ impl MBC3 {
             0x2000..=0x3FFF => {
                 // ROMバンク番号
                 self.bank = value;
-                println!("BANK: {:02X}, {}", value, value);
+                // println!("BANK: {:02X}, {}", value, value);
             }
             0x4000..=0x5FFF => {
                 // RAMバンク/RTCレジスタの選択レジスタ

@@ -1,0 +1,26 @@
+gold03_ret1.log => 59 0x3D(0x28) RET Z
+                      0xCD(0x7D)
+
+gold03_ret2.log => 71 0xCD(0xEF) RET Z
+                      0xF0(0x9F)
+
+gold03_ret3.log => 100 0xF8(0x00) ??
+                       0xC9(0xFA)
+
+99 0xE9 => JP HL
+98 0x6F => LD L, A
+97 0x66 => LD H, [HL]
+96 0x2A => LD A, [HL+]
+95 0x23 => INC HL
+94 0x56 => LD D, [HL]
+93 0x23 => INC HL
+92 0x5E => LD E, [HL]
+91 0x19 => ADD HL, DE
+90 0x29 => ADD HL, HL
+89 0x29 => ADD HL, HL
+88 0x26 => LD H, n8
+87 0xE0 => LDH [a8(0xE1)], A
+86 0x3C => INC A
+
+# Lの値がどこかで違くなっている！
+
