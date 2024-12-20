@@ -7,6 +7,7 @@ gold03_ret2.log => 71 0xCD(0xEF) RET Z
 gold03_ret3.log => 100 0xF8(0x00) ??
                        0xC9(0xFA)
 
+gold03_ret3.log / gold04_ret3.log
 99 0xE9 => JP HL
 98 0x6F => LD L, A
 97 0x66 => LD H, [HL]
@@ -21,6 +22,19 @@ gold03_ret3.log => 100 0xF8(0x00) ??
 88 0x26 => LD H, n8
 87 0xE0 => LDH [a8(0xE1)], A
 86 0x3C => INC A
+85 0x6F => LD L, A # LをAで上書きしてる
+84 0xF0 => LDH A, [a8] (0xFFE1)
+83 0x57 => LD D, A
+82 0xFA => LD A, [a16] 0xBE, 0x??
+81 0x5F => LD E, A
+80 0xFA => LD A, [a16] 0xBD, 0x??
+79 0xCD => CALL a16 (0x4003)
+78 0xC9 => RET
+
+gold03_ret2.log
+71 0xCD => CALL Z, a16
+70 0xC8
+
 
 # Lの値がどこかで違くなっている！
 

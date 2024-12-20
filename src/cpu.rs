@@ -237,6 +237,7 @@ impl CPU {
     ) {
         if arg0.condition(self) {
             self.push_u16(self.pc.wrapping_add(3));
+            // 引いてるのは後で足すから。
             self.pc = self.read_next_word().wrapping_sub(3)
         }
         self.update_flags(0, flags);
