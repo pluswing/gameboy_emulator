@@ -50,7 +50,10 @@ impl MemoryBus {
             0xFF4A => self.ppu.wy,
             0xFF4B => self.ppu.wx,
             0xFE00..=0xFE9F => self.ppu.read_oam(address),
-            0xFF50 => self.memory[address],
+            0xFF50 => {
+                println!("READ 0xFF50: {:02X}", self.memory[address]);
+                self.memory[address]
+            }
             0xFF00 => self.joypad.read(),
 
             // HDMA
@@ -71,6 +74,14 @@ impl MemoryBus {
             // OCPS
             0xFF6A => self.ppu.ocps,
             0xFF6B => self.ppu.read_sprite_palette(),
+            // OPRI
+            0xFF6C => {
+                if self.ppu.opri {
+                    0x01
+                } else {
+                    0x00
+                }
+            }
 
             // APU
             0xFF26 | 0xFF25 | 0xFF24 => self.apu.global.read(address as u16),
@@ -85,6 +96,10 @@ impl MemoryBus {
             // CH4
             0xFF20 | 0xFF21 | 0xFF22 | 0xFF23 => self.apu.ch4.read(address as u16),
             // key0, key1 (0xFF4C, 0xFF4D)
+            0xFF4C | 0xFF4D => {
+                println!("READ {:04X} {:02X}", address, self.memory[address]);
+                self.memory[address]
+            }
             0xFF56 => {
                 println!("READ 0xFF56 0x{:02X}", self.memory[address]);
                 self.memory[address]
@@ -138,6 +153,11 @@ impl MemoryBus {
             // OCPS
             0xFF6A => self.ppu.ocps = value,
             0xFF6B => self.ppu.write_sprite_palette(value),
+            // OPRI
+            0xFF6C => {
+                println!("READ OPRI: {}", self.ppu.opri);
+                self.ppu.opri = (value & 0x01) != 0;
+            }
 
             0xFF50 => self.memory[address] = value, // FIXME boot rom bank switch
             0xFF01 => {
