@@ -165,13 +165,13 @@ impl MemoryBus {
                 // テストROMがここに出力をするので、hook
                 // let res = [value, 0x00].iter().map(|&s| s as char).collect::<String>();
                 // print!("{}", res);
-                println!("WRITE 0xFF01 (DATA) 0x{:02X}", self.memory[address]);
+                // println!("WRITE 0xFF01 (DATA) 0x{:02X}", self.memory[address]);
             }
             0xFF02 => {
                 // BEAT MANIA2の起動時にTransfer enableを立てていて、
                 // 落ちるのを待つので、書き込まれないようにする。
                 // println!("SC: {:02X}", value);
-                println!("WRITE 0xFF02 (CTRL) 0x{:02X}", self.memory[address]);
+                // println!("WRITE 0xFF02 (CTRL) 0x{:02X}", self.memory[address]);
             }
             0xFF04 => {
                 // DIV
@@ -193,7 +193,7 @@ impl MemoryBus {
             0xFF20 | 0xFF21 | 0xFF22 | 0xFF23 => self.apu.ch4.write(address as u16, value),
 
             0xFF56 => {
-                println!("WRITE 0xFF56 => 0x{:02X}", value);
+                // println!("WRITE 0xFF56 => 0x{:02X}", value);
                 self.memory[address] = value
             }
             // ...
