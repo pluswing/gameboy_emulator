@@ -3,7 +3,6 @@ pub struct MBC3 {
     ram_enabled: bool,
     ram_bank: u8,
     latch_clock_data: u8,
-    rtc_value: u8,
     rtc: [u8; 5],
 }
 
@@ -14,7 +13,6 @@ impl MBC3 {
             ram_enabled: false,
             ram_bank: 0,
             latch_clock_data: 0,
-            rtc_value: 0,
             rtc: [0; 5],
         }
     }
@@ -25,7 +23,11 @@ impl MBC3 {
             0x0000..=0x3FFF => rom[addr as usize],
             // bank1
             0x4000..=0x7FFF => {
-                let bank = if self.bank == 0 { 1 } else { self.bank & 0x3F };
+                let bank = if (self.bank & 0x3F) == 0 {
+                    1
+                } else {
+                    self.bank & 0x3F
+                };
                 let addr = addr as usize - 0x4000 + (bank as usize * 0x4000);
                 rom[addr]
             }
@@ -35,7 +37,7 @@ impl MBC3 {
                 } else if self.ram_bank <= 0x03 {
                     ram[addr as usize - 0xA000 + self.ram_bank as usize * 0x2000]
                 } else {
-                    self.rtc_value
+                    self.rtc[self.ram_bank as usize - 0x08]
                 }
             }
             _ => panic!("should not reach!"),
@@ -50,20 +52,21 @@ impl MBC3 {
             }
             0x2000..=0x3FFF => {
                 // ROMバンク番号
-                self.bank = value;
+                self.bank = value & 0x3F;
                 // println!("BANK: {:02X}, {}", value, value);
             }
             0x4000..=0x5FFF => {
                 // RAMバンク/RTCレジスタの選択レジスタ
-                self.ram_bank = value;
+                self.ram_bank = value & 0x0F;
             }
             0x6000..=0x7FFF => {
                 // ラッチクロックデータ
                 if self.latch_clock_data == 0x00 && value == 0x01 {
-                    // 現在の時刻がRTCレジスタにラッチする。
-                    if self.ram_bank >= 0x08 {
-                        self.rtc_value = self.rtc[self.ram_bank as usize - 0x08];
-                    }
+                    self.rtc[0] = 0;
+                    self.rtc[1] = 0;
+                    self.rtc[2] = 0;
+                    self.rtc[3] = 0;
+                    self.rtc[4] = 0;
                 }
                 self.latch_clock_data = value;
             }

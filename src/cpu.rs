@@ -124,6 +124,7 @@ pub struct CPU {
     pub bus: MemoryBus,
     pub is_halted: bool,
     pub ime_flag: bool,
+    pub setei: u8,
     timer_counter: u16,
     div_counter: u16,
     clock_select: u8,
@@ -140,6 +141,7 @@ impl CPU {
             bus: MemoryBus::new(cartridge, device),
             is_halted: false,
             ime_flag: true,
+            setei: 0,
             timer_counter: 0,
             div_counter: 0,
             clock_select: 0,
@@ -377,12 +379,7 @@ impl CPU {
         self.update_flags(self.registers.a as u16, flags);
     }
     fn reti(&mut self, flags: instruction::Flags) {
-        self.ei(Flags {
-            zero: FlagValue::NO_CHANGE,
-            subtract: FlagValue::NO_CHANGE,
-            half_carry: FlagValue::NO_CHANGE,
-            carry: FlagValue::NO_CHANGE,
-        });
+        self.setei = 1;
         self.ret(
             instruction::RET_Arg_0::NONE,
             Flags {
@@ -665,7 +662,7 @@ impl CPU {
         self.update_flags(self.registers.a as u16, flags);
     }
     fn ei(&mut self, flags: instruction::Flags) {
-        self.ime_flag = true;
+        self.setei = 2;
     }
 
     fn or(&mut self, arg0: instruction::OR_Arg_0, flags: instruction::Flags) {
@@ -735,6 +732,13 @@ impl CPU {
     }
 
     pub fn step(&mut self) {
+        if self.setei != 0 {
+            self.setei -= 1;
+            if self.setei == 0 {
+                self.ime_flag = true;
+            }
+        }
+
         if self.is_halted {
             self.update_timers(1);
             self.update_graphics(1);
@@ -749,23 +753,25 @@ impl CPU {
             instruction_byte = self.bus.read_byte(self.pc + 1);
         }
         if let Some(instruction) = instruction::Instruction::from_byte(instruction_byte, prefixed) {
-            // let description = format!(
-            //     "0x{}{:02X}(0x{:02X})",
-            //     if prefixed { "CB" } else { "" },
-            //     instruction_byte,
-            //     self.read_next_byte(),
-            // );
-            // if instruction_byte != 0x00 {
-            //     println!(
-            //         "{:04X} ==> {} AF:{:04X} BC:{:04X} DE:{:04X} HL:{:04X}",
-            //         self.pc,
-            //         description,
-            //         self.registers.get_af(),
-            //         self.registers.get_bc(),
-            //         self.registers.get_de(),
-            //         self.registers.get_hl()
-            //     );
-            // }
+            let description = format!(
+                "0x{}{:02X}(0x{:02X})",
+                if prefixed { "CB" } else { "" },
+                instruction_byte,
+                self.read_next_byte(),
+            );
+            if instruction_byte != 0x00 {
+                println!(
+                    "{:04X} ==> {} AF:{:04X} BC:{:04X} DE:{:04X} HL:{:04X} SP:{:04X} ({:02X} {:02X})",
+                    self.pc,
+                    description,
+                    self.registers.get_af(),
+                    self.registers.get_bc(),
+                    self.registers.get_de(),
+                    self.registers.get_hl(),
+                    self.sp,
+                    self.bus.memory[self.sp as usize - 2], self.bus.memory[self.sp as usize - 1]
+                );
+            }
             self.execute(instruction);
             self.pc = self
                 .pc
@@ -834,6 +840,7 @@ impl CPU {
 
     fn service_interrupt(&mut self, interrupt: u8) {
         self.ime_flag = false;
+        self.setei = 0;
         let request = self.bus.read_byte(0xFF0F);
         let mask = (0x01 << interrupt) as u8;
         self.bus.write_byte(0xFF0F, request & !mask);
