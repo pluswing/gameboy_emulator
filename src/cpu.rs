@@ -833,7 +833,8 @@ impl CPU {
         for i in 0..=4 {
             let mask = (0x01 << i) as u8;
             if (request & mask) != 0 {
-                self.service_interrupt(i as u8)
+                self.service_interrupt(i as u8);
+                break;
             }
         }
     }
