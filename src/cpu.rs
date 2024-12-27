@@ -225,8 +225,8 @@ impl CPU {
     ) {
         if arg0.condition(self) {
             self.pc = match arg0 {
-                instruction::JP_Arg_0::HL => self.registers.get_hl() - 1,
-                _ => self.read_next_word() - 3,
+                instruction::JP_Arg_0::HL => self.registers.get_hl().wrapping_sub(1),
+                _ => self.read_next_word().wrapping_sub(3),
             };
         }
         self.update_flags(0, flags);
