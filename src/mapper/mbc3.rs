@@ -1,3 +1,5 @@
+use chrono::{DateTime, Timelike, Utc};
+
 pub struct MBC3 {
     bank: u8,
     ram_enabled: bool,
@@ -23,6 +25,7 @@ impl MBC3 {
             0x0000..=0x3FFF => rom[addr as usize],
             // bank1
             0x4000..=0x7FFF => {
+                // MEMO: 1MBのソフトのみ対応。2MBの場合は、0x7Fでマスクする必要あり。
                 let bank = if (self.bank & 0x3F) == 0 {
                     1
                 } else {
@@ -36,8 +39,10 @@ impl MBC3 {
                     0
                 } else if self.ram_bank <= 0x03 {
                     ram[addr as usize - 0xA000 + self.ram_bank as usize * 0x2000]
-                } else {
+                } else if self.ram_bank >= 0x08 {
                     self.rtc[self.ram_bank as usize - 0x08]
+                } else {
+                    0
                 }
             }
             _ => panic!("should not reach!"),
@@ -62,10 +67,11 @@ impl MBC3 {
             0x6000..=0x7FFF => {
                 // ラッチクロックデータ
                 if self.latch_clock_data == 0x00 && value == 0x01 {
-                    self.rtc[0] = 0;
-                    self.rtc[1] = 0;
-                    self.rtc[2] = 0;
-                    self.rtc[3] = 0;
+                    let now: DateTime<Utc> = Utc::now();
+                    self.rtc[0] = now.second() as u8;
+                    self.rtc[1] = now.minute() as u8;
+                    self.rtc[2] = now.hour() as u8;
+                    self.rtc[3] = 0; // FIXME 日付が入るが、省略！
                     self.rtc[4] = 0;
                 }
                 self.latch_clock_data = value;
